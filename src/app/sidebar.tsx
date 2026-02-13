@@ -72,7 +72,7 @@ export default function Sidebar() {
           {(
             [
               { label: 'Home', href: '/' },
-              { label: 'Monthly Budgeting', href: '/monthly-budgeting' },
+              { label: 'Monthly Budget', href: '/monthly-budget' },
               { label: 'Daily Tracker', href: '/daily-tracker' },
             ] as const
           ).map(({ label, href }) => {

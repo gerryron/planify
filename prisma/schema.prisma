@@ -11,5 +11,12 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+}
+
+model MonthlyBudget {
+  id       String   @id @default(uuid())
+  name     String
+  amount   Int
+  month    String
+  category String
 }

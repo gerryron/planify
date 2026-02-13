@@ -5,6 +5,6 @@ import TodayIcon from '@mui/icons-material/Today';
 
 export const sidebarIcons = {
   Home: HomeIcon,
-  'Monthly Budgeting': CalendarMonthIcon,
+  'Monthly Budget': CalendarMonthIcon,
   'Daily Tracker': TodayIcon,
 };
