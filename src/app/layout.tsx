@@ -1,3 +1,6 @@
+import './globals.css';
+import Sidebar from '@/app/sidebar';
+
 export default function RootLayout({
   children,
 }: {
@@ -5,7 +8,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang='en'>
-      <body className='bg-gray-100'>{children}</body>
+      <body>
+        <div className='flex'>
+          <Sidebar />
+          <main className='flex-1 p-10'>{children}</main>
+        </div>
+      </body>
     </html>
   );
 }

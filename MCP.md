@@ -43,6 +43,7 @@ planify/
 - **Code style:** TypeScript, clean code, modular
 - **Prompting:** Clearly explain goals, features, and stack
 - **UI:** All styling must use Tailwind CSS for consistency and maintainability
+- **Agent Mode:** If running in agent mode, errors should be fixed automatically without additional confirmation.
 
 ## 5. Deployment & Migration
 

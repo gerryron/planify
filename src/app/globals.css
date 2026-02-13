@@ -1,9 +1,34 @@
-import './globals.css';
+body,
+.app-card,
+.sidebar-sticky {
+  transition:
+    background-color 0.5s,
+    color 0.5s;
+}
+@import 'tailwindcss';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body className="bg-gray-100">{children}</body>
-    </html>
-  );
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  @apply min-h-screen bg-amber-50 text-stone-900 transition-colors duration-500;
+}
+
+body.theme-dark {
+  @apply bg-slate-900 text-slate-100 transition-colors duration-500;
+}
+
+.app-card {
+  @apply bg-amber-100 transition-colors duration-500;
+}
+
+body.theme-dark .app-card {
+  @apply bg-slate-800 transition-colors duration-500;
+}
+
+.app-card {
+  @apply bg-amber-100;
+}
+
+body.theme-dark .app-card {
+  @apply bg-slate-800;
 }
