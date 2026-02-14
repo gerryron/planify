@@ -29,15 +29,27 @@ export default function MonthlyBudgetPage() {
 
   return (
     <div className='max-w-2xl mx-auto py-8 space-y-8'>
-      <h1 className='text-2xl font-bold mb-4'>Monthly Budget</h1>
-      <MonthlyBudgetList
-        key={refreshKey}
-        onEdit={handleEdit}
-        onAdd={handleAdd}
-      />
+      <div className='sticky top-0 z-40 bg-slate-900 dark:bg-slate-900 pb-2 pt-4'>
+        <h1 className='text-2xl font-bold mb-4'>Monthly Budget</h1>
+        {/* Filter bar dan total transaction ikut sticky */}
+        <MonthlyBudgetList
+          key={refreshKey}
+          onEdit={handleEdit}
+          onAdd={handleAdd}
+          stickyHeader
+        />
+      </div>
+      {/* List tetap di bawah sticky header */}
+      {/* Modal form */}
       {showForm && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'>
-          <div className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 min-w-[320px] max-w-md w-full relative'>
+        <div
+          className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
+          onClick={handleCancel}
+        >
+          <div
+            className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 min-w-[320px] max-w-md w-full relative'
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               className='absolute top-2 right-2 text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold'
               onClick={handleCancel}
@@ -49,7 +61,6 @@ export default function MonthlyBudgetPage() {
               key={editing ? editing.id : 'new'}
               initial={editing}
               onSuccess={handleSuccess}
-              onCancel={handleCancel}
             />
           </div>
         </div>

@@ -11,8 +11,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!name || amount === undefined || !month || !category || !type) {
       return badRequest('All fields are required');
     }
-    if (type !== 'income' && type !== 'outcome') {
-      return badRequest('Type must be income or outcome');
+    if (type !== 'income' && type !== 'outcome' && type !== 'carryover') {
+      return badRequest('Type must be income, outcome, or carryover');
     }
     const createData: BudgetInput = { name, amount, month, category, type };
     const budget = await prisma.monthlyBudget.create({
@@ -60,8 +60,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const { id, ...data }: Partial<BudgetInput> & { id: string } =
       await req.json();
     if (!id) return badRequest('ID is required');
-    if (data.type && data.type !== 'income' && data.type !== 'outcome') {
-      return badRequest('Type must be income or outcome');
+    if (
+      data.type &&
+      data.type !== 'income' &&
+      data.type !== 'outcome' &&
+      data.type !== 'carryover'
+    ) {
+      return badRequest('Type must be income, outcome, or carryover');
     }
     const budget = await prisma.monthlyBudget.update({
       where: { id },

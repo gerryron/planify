@@ -3,5 +3,5 @@ export type BudgetInput = {
   amount: number;
   month: string;
   category: string;
-  type: 'income' | 'outcome';
+  type: 'income' | 'outcome' | 'carryover';
 };

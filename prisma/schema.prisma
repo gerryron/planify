@@ -19,5 +19,5 @@ model MonthlyBudget {
   amount   Int
   month    String
   category String
-  type     String
+  type     String // 'income' | 'outcome' | 'carryover'
 }

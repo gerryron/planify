@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import Swal from 'sweetalert2';
 import { monthlyBudgetService, Budget } from '@/services/monthlyBudgetService';
 import { BudgetInput } from '@/types/budget';
 
@@ -8,10 +9,15 @@ interface MonthlyBudgetFormProps {
   onCancel?: () => void;
 }
 
+function getCurrentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
 const defaultForm: BudgetInput = {
   name: '',
   amount: 0,
-  month: '',
+  month: getCurrentMonth(),
   category: '',
   type: 'outcome',
 };
@@ -19,7 +25,6 @@ const defaultForm: BudgetInput = {
 export default function MonthlyBudgetForm({
   initial,
   onSuccess,
-  onCancel,
 }: MonthlyBudgetFormProps) {
   const [form, setForm] = useState<BudgetInput>(
     initial ? { ...initial } : defaultForm,
@@ -27,25 +32,59 @@ export default function MonthlyBudgetForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const formattedAmount = useMemo(() => {
+    if (!form.amount) return '';
+    return `Rp ${form.amount.toLocaleString('id-ID')}`;
+  }, [form.amount]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setForm((f) => ({
       ...f,
-      [name]: name === 'amount' ? (value === '' ? 0 : Number(value)) : value,
+      [name]:
+        name === 'amount'
+          ? value === ''
+            ? 0
+            : Number(value.replace(/[^\d]/g, ''))
+          : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const isUpdate = initial && initial.id;
+    const confirmResult = await Swal.fire({
+      title: isUpdate ? 'Update this budget?' : 'Add this budget?',
+      text: isUpdate
+        ? 'Are you sure you want to update this budget?'
+        : 'Are you sure you want to add this budget?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: isUpdate ? 'Update' : 'Add',
+      cancelButtonText: 'Cancel',
+    });
+    if (!confirmResult.isConfirmed) return;
     setLoading(true);
     setError(null);
     try {
-      if (initial && initial.id) {
+      if (isUpdate) {
         await monthlyBudgetService.update(initial.id, form);
+        await Swal.fire({
+          icon: 'success',
+          title: 'Budget updated!',
+          showConfirmButton: false,
+          timer: 1200,
+        });
       } else {
         await monthlyBudgetService.create(form);
+        await Swal.fire({
+          icon: 'success',
+          title: 'Budget added!',
+          showConfirmButton: false,
+          timer: 1200,
+        });
       }
       onSuccess();
       setForm(defaultForm);
@@ -67,7 +106,8 @@ export default function MonthlyBudgetForm({
           name='name'
           value={form.name}
           onChange={handleChange}
-          className='w-full p-2 border rounded'
+          placeholder='e.g. Groceries, Salary'
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
@@ -75,12 +115,13 @@ export default function MonthlyBudgetForm({
         <label className='block font-medium'>Amount</label>
         <input
           name='amount'
-          type='number'
-          value={form.amount === 0 ? '' : form.amount}
+          type='text'
+          inputMode='numeric'
+          value={formattedAmount}
           onChange={handleChange}
-          className='w-full p-2 border rounded'
+          placeholder='e.g. 1000000'
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
-          min={0}
         />
       </div>
       <div>
@@ -90,7 +131,8 @@ export default function MonthlyBudgetForm({
           type='month'
           value={form.month}
           onChange={handleChange}
-          className='w-full p-2 border rounded'
+          placeholder='Select month'
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
@@ -100,7 +142,8 @@ export default function MonthlyBudgetForm({
           name='category'
           value={form.category}
           onChange={handleChange}
-          className='w-full p-2 border rounded'
+          placeholder='e.g. Food, Salary, Utilities'
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
@@ -110,7 +153,7 @@ export default function MonthlyBudgetForm({
           name='type'
           value={form.type}
           onChange={handleChange}
-          className='w-full p-2 border rounded'
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         >
           <option value='outcome'>Outcome</option>
@@ -118,23 +161,14 @@ export default function MonthlyBudgetForm({
         </select>
       </div>
       {error && <div className='text-red-500'>{error}</div>}
-      <div className='flex gap-2'>
+      <div>
         <button
           type='submit'
-          className='px-4 py-2 bg-green-600 text-white rounded'
+          className='w-full px-4 py-2 bg-green-600 text-white rounded mt-2'
           disabled={loading}
         >
           {initial ? 'Update' : 'Add'}
         </button>
-        {onCancel && (
-          <button
-            type='button'
-            className='px-4 py-2 bg-gray-400 text-white rounded'
-            onClick={onCancel}
-          >
-            Cancel
-          </button>
-        )}
       </div>
     </form>
   );
