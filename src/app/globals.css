@@ -10,7 +10,7 @@ body,
 @custom-variant dark (&:where(.dark, .dark *));
 
 body {
-  @apply min-h-screen bg-amber-50 text-stone-900 transition-colors duration-500;
+  @apply min-h-screen bg-emerald-50 text-slate-900 transition-colors duration-500;
 }
 
 body.theme-dark {
@@ -18,7 +18,7 @@ body.theme-dark {
 }
 
 .app-card {
-  @apply bg-amber-100 transition-colors duration-500;
+  @apply bg-white transition-colors duration-500;
 }
 
 body.theme-dark .app-card {
@@ -26,7 +26,7 @@ body.theme-dark .app-card {
 }
 
 .app-card {
-  @apply bg-amber-100;
+  @apply bg-white;
 }
 
 body.theme-dark .app-card {

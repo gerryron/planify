@@ -29,9 +29,7 @@ export default function MonthlyBudgetPage() {
 
   return (
     <div className='max-w-2xl mx-auto py-8 space-y-8'>
-      <div className='sticky top-0 z-40 bg-slate-900 dark:bg-slate-900 pb-2 pt-4'>
-        <h1 className='text-2xl font-bold mb-4'>Monthly Budget</h1>
-        {/* Filter bar dan total transaction ikut sticky */}
+      <div className='sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 p-4'>
         <MonthlyBudgetList
           key={refreshKey}
           onEdit={handleEdit}

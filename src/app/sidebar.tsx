@@ -1,11 +1,13 @@
 'use client';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import NightlightIcon from '@mui/icons-material/Nightlight';
 import { sidebarIcons } from './sidebarIcons';
 
 export default function Sidebar() {
+  const pathname = usePathname();
   const [darkMode, setDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -37,7 +39,7 @@ export default function Sidebar() {
       className={
         (darkMode
           ? 'w-64 bg-slate-800 shadow-lg flex flex-col p-6'
-          : 'w-64 bg-amber-100 shadow-lg flex flex-col p-6') +
+          : 'w-64 bg-emerald-600 border-r border-emerald-700 shadow-lg flex flex-col p-6') +
         ' h-screen sticky top-0 left-0'
       }
     >
@@ -46,7 +48,7 @@ export default function Sidebar() {
           className={
             darkMode
               ? 'text-xl font-bold text-slate-100'
-              : 'text-xl font-bold text-stone-900'
+              : 'text-xl font-bold text-white'
           }
         >
           Planify
@@ -55,7 +57,7 @@ export default function Sidebar() {
           className={
             darkMode
               ? 'bg-slate-800 text-slate-100 px-3 py-1 rounded'
-              : 'bg-amber-100 text-stone-900 px-3 py-1 rounded'
+              : 'bg-emerald-600 text-white px-3 py-1 rounded '
           }
           onClick={() => setDarkMode((v) => !v)}
           aria-label='Toggle dark mode'
@@ -78,16 +80,22 @@ export default function Sidebar() {
           ).map(({ label, href }) => {
             type SidebarLabel = keyof typeof sidebarIcons;
             const Icon = sidebarIcons[label as SidebarLabel];
+            const isActive = pathname === href;
             return (
               <li key={label}>
                 <Link
                   href={href}
                   className={
                     (darkMode
-                      ? 'text-slate-100 hover:text-slate-300'
-                      : 'text-stone-900 hover:text-stone-600') +
-                    ' font-medium flex items-center gap-2'
+                      ? isActive
+                        ? 'bg-slate-700 text-white font-bold'
+                        : 'text-slate-100 hover:text-slate-300'
+                      : isActive
+                        ? 'bg-emerald-500 text-white font-bold'
+                        : 'text-emerald-50 hover:text-white') +
+                    ' font-medium flex items-center gap-2 rounded px-2 py-2 transition-colors'
                   }
+                  aria-current={isActive ? 'page' : undefined}
                 >
                   {Icon && <Icon fontSize='small' className='-ml-1' />}
                   {label}
@@ -100,7 +108,7 @@ export default function Sidebar() {
               className={
                 darkMode
                   ? 'text-slate-500 font-medium'
-                  : 'text-stone-400 font-medium'
+                  : 'text-emerald-100 font-medium'
               }
             >
               Upcoming Feature

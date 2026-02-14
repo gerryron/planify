@@ -59,7 +59,7 @@ function MenuActions({
   return (
     <div ref={containerRef} className='relative'>
       <button
-        className='p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
+        className='p-2 rounded hover:bg-emerald-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
         aria-label='Action'
         type='button'
         onClick={() => setOpen((value) => !value)}
@@ -67,9 +67,9 @@ function MenuActions({
         <MoreVertIcon fontSize='small' />
       </button>
       {open && (
-        <div className='absolute right-0 top-10 z-10 min-w-32 rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md'>
+        <div className='absolute right-0 top-10 z-10 min-w-32 rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md'>
           <button
-            className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2'
+            className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2'
             onClick={() => {
               setOpen(false);
               onEdit();
@@ -80,7 +80,7 @@ function MenuActions({
             Edit
           </button>
           <button
-            className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2 text-red-600 dark:text-red-400'
+            className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2 text-red-600 dark:text-red-400'
             onClick={() => {
               setOpen(false);
               onDelete();
@@ -272,7 +272,7 @@ export default function MonthlyBudgetList({
   return (
     <div className='w-full'>
       <div
-        className={`flex items-center justify-between mb-4${stickyHeader ? ' sticky top-0 z-40 bg-slate-900 dark:bg-slate-900 py-4' : ''}`}
+        className={`flex items-center justify-between mb-4${stickyHeader ? ' sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 py-4' : ''}`}
       >
         <div>
           <div className='text-lg font-semibold'>Total Transaction</div>
@@ -292,7 +292,7 @@ export default function MonthlyBudgetList({
               : '••••••••'}
             <button
               type='button'
-              className='ml-2 flex items-center justify-center p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700'
+              className='ml-2 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
               aria-label={
                 showNominal ? 'Sembunyikan nominal' : 'Tampilkan nominal'
               }
@@ -312,7 +312,7 @@ export default function MonthlyBudgetList({
         {onAdd && (
           <div className='ml-4 flex items-center gap-2'>
             <button
-              className='px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed'
+              className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition disabled:opacity-40 disabled:cursor-not-allowed'
               onClick={handleCarryOver}
               type='button'
               disabled={!canCarryOver}
@@ -320,7 +320,7 @@ export default function MonthlyBudgetList({
               Carry Over
             </button>
             <button
-              className='px-4 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 transition'
+              className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
               onClick={onAdd}
               type='button'
             >
@@ -338,7 +338,7 @@ export default function MonthlyBudgetList({
             onClick={() => setSelectedMonth(month)}
             className={`rounded px-3 py-1.5 text-sm border transition ${
               selectedMonth === month
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100'
+                ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                 : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
             }`}
           >
@@ -352,7 +352,7 @@ export default function MonthlyBudgetList({
             onClick={() => setSelectedMonth(currentMonth)}
             className={`rounded px-3 py-1.5 text-sm border transition ${
               selectedMonth === currentMonth
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100'
+                ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                 : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
             }`}
           >
@@ -365,7 +365,7 @@ export default function MonthlyBudgetList({
           onClick={() => setSelectedMonth('future')}
           className={`rounded px-3 py-1.5 text-sm border transition ${
             selectedMonth === 'future'
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100'
+              ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
               : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
           }`}
         >
@@ -379,7 +379,7 @@ export default function MonthlyBudgetList({
               selectedMonth !== 'future' &&
               selectedMonth !== currentMonth &&
               !prevMonths.includes(selectedMonth)
-                ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 border-slate-900 dark:border-slate-100'
+                ? 'bg-emerald-600 text-white dark:bg-slate-100 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                 : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
             }`}
             onClick={() => {
@@ -411,7 +411,7 @@ export default function MonthlyBudgetList({
         </div>
       </div>
 
-      <div className='bg-white dark:bg-slate-800 rounded-lg shadow p-6'>
+      <div className='bg-white dark:bg-slate-800 rounded-lg border border-emerald-200 dark:border-slate-700 shadow p-6'>
         {budgets.length === 0 ? (
           <div>No budgets found.</div>
         ) : (
@@ -439,7 +439,7 @@ export default function MonthlyBudgetList({
               return (
                 <div
                   key={budget.id}
-                  className='flex items-center justify-between border-b border-gray-200 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0'
+                  className='flex items-center justify-between border-b border-gray-300 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0'
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => {
                     if (draggedId) {
