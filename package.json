@@ -23,7 +23,8 @@
     "pg": "^8.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "sqlite3": "^5.0.2"
+    "sqlite3": "^5.0.2",
+    "sweetalert2": "^11.26.18"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",

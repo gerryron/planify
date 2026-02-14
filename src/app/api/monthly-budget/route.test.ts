@@ -4,6 +4,12 @@ import { BudgetInput } from '@/types/budget';
 
 type Budget = BudgetInput & { id: string };
 
+function getMonthOffset(offset: number): string {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 jest.mock('@/generated/prisma/client', () => {
   let budgets: Budget[] = [];
   return {
@@ -14,7 +20,27 @@ jest.mock('@/generated/prisma/client', () => {
           budgets.push(budget);
           return Promise.resolve(budget);
         }),
-        findMany: jest.fn(() => Promise.resolve([...budgets])),
+        findMany: jest.fn(
+          (args?: {
+            where?: {
+              month?: string | { gt: string };
+            };
+          }) => {
+            const monthFilter = args?.where?.month;
+            if (!monthFilter) return Promise.resolve([...budgets]);
+            if (typeof monthFilter === 'string') {
+              return Promise.resolve(
+                budgets.filter((b) => b.month === monthFilter),
+              );
+            }
+            if ('gt' in monthFilter) {
+              return Promise.resolve(
+                budgets.filter((b) => b.month > monthFilter.gt),
+              );
+            }
+            return Promise.resolve([...budgets]);
+          },
+        ),
         update: jest.fn(
           ({
             where,
@@ -41,6 +67,8 @@ jest.mock('@/generated/prisma/client', () => {
 describe('Monthly Budget API', () => {
   let id1: string;
   let id2: string;
+  const prevMonth = getMonthOffset(-1);
+  const nextMonth = getMonthOffset(1);
 
   it('should create two monthly budgets and save to database', async () => {
     // Arrange
@@ -50,8 +78,9 @@ describe('Monthly Budget API', () => {
         ({
           name: 'Test Monthly Budget 1',
           amount: 500000,
-          month: '2026-02',
+          month: prevMonth,
           category: 'Food',
+          type: 'outcome',
         }) as BudgetInput,
     } as unknown as NextRequest;
     const req2 = {
@@ -60,8 +89,9 @@ describe('Monthly Budget API', () => {
         ({
           name: 'Test Monthly Budget 2',
           amount: 750000,
-          month: '2026-03',
+          month: nextMonth,
           category: 'Transport',
+          type: 'income',
         }) as BudgetInput,
     } as unknown as NextRequest;
 
@@ -78,13 +108,16 @@ describe('Monthly Budget API', () => {
     expect(data2).toHaveProperty('id');
     expect(data1.name).toBe('Test Monthly Budget 1');
     expect(data2.name).toBe('Test Monthly Budget 2');
+    expect(data1.type).toBe('outcome');
+    expect(data2.type).toBe('income');
     id1 = data1.id;
     id2 = data2.id;
   });
 
   it('should return all monthly budgets (GET)', async () => {
     // Act
-    const res = await GET();
+    const req = new NextRequest('http://localhost/api/monthly-budget');
+    const res = await GET(req);
 
     // Assert
     expect(res.status).toBe(200);
@@ -105,6 +138,7 @@ describe('Monthly Budget API', () => {
         id: id1,
         name: 'Updated Budget',
         amount: 999999,
+        type: 'income',
       }),
     } as unknown as NextRequest;
 
@@ -117,6 +151,42 @@ describe('Monthly Budget API', () => {
     expect(data.id).toBe(id1);
     expect(data.name).toBe('Updated Budget');
     expect(data.amount).toBe(999999);
+    expect(data.type).toBe('income');
+  });
+
+  it('should return budgets by requested month', async () => {
+    const req = new NextRequest(
+      `http://localhost/api/monthly-budget?month=${prevMonth}`,
+    );
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const data: Budget[] = await res.json();
+    expect(data.length).toBe(1);
+    expect(data[0].month).toBe(prevMonth);
+  });
+
+  it('should return only future months when month=future', async () => {
+    const req = new NextRequest(
+      'http://localhost/api/monthly-budget?month=future',
+    );
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const data: Budget[] = await res.json();
+    expect(data.length).toBe(1);
+    expect(data[0].month).toBe(nextMonth);
+  });
+
+  it('should return all budgets when requested month is greater than current', async () => {
+    const req = new NextRequest(
+      `http://localhost/api/monthly-budget?month=${nextMonth}`,
+    );
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    const data: Budget[] = await res.json();
+    expect(data.length).toBeGreaterThanOrEqual(2);
   });
 
   it('should delete a monthly budget (DELETE)', async () => {
@@ -135,8 +205,9 @@ describe('Monthly Budget API', () => {
     expect(data.success).toBe(true);
 
     // Verify deletion
-    const getRes = await GET();
-    const budgets = await getRes.json();
-    expect(budgets.find((b: any) => b.id === id2)).toBeUndefined();
+    const getReq = new NextRequest('http://localhost/api/monthly-budget');
+    const getRes = await GET(getReq);
+    const budgets: Budget[] = await getRes.json();
+    expect(budgets.find((b) => b.id === id2)).toBeUndefined();
   });
 });

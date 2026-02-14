@@ -5,8 +5,9 @@ export type Budget = BudgetInput & { id: string };
 const API_URL = '/api/monthly-budget';
 
 export const monthlyBudgetService = {
-  async getAll(): Promise<Budget[]> {
-    const res = await fetch(API_URL, { method: 'GET' });
+  async getAll(month?: string): Promise<Budget[]> {
+    const query = month ? `?month=${encodeURIComponent(month)}` : '';
+    const res = await fetch(`${API_URL}${query}`, { method: 'GET' });
     if (!res.ok) throw new Error('Failed to fetch budgets');
     return res.json();
   },

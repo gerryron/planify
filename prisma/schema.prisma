@@ -19,4 +19,5 @@ model MonthlyBudget {
   amount   Int
   month    String
   category String
+  type     String
 }
