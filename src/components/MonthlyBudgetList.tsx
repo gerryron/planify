@@ -4,8 +4,9 @@ import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 import Swal from 'sweetalert2';
 
 interface MonthlyBudgetListProps {
@@ -266,7 +267,6 @@ export default function MonthlyBudgetList({
     });
   };
 
-  if (loading) return <div>Loading...</div>;
   if (error) return <div className='text-red-500'>{error}</div>;
 
   return (
@@ -292,7 +292,7 @@ export default function MonthlyBudgetList({
               : '••••••••'}
             <button
               type='button'
-              className='ml-2 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
+              className='ml-1 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
               aria-label={
                 showNominal ? 'Sembunyikan nominal' : 'Tampilkan nominal'
               }
@@ -301,9 +301,9 @@ export default function MonthlyBudgetList({
               style={{ height: '2rem', display: 'flex', alignItems: 'center' }}
             >
               {showNominal ? (
-                <VisibilityOffIcon fontSize='small' />
+                <LockIcon fontSize='small' />
               ) : (
-                <VisibilityIcon fontSize='small' />
+                <LockOpenIcon fontSize='small' />
               )}
             </button>
           </div>
@@ -379,7 +379,7 @@ export default function MonthlyBudgetList({
               selectedMonth !== 'future' &&
               selectedMonth !== currentMonth &&
               !prevMonths.includes(selectedMonth)
-                ? 'bg-emerald-600 text-white dark:bg-slate-100 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
+                ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                 : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
             }`}
             onClick={() => {
@@ -412,7 +412,14 @@ export default function MonthlyBudgetList({
       </div>
 
       <div className='bg-white dark:bg-slate-800 rounded-lg border border-emerald-200 dark:border-slate-700 shadow p-6'>
-        {budgets.length === 0 ? (
+        {loading ? (
+          <div className='min-h-56 flex items-center justify-center'>
+            <AutorenewIcon
+              className='animate-spin text-emerald-600 dark:text-emerald-400'
+              fontSize='large'
+            />
+          </div>
+        ) : budgets.length === 0 ? (
           <div>No budgets found.</div>
         ) : (
           <div className='space-y-4'>
