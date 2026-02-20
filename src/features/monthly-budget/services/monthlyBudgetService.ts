@@ -1,6 +1,9 @@
-import { BudgetInput } from '@/types/budget';
+import {
+  BudgetInput,
+  BudgetResponse,
+} from '@/features/monthly-budget/types/budget';
 
-export type Budget = BudgetInput & { id: string };
+export type Budget = BudgetResponse;
 
 const API_URL = '/api/monthly-budget';
 
@@ -27,6 +30,15 @@ export const monthlyBudgetService = {
       body: JSON.stringify({ id, ...data }),
     });
     if (!res.ok) throw new Error('Failed to update budget');
+    return res.json();
+  },
+  async reorder(orderedIds: string[]): Promise<{ success: boolean }> {
+    const res = await fetch(API_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderedIds }),
+    });
+    if (!res.ok) throw new Error('Failed to reorder budgets');
     return res.json();
   },
   async remove(id: string): Promise<{ success: boolean }> {

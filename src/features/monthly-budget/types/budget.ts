@@ -5,3 +5,7 @@ export type BudgetInput = {
   category: string;
   type: 'income' | 'outcome' | 'carryover';
 };
+
+export type BudgetResponse = BudgetInput & {
+  id: string;
+};

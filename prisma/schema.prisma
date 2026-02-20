@@ -14,10 +14,19 @@ datasource db {
 }
 
 model MonthlyBudget {
-  id       String   @id @default(uuid())
-  name     String
-  amount   Int
-  month    String
-  category String
-  type     String // 'income' | 'outcome' | 'carryover'
+  id        String @id @default(uuid())
+  name      String
+  amount    Int
+  month     String
+  category  String
+  type      String // 'income' | 'outcome' | 'carryover'
+  sortOrder Int    @default(0)
+}
+
+model Wallet {
+  id               String @id @default(uuid())
+  name             String @unique
+  balance          Int    @default(0)
+  includeFromTotal Boolean @default(true)
+  sortOrder        Int    @default(0)
 }

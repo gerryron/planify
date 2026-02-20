@@ -1,5 +1,6 @@
 import './globals.css';
-import Sidebar from '@/app/sidebar';
+import Sidebar from '@/shared/layout/Sidebar';
+import { ThemeProvider } from '@/shared/theme/ThemeProvider';
 
 export default function RootLayout({
   children,
@@ -9,6 +10,7 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body>
+        <ThemeProvider />
         <div className='flex'>
           <Sidebar />
           <main className='flex-1 p-10'>{children}</main>

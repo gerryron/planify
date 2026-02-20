@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { monthlyBudgetService, Budget } from '@/services/monthlyBudgetService';
+import {
+  monthlyBudgetService,
+  Budget,
+} from '@/features/monthly-budget/services/monthlyBudgetService';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import EditIcon from '@mui/icons-material/Edit';
@@ -8,6 +11,20 @@ import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import Swal from 'sweetalert2';
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface MonthlyBudgetListProps {
   onEdit: (budget: Budget) => void;
@@ -97,12 +114,142 @@ function MenuActions({
   );
 }
 
+function buildNextBudgets(
+  budgets: Budget[],
+  fromId: string,
+  toId: string,
+): Budget[] | null {
+  const fromIndex = budgets.findIndex((budget) => budget.id === fromId);
+  const toIndex = budgets.findIndex((budget) => budget.id === toId);
+  if (fromIndex < 0 || toIndex < 0) return null;
+
+  const nextBudgets = [...budgets];
+  const [moved] = nextBudgets.splice(fromIndex, 1);
+  const insertIndex = fromIndex < toIndex ? toIndex : toIndex;
+  nextBudgets.splice(insertIndex, 0, moved);
+  return nextBudgets;
+}
+
+function SortableBudgetItem({
+  budget,
+  showNominal,
+  totalIncome,
+  onEdit,
+  onDelete,
+}: {
+  budget: Budget;
+  showNominal: boolean;
+  totalIncome: number;
+  onEdit: (budget: Budget) => void;
+  onDelete: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: budget.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition ?? 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+  };
+
+  let percentage = 0;
+  if (budget.type === 'income' || budget.type === 'carryover') {
+    percentage = totalIncome > 0 ? (budget.amount / totalIncome) * 100 : 0;
+  } else {
+    percentage =
+      Math.abs(totalIncome) > 0
+        ? (budget.amount / Math.abs(totalIncome)) * 100
+        : 0;
+  }
+
+  const clampedPercentage = Math.max(0, Math.min(percentage, 100));
+  const remainderPercentage = 100 - clampedPercentage;
+
+  const filledColor =
+    budget.type === 'income' || budget.type === 'carryover'
+      ? 'bg-green-500'
+      : 'bg-red-500';
+  const remainderColor = 'bg-transparent';
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center justify-between border-b border-gray-300 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0 transition-all ${
+        isDragging ? 'opacity-70 scale-[0.99] shadow-md' : ''
+      }`}
+    >
+      <div>
+        <div className='font-bold'>{budget.name}</div>
+        <div className='text-sm text-gray-500'>
+          {budget.month} | {budget.category}
+        </div>
+        <div
+          className={`font-mono ${
+            showNominal
+              ? budget.type === 'outcome'
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-green-700 dark:text-green-300'
+              : 'text-gray-500 dark:text-gray-400'
+          }`}
+        >
+          {budget.type === 'outcome' ? '- ' : ''}Rp{' '}
+          {showNominal ? budget.amount.toLocaleString('id-ID') : '••••••••'}
+        </div>
+
+        <div className='flex items-center gap-2 mt-1'>
+          <div
+            className='h-2 rounded overflow-hidden flex border border-gray-300 dark:border-slate-700'
+            style={{ width: 140 }}
+          >
+            <div
+              className={filledColor}
+              style={{ width: `${clampedPercentage}%` }}
+            />
+            <div
+              className={remainderColor}
+              style={{ width: `${remainderPercentage}%` }}
+            />
+          </div>
+          <span className='text-xs text-gray-500 min-w-12 text-right'>
+            {clampedPercentage.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+
+      <div className='flex items-center gap-1 relative'>
+        <span
+          className={`p-2 cursor-move text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 rounded transition-all ${
+            isDragging
+              ? 'bg-emerald-100 dark:bg-slate-700 shadow ring-2 ring-emerald-300 dark:ring-emerald-600'
+              : ''
+          }`}
+          {...attributes}
+          {...listeners}
+          title='Drag to reorder'
+        >
+          <DragIndicatorIcon fontSize='small' />
+        </span>
+        <MenuActions
+          onEdit={() => onEdit(budget)}
+          onDelete={() => onDelete(budget.id)}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function MonthlyBudgetList({
   onEdit,
   onAdd,
   stickyHeader = false,
 }: MonthlyBudgetListProps) {
-  const [showNominal, setShowNominal] = useState(false);
+  const [showNominal, setShowNominal] = useState(true);
   const monthPickerRef = useRef<HTMLInputElement>(null);
   const currentMonth = useMemo(() => {
     const now = new Date();
@@ -113,7 +260,13 @@ export default function MonthlyBudgetList({
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    }),
+  );
 
   const now = useMemo(() => new Date(), []);
   const prevMonths = useMemo(
@@ -252,19 +405,32 @@ export default function MonthlyBudgetList({
     }
   };
 
-  const moveBudget = (fromId: string, toId: string) => {
+  const moveBudget = async (fromId: string, toId: string) => {
     if (fromId === toId) return;
 
-    setBudgets((prev) => {
-      const fromIndex = prev.findIndex((budget) => budget.id === fromId);
-      const toIndex = prev.findIndex((budget) => budget.id === toId);
-      if (fromIndex < 0 || toIndex < 0) return prev;
+    const nextBudgets = buildNextBudgets(budgets, fromId, toId);
+    if (!nextBudgets) return;
 
-      const next = [...prev];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
+    setBudgets(nextBudgets);
+
+    try {
+      await monthlyBudgetService.reorder(
+        nextBudgets.map((budget) => budget.id),
+      );
+    } catch {
+    } finally {
+      await fetchBudgets(selectedMonth);
+    }
+  };
+
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    if (!over) return;
+
+    const fromId = String(active.id);
+    const toId = String(over.id);
+    if (!fromId || !toId || fromId === toId) return;
+
+    await moveBudget(fromId, toId);
   };
 
   if (error) return <div className='text-red-500'>{error}</div>;
@@ -275,7 +441,7 @@ export default function MonthlyBudgetList({
         className={`flex items-center justify-between mb-4${stickyHeader ? ' sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 py-4' : ''}`}
       >
         <div>
-          <div className='text-lg font-semibold'>Total Transaction</div>
+          <div className='text-lg font-semibold'>Total Budget</div>
           <div
             className={`text-2xl font-bold flex items-center gap-1 ${
               showNominal
@@ -422,98 +588,29 @@ export default function MonthlyBudgetList({
         ) : budgets.length === 0 ? (
           <div>No budgets found.</div>
         ) : (
-          <div className='space-y-4'>
-            {budgets.map((budget) => {
-              let percentage = 0;
-              if (budget.type === 'income' || budget.type === 'carryover') {
-                percentage =
-                  totalIncome > 0 ? (budget.amount / totalIncome) * 100 : 0;
-              } else {
-                percentage =
-                  Math.abs(totalIncome) > 0
-                    ? (budget.amount / Math.abs(totalIncome)) * 100
-                    : 0;
-              }
-              const clampedPercentage = Math.max(0, Math.min(percentage, 100));
-              const remainderPercentage = 100 - clampedPercentage;
-
-              const filledColor =
-                budget.type === 'income' || budget.type === 'carryover'
-                  ? 'bg-green-500'
-                  : 'bg-red-500';
-              const remainderColor = 'bg-transparent';
-
-              return (
-                <div
-                  key={budget.id}
-                  className='flex items-center justify-between border-b border-gray-300 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0'
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => {
-                    if (draggedId) {
-                      moveBudget(draggedId, budget.id);
-                    }
-                    setDraggedId(null);
-                  }}
-                >
-                  <div>
-                    <div className='font-bold'>{budget.name}</div>
-                    <div className='text-sm text-gray-500'>
-                      {budget.month} | {budget.category}
-                    </div>
-                    <div
-                      className={`font-mono ${
-                        showNominal
-                          ? budget.type === 'outcome'
-                            ? 'text-red-600 dark:text-red-400'
-                            : 'text-green-700 dark:text-green-300'
-                          : 'text-gray-500 dark:text-gray-400'
-                      }`}
-                    >
-                      {budget.type === 'outcome' ? '- ' : ''}Rp{' '}
-                      {showNominal
-                        ? budget.amount.toLocaleString('id-ID')
-                        : '••••••••'}
-                    </div>
-
-                    <div className='flex items-center gap-2 mt-1'>
-                      <div
-                        className='h-2 rounded overflow-hidden flex border border-gray-300 dark:border-slate-700'
-                        style={{ width: 140 }}
-                      >
-                        <div
-                          className={filledColor}
-                          style={{ width: `${clampedPercentage}%` }}
-                        />
-                        <div
-                          className={remainderColor}
-                          style={{ width: `${remainderPercentage}%` }}
-                        />
-                      </div>
-                      <span className='text-xs text-gray-500 min-w-12 text-right'>
-                        {clampedPercentage.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className='flex items-center gap-1 relative'>
-                    <span
-                      className='p-2 cursor-move text-gray-400 hover:text-gray-700 dark:hover:text-slate-200'
-                      draggable
-                      onDragStart={() => setDraggedId(budget.id)}
-                      onDragEnd={() => setDraggedId(null)}
-                      title='Drag to reorder'
-                    >
-                      <DragIndicatorIcon fontSize='small' />
-                    </span>
-                    <MenuActions
-                      onEdit={() => onEdit(budget)}
-                      onDelete={() => handleDelete(budget.id)}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={budgets.map((budget) => budget.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className='space-y-4'>
+                {budgets.map((budget) => (
+                  <SortableBudgetItem
+                    key={budget.id}
+                    budget={budget}
+                    showNominal={showNominal}
+                    totalIncome={totalIncome}
+                    onEdit={onEdit}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>

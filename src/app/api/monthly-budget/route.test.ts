@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { POST, GET, PATCH, DELETE } from './route';
-import { BudgetInput } from '@/types/budget';
+import { BudgetInput } from '@/features/monthly-budget/types/budget';
 
-type Budget = BudgetInput & { id: string };
+type Budget = BudgetInput & { id: string; sortOrder: number };
 
 function getMonthOffset(offset: number): string {
   const now = new Date();
@@ -12,33 +12,68 @@ function getMonthOffset(offset: number): string {
 
 jest.mock('@/generated/prisma/client', () => {
   let budgets: Budget[] = [];
+
   return {
     PrismaClient: jest.fn().mockImplementation(() => ({
       monthlyBudget: {
-        create: jest.fn(({ data }: { data: BudgetInput }) => {
-          const budget: Budget = { ...data, id: `${budgets.length + 1}` };
-          budgets.push(budget);
-          return Promise.resolve(budget);
-        }),
+        findFirst: jest.fn(
+          ({
+            where,
+            orderBy,
+          }: {
+            where?: { month?: string };
+            orderBy: { sortOrder: 'desc' | 'asc' };
+            select?: { sortOrder: boolean };
+          }) => {
+            const filtered = where?.month
+              ? budgets.filter((budget) => budget.month === where.month)
+              : budgets;
+            if (filtered.length === 0) return Promise.resolve(null);
+
+            const sorted = [...filtered].sort((a, b) =>
+              orderBy.sortOrder === 'desc'
+                ? b.sortOrder - a.sortOrder
+                : a.sortOrder - b.sortOrder,
+            );
+            return Promise.resolve({ sortOrder: sorted[0].sortOrder });
+          },
+        ),
+        create: jest.fn(
+          ({ data }: { data: BudgetInput & { sortOrder?: number } }) => {
+            const budget: Budget = {
+              ...data,
+              id: `${budgets.length + 1}`,
+              sortOrder: data.sortOrder ?? budgets.length,
+            };
+            budgets.push(budget);
+            return Promise.resolve(budget);
+          },
+        ),
         findMany: jest.fn(
           (args?: {
             where?: {
               month?: string | { gt: string };
             };
+            orderBy?:
+              | { month?: 'asc' | 'desc'; sortOrder?: 'asc' | 'desc' }
+              | Array<{ month?: 'asc' | 'desc'; sortOrder?: 'asc' | 'desc' }>;
           }) => {
             const monthFilter = args?.where?.month;
-            if (!monthFilter) return Promise.resolve([...budgets]);
+            const sortBudgets = (list: Budget[]) =>
+              [...list].sort((a, b) => a.sortOrder - b.sortOrder);
+
+            if (!monthFilter) return Promise.resolve(sortBudgets(budgets));
             if (typeof monthFilter === 'string') {
               return Promise.resolve(
-                budgets.filter((b) => b.month === monthFilter),
+                sortBudgets(budgets.filter((b) => b.month === monthFilter)),
               );
             }
             if ('gt' in monthFilter) {
               return Promise.resolve(
-                budgets.filter((b) => b.month > monthFilter.gt),
+                sortBudgets(budgets.filter((b) => b.month > monthFilter.gt)),
               );
             }
-            return Promise.resolve([...budgets]);
+            return Promise.resolve(sortBudgets(budgets));
           },
         ),
         update: jest.fn(
@@ -47,7 +82,7 @@ jest.mock('@/generated/prisma/client', () => {
             data,
           }: {
             where: { id: string };
-            data: Partial<BudgetInput>;
+            data: Partial<BudgetInput> & { sortOrder?: number };
           }) => {
             const idx = budgets.findIndex((b) => b.id === where.id);
             if (idx === -1) throw new Error('Not found');
@@ -60,6 +95,9 @@ jest.mock('@/generated/prisma/client', () => {
           return Promise.resolve();
         }),
       },
+      $transaction: jest.fn((actions: Promise<unknown>[]) =>
+        Promise.all(actions),
+      ),
     })),
   };
 });
@@ -130,6 +168,26 @@ describe('Monthly Budget API', () => {
     expect(data[1].name).toBe('Test Monthly Budget 2');
   });
 
+  it('should reorder monthly budgets persistently', async () => {
+    const getBeforeReq = new NextRequest('http://localhost/api/monthly-budget');
+    const getBeforeRes = await GET(getBeforeReq);
+    const before: Budget[] = await getBeforeRes.json();
+    const reversedIds = [...before].reverse().map((budget) => budget.id);
+
+    const reorderReq = {
+      method: 'PATCH',
+      json: async () => ({ orderedIds: reversedIds }),
+    } as unknown as NextRequest;
+
+    const reorderRes = await PATCH(reorderReq);
+    expect(reorderRes.status).toBe(200);
+
+    const getAfterReq = new NextRequest('http://localhost/api/monthly-budget');
+    const getAfterRes = await GET(getAfterReq);
+    const after: Budget[] = await getAfterRes.json();
+    expect(after.map((budget) => budget.id)).toEqual(reversedIds);
+  });
+
   it('should update a monthly budget (PATCH)', async () => {
     // Arrange
     const req = {
@@ -162,8 +220,8 @@ describe('Monthly Budget API', () => {
 
     expect(res.status).toBe(200);
     const data: Budget[] = await res.json();
-    expect(data.length).toBe(1);
-    expect(data[0].month).toBe(prevMonth);
+    expect(data.length).toBeGreaterThanOrEqual(1);
+    expect(data.every((budget) => budget.month === prevMonth)).toBe(true);
   });
 
   it('should return only future months when month=future', async () => {

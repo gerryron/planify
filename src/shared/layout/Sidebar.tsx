@@ -74,6 +74,7 @@ export default function Sidebar() {
           {(
             [
               { label: 'Home', href: '/' },
+              { label: 'Wallet', href: '/wallet' },
               { label: 'Monthly Budget', href: '/monthly-budget' },
               { label: 'Daily Tracker', href: '/daily-tracker' },
             ] as const

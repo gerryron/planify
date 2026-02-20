@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
-import { monthlyBudgetService, Budget } from '@/services/monthlyBudgetService';
-import { BudgetInput } from '@/types/budget';
+import {
+  monthlyBudgetService,
+  Budget,
+} from '@/features/monthly-budget/services/monthlyBudgetService';
+import { BudgetInput } from '@/features/monthly-budget/types/budget';
 
 interface MonthlyBudgetFormProps {
   initial?: Budget | null;
@@ -27,7 +30,15 @@ export default function MonthlyBudgetForm({
   onSuccess,
 }: MonthlyBudgetFormProps) {
   const [form, setForm] = useState<BudgetInput>(
-    initial ? { ...initial } : defaultForm,
+    initial
+      ? {
+          name: initial.name,
+          amount: initial.amount,
+          month: initial.month,
+          category: initial.category,
+          type: initial.type,
+        }
+      : defaultForm,
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
