@@ -76,7 +76,7 @@ export default function Sidebar() {
               { label: 'Home', href: '/' },
               { label: 'Wallet', href: '/wallet' },
               { label: 'Monthly Budget', href: '/monthly-budget' },
-              { label: 'Daily Tracker', href: '/daily-tracker' },
+              { label: 'Cash Log', href: '/cash-log' },
             ] as const
           ).map(({ label, href }) => {
             type SidebarLabel = keyof typeof sidebarIcons;

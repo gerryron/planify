@@ -8,5 +8,5 @@ export const sidebarIcons = {
   Home: HomeIcon,
   Wallet: AccountBalanceWalletIcon,
   'Monthly Budget': CalendarMonthIcon,
-  'Daily Tracker': TodayIcon,
+  'Cash Log': TodayIcon,
 };

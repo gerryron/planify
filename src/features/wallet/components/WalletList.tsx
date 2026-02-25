@@ -519,51 +519,56 @@ export default function WalletList({ onEdit, onAdd }: WalletListProps) {
 
   return (
     <div className='w-full'>
-      <div className='flex items-center justify-between mb-4'>
-        <div>
-          <div className='text-lg font-semibold'>Total Balance</div>
-          <div
-            className={`text-2xl font-bold flex items-center gap-1 ${
-              showNominal
-                ? totalBalance < 0
-                  ? 'text-red-600 dark:text-red-400'
-                  : 'text-green-700 dark:text-green-300'
-                : 'text-gray-500 dark:text-gray-400'
-            }`}
-            style={{ minHeight: '2.5rem', alignItems: 'center' }}
-          >
-            {totalBalance < 0 ? '- ' : ''}Rp{' '}
-            {showNominal
-              ? Math.abs(totalBalance).toLocaleString('id-ID')
-              : '••••••••'}
-            <button
-              type='button'
-              className='ml-1 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
-              aria-label={
-                showNominal ? 'Sembunyikan nominal' : 'Tampilkan nominal'
-              }
-              onClick={() => setShowNominal((value) => !value)}
-              tabIndex={0}
-              style={{ height: '2rem', display: 'flex', alignItems: 'center' }}
+      <div className='sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 py-4'>
+        <div className='flex items-center justify-between mb-4'>
+          <div>
+            <div className='text-lg font-semibold'>Total Balance</div>
+            <div
+              className={`text-2xl font-bold flex items-center gap-1 ${
+                showNominal
+                  ? totalBalance < 0
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-green-700 dark:text-green-300'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+              style={{ minHeight: '2.5rem', alignItems: 'center' }}
             >
-              {showNominal ? (
-                <LockIcon fontSize='small' />
-              ) : (
-                <LockOpenIcon fontSize='small' />
-              )}
-            </button>
+              {totalBalance < 0 ? '- ' : ''}Rp{' '}
+              {showNominal
+                ? Math.abs(totalBalance).toLocaleString('id-ID')
+                : '••••••••'}
+              <button
+                type='button'
+                className='ml-1 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
+                aria-label={
+                  showNominal ? 'Sembunyikan nominal' : 'Tampilkan nominal'
+                }
+                onClick={() => setShowNominal((value) => !value)}
+                tabIndex={0}
+                style={{
+                  height: '2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                {showNominal ? (
+                  <LockIcon fontSize='small' />
+                ) : (
+                  <LockOpenIcon fontSize='small' />
+                )}
+              </button>
+            </div>
           </div>
+          {onAdd && (
+            <button
+              className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
+              onClick={onAdd}
+              type='button'
+            >
+              + Add Wallet
+            </button>
+          )}
         </div>
-
-        {onAdd && (
-          <button
-            className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
-            onClick={onAdd}
-            type='button'
-          >
-            + Add Wallet
-          </button>
-        )}
       </div>
 
       <div className='bg-white dark:bg-slate-800 rounded-lg border border-emerald-200 dark:border-slate-700 shadow p-6'>

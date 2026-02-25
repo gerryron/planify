@@ -438,142 +438,152 @@ export default function MonthlyBudgetList({
   return (
     <div className='w-full'>
       <div
-        className={`flex items-center justify-between mb-4${stickyHeader ? ' sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 py-4' : ''}`}
+        className={
+          stickyHeader
+            ? 'sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 py-4'
+            : ''
+        }
       >
-        <div>
-          <div className='text-lg font-semibold'>Total Budget</div>
-          <div
-            className={`text-2xl font-bold flex items-center gap-1 ${
-              showNominal
-                ? totalTransaction < 0
-                  ? 'text-red-600 dark:text-red-400'
-                  : 'text-green-700 dark:text-green-300'
-                : 'text-gray-500 dark:text-gray-400'
-            }`}
-            style={{ minHeight: '2.5rem', alignItems: 'center' }}
-          >
-            {totalTransaction < 0 ? '- ' : ''}Rp{' '}
-            {showNominal
-              ? Math.abs(totalTransaction).toLocaleString('id-ID')
-              : '••••••••'}
-            <button
-              type='button'
-              className='ml-1 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
-              aria-label={
-                showNominal ? 'Sembunyikan nominal' : 'Tampilkan nominal'
-              }
-              onClick={() => setShowNominal((v) => !v)}
-              tabIndex={0}
-              style={{ height: '2rem', display: 'flex', alignItems: 'center' }}
+        <div className='flex items-center justify-between mb-4'>
+          <div>
+            <div className='text-lg font-semibold'>Total Budget</div>
+            <div
+              className={`text-2xl font-bold flex items-center gap-1 ${
+                showNominal
+                  ? totalTransaction < 0
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-green-700 dark:text-green-300'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+              style={{ minHeight: '2.5rem', alignItems: 'center' }}
             >
-              {showNominal ? (
-                <LockIcon fontSize='small' />
-              ) : (
-                <LockOpenIcon fontSize='small' />
-              )}
-            </button>
+              {totalTransaction < 0 ? '- ' : ''}Rp{' '}
+              {showNominal
+                ? Math.abs(totalTransaction).toLocaleString('id-ID')
+                : '••••••••'}
+              <button
+                type='button'
+                className='ml-1 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
+                aria-label={
+                  showNominal ? 'Sembunyikan nominal' : 'Tampilkan nominal'
+                }
+                onClick={() => setShowNominal((v) => !v)}
+                tabIndex={0}
+                style={{
+                  height: '2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                {showNominal ? (
+                  <LockIcon fontSize='small' />
+                ) : (
+                  <LockOpenIcon fontSize='small' />
+                )}
+              </button>
+            </div>
           </div>
+
+          {onAdd && (
+            <div className='ml-4 flex items-center gap-2'>
+              <button
+                className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition disabled:opacity-40 disabled:cursor-not-allowed'
+                onClick={handleCarryOver}
+                type='button'
+                disabled={!canCarryOver}
+              >
+                Carry Over
+              </button>
+              <button
+                className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
+                onClick={onAdd}
+                type='button'
+              >
+                + Add Budget
+              </button>
+            </div>
+          )}
         </div>
 
-        {onAdd && (
-          <div className='ml-4 flex items-center gap-2'>
+        <div className='mb-4 w-full flex flex-wrap gap-2 items-center'>
+          {prevMonths.map((month) => (
             <button
-              className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition disabled:opacity-40 disabled:cursor-not-allowed'
-              onClick={handleCarryOver}
+              key={month}
               type='button'
-              disabled={!canCarryOver}
+              onClick={() => setSelectedMonth(month)}
+              className={`rounded px-3 py-1.5 text-sm border transition ${
+                selectedMonth === month
+                  ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
+                  : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
+              }`}
             >
-              Carry Over
+              {monthLabel(month)}
             </button>
-            <button
-              className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
-              onClick={onAdd}
-              type='button'
-            >
-              + Add Budget
-            </button>
-          </div>
-        )}
-      </div>
+          ))}
 
-      <div className='mb-4 w-full flex flex-wrap gap-2 items-center'>
-        {prevMonths.map((month) => (
+          {!prevMonths.includes(currentMonth) && (
+            <button
+              type='button'
+              onClick={() => setSelectedMonth(currentMonth)}
+              className={`rounded px-3 py-1.5 text-sm border transition ${
+                selectedMonth === currentMonth
+                  ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
+                  : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
+              }`}
+            >
+              This Month
+            </button>
+          )}
+
           <button
-            key={month}
             type='button'
-            onClick={() => setSelectedMonth(month)}
+            onClick={() => setSelectedMonth('future')}
             className={`rounded px-3 py-1.5 text-sm border transition ${
-              selectedMonth === month
+              selectedMonth === 'future'
                 ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                 : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
             }`}
           >
-            {monthLabel(month)}
+            Future
           </button>
-        ))}
 
-        {!prevMonths.includes(currentMonth) && (
-          <button
-            type='button'
-            onClick={() => setSelectedMonth(currentMonth)}
-            className={`rounded px-3 py-1.5 text-sm border transition ${
-              selectedMonth === currentMonth
-                ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
-                : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
-            }`}
-          >
-            This Month
-          </button>
-        )}
-
-        <button
-          type='button'
-          onClick={() => setSelectedMonth('future')}
-          className={`rounded px-3 py-1.5 text-sm border transition ${
-            selectedMonth === 'future'
-              ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
-              : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
-          }`}
-        >
-          Future
-        </button>
-
-        <div className='relative'>
-          <button
-            type='button'
-            className={`rounded px-3 py-1.5 text-sm border transition flex items-center gap-2 ${
-              selectedMonth !== 'future' &&
-              selectedMonth !== currentMonth &&
-              !prevMonths.includes(selectedMonth)
-                ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
-                : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
-            }`}
-            onClick={() => {
-              const input = monthPickerRef.current;
-              if (!input) return;
-              if (typeof input.showPicker === 'function') {
-                input.showPicker();
-              } else {
-                input.click();
+          <div className='relative'>
+            <button
+              type='button'
+              className={`rounded px-3 py-1.5 text-sm border transition flex items-center gap-2 ${
+                selectedMonth !== 'future' &&
+                selectedMonth !== currentMonth &&
+                !prevMonths.includes(selectedMonth)
+                  ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
+                  : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
+              }`}
+              onClick={() => {
+                const input = monthPickerRef.current;
+                if (!input) return;
+                if (typeof input.showPicker === 'function') {
+                  input.showPicker();
+                } else {
+                  input.click();
+                }
+              }}
+            >
+              Pick Another Month
+            </button>
+            <input
+              ref={monthPickerRef}
+              type='month'
+              className='absolute left-0 top-0 opacity-0 w-0 h-0 pointer-events-none'
+              tabIndex={-1}
+              value={
+                selectedMonth !== 'future' &&
+                selectedMonth !== currentMonth &&
+                !prevMonths.includes(selectedMonth)
+                  ? selectedMonth
+                  : ''
               }
-            }}
-          >
-            Pick Another Month
-          </button>
-          <input
-            ref={monthPickerRef}
-            type='month'
-            className='absolute left-0 top-0 opacity-0 w-0 h-0 pointer-events-none'
-            tabIndex={-1}
-            value={
-              selectedMonth !== 'future' &&
-              selectedMonth !== currentMonth &&
-              !prevMonths.includes(selectedMonth)
-                ? selectedMonth
-                : ''
-            }
-            onChange={(event) => setSelectedMonth(event.target.value)}
-          />
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+          </div>
         </div>
       </div>
 

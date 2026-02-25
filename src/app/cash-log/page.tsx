@@ -1,40 +1,45 @@
 'use client';
-import { useState } from 'react';
-import MonthlyBudgetList from '@/features/monthly-budget/components/MonthlyBudgetList';
-import MonthlyBudgetForm from '@/features/monthly-budget/components/MonthlyBudgetForm';
-import { Budget } from '@/features/monthly-budget/services/monthlyBudgetService';
 
-export default function MonthlyBudgetPage() {
-  const [editing, setEditing] = useState<Budget | null>(null);
+import { useState } from 'react';
+import CashLogList from '../../features/cash-log/components/CashLogList';
+import CashLogForm from '../../features/cash-log/components/CashLogForm';
+import { CashLog } from '../../features/cash-log/services/cashLogService';
+
+export default function CashLogPage() {
+  const [editing, setEditing] = useState<CashLog | null>(null);
+  const [defaultWalletName, setDefaultWalletName] = useState<string | null>(
+    null,
+  );
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
 
-  const handleEdit = (budget: Budget) => {
-    setEditing(budget);
+  const handleEdit = (log: CashLog) => {
+    setEditing(log);
+    setDefaultWalletName(null);
     setShowForm(true);
   };
-  const handleAdd = () => {
+
+  const handleAdd = (walletName?: string) => {
     setEditing(null);
+    setDefaultWalletName(walletName ?? null);
     setShowForm(true);
   };
+
   const handleSuccess = () => {
     setEditing(null);
     setShowForm(false);
-    setRefreshKey((k) => k + 1);
+    setRefreshKey((key) => key + 1);
   };
+
   const handleCancel = () => {
     setEditing(null);
+    setDefaultWalletName(null);
     setShowForm(false);
   };
 
   return (
     <div className='max-w-2xl mx-auto py-8 space-y-8'>
-      <MonthlyBudgetList
-        key={refreshKey}
-        onEdit={handleEdit}
-        onAdd={handleAdd}
-        stickyHeader
-      />
+      <CashLogList key={refreshKey} onEdit={handleEdit} onAdd={handleAdd} />
 
       {showForm && (
         <div
@@ -43,7 +48,7 @@ export default function MonthlyBudgetPage() {
         >
           <div
             className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 min-w-[320px] max-w-md w-full relative'
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <button
               className='absolute top-2 right-2 text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold'
@@ -52,9 +57,11 @@ export default function MonthlyBudgetPage() {
             >
               ×
             </button>
-            <MonthlyBudgetForm
+
+            <CashLogForm
               key={editing ? editing.id : 'new'}
               initial={editing}
+              defaultWalletName={defaultWalletName}
               onSuccess={handleSuccess}
             />
           </div>
