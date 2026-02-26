@@ -13,6 +13,11 @@ datasource db {
   provider = "sqlite"
 }
 
+enum CategoryType {
+  income
+  outcome
+}
+
 model MonthlyBudget {
   id        String @id @default(uuid())
   name      String
@@ -29,4 +34,24 @@ model Wallet {
   balance          Int    @default(0)
   includeFromTotal Boolean @default(true)
   sortOrder        Int    @default(0)
+}
+
+model Category {
+  id              String       @id @default(uuid())
+  name            String
+  type            CategoryType
+  parentId        String?
+  parent          Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Category[]   @relation("CategoryHierarchy")
+
+  @@index([parentId])
+  @@unique([name, type, parentId])
+}
+
+model CashLog {
+  id          String @id @default(uuid())
+  date        String
+  description String
+  amount      Int
+  walletName  String
 }

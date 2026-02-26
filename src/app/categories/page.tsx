@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import WalletList from '@/features/wallet/components/WalletList';
-import WalletForm from '@/features/wallet/components/WalletForm';
-import { Wallet } from '@/features/wallet/services/walletService';
+import CategoryList from '@/features/categories/components/CategoryList';
+import CategoryForm from '@/features/categories/components/CategoryForm';
+import { Category } from '@/features/categories/types/category';
 
-export default function WalletPage() {
-  const [editing, setEditing] = useState<Wallet | null>(null);
+export default function CategoriesPage() {
+  const [editing, setEditing] = useState<Category | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
-  const handleEdit = (wallet: Wallet) => {
-    setEditing(wallet);
+  const handleEdit = (category: Category) => {
+    setEditing(category);
     setShowForm(true);
   };
 
@@ -32,8 +33,13 @@ export default function WalletPage() {
   };
 
   return (
-    <div className='max-w-2xl mx-auto py-8 space-y-8'>
-      <WalletList key={refreshKey} onEdit={handleEdit} onAdd={handleAdd} />
+    <div className='max-w-2xl mx-auto py-8 space-y-6'>
+      <CategoryList
+        key={refreshKey}
+        onEdit={handleEdit}
+        onAdd={handleAdd}
+        onDataLoaded={setCategories}
+      />
 
       {showForm && (
         <div
@@ -51,10 +57,10 @@ export default function WalletPage() {
             >
               ×
             </button>
-
-            <WalletForm
+            <CategoryForm
               key={editing ? editing.id : 'new'}
               initial={editing}
+              categories={categories}
               onSuccess={handleSuccess}
             />
           </div>

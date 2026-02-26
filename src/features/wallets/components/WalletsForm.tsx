@@ -1,24 +1,24 @@
 import { useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import {
-  walletService,
-  Wallet,
-} from '@/features/wallet/services/walletService';
-import { WalletInput } from '@/features/wallet/types/wallet';
+  walletsService,
+  Wallets,
+} from '@/features/wallets/services/walletsService';
+import { WalletsInput } from '@/features/wallets/types/wallets';
 
-interface WalletFormProps {
-  initial?: Wallet | null;
+interface WalletsFormProps {
+  initial?: Wallets | null;
   onSuccess: () => void;
 }
 
-const defaultForm: WalletInput = {
+const defaultForm: WalletsInput = {
   name: '',
   balance: 0,
   includeFromTotal: true,
 };
 
-export default function WalletForm({ initial, onSuccess }: WalletFormProps) {
-  const [form, setForm] = useState<WalletInput>(
+export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
+  const [form, setForm] = useState<WalletsInput>(
     initial
       ? {
           name: initial.name,
@@ -69,7 +69,7 @@ export default function WalletForm({ initial, onSuccess }: WalletFormProps) {
 
     try {
       if (isUpdate) {
-        await walletService.update(initial.id, form);
+        await walletsService.update(initial.id, form);
         await Swal.fire({
           icon: 'success',
           title: 'Wallet updated!',
@@ -77,7 +77,7 @@ export default function WalletForm({ initial, onSuccess }: WalletFormProps) {
           timer: 1200,
         });
       } else {
-        await walletService.create(form);
+        await walletsService.create(form);
         await Swal.fire({
           icon: 'success',
           title: 'Wallet added!',

@@ -6,9 +6,9 @@ import {
 } from '@/features/cash-log/services/cashLogService';
 import { CashLogInput } from '@/features/cash-log/types/cashLog';
 import {
-  walletService,
-  Wallet,
-} from '@/features/wallet/services/walletService';
+  walletsService,
+  Wallets,
+} from '@/features/wallets/services/walletsService';
 
 interface CashLogFormProps {
   initial?: CashLog | null;
@@ -47,12 +47,12 @@ export default function CashLogForm({
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [wallets, setWallets] = useState<Wallets[]>([]);
 
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const data = await walletService.getAll();
+        const data = await walletsService.getAll();
         setWallets(data);
         setForm((prev) => {
           if (prev.walletName) return prev;

@@ -1,13 +1,86 @@
 import { NextRequest } from 'next/server';
 import { DELETE, GET, PATCH, POST } from './route';
+import { CashLogInput } from '@/features/cash-log/types/cashLog';
 
-type CashLog = {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  walletName: string;
-};
+type CashLog = CashLogInput & { id: string };
+
+jest.mock('@/generated/prisma/client', () => {
+  let logs: CashLog[] = [];
+  return {
+    PrismaClient: jest.fn().mockImplementation(() => ({
+      cashLog: {
+        create: jest.fn(({ data }: { data: CashLogInput }) => {
+          const record: CashLog = {
+            id: `${logs.length + 1}`,
+            ...data,
+          };
+          logs.push(record);
+          return Promise.resolve(record);
+        }),
+        findMany: jest.fn(
+          ({
+            where,
+            orderBy,
+          }: {
+            where?: { date?: string | { startsWith?: string; gt?: string } };
+            orderBy?: Array<{
+              date?: 'asc' | 'desc';
+              description?: 'asc' | 'desc';
+            }>;
+          } = {}) => {
+            let result = [...logs];
+
+            const dateFilter = where?.date;
+            if (dateFilter) {
+              if (typeof dateFilter === 'string') {
+                result = result.filter((log) => log.date === dateFilter);
+              } else if (dateFilter.startsWith) {
+                result = result.filter((log) =>
+                  log.date.startsWith(dateFilter.startsWith as string),
+                );
+              } else if (dateFilter.gt) {
+                const gt = dateFilter.gt;
+                result = result.filter((log) => log.date > gt);
+              }
+            }
+
+            if (orderBy?.length) {
+              result.sort(
+                (a, b) =>
+                  a.date.localeCompare(b.date) ||
+                  a.description.localeCompare(b.description),
+              );
+            }
+
+            return Promise.resolve(result);
+          },
+        ),
+        findUnique: jest.fn(({ where }: { where: { id: string } }) => {
+          const found = logs.find((log) => log.id === where.id) ?? null;
+          return Promise.resolve(found ? { id: found.id } : null);
+        }),
+        update: jest.fn(
+          ({
+            where,
+            data,
+          }: {
+            where: { id: string };
+            data: Partial<CashLogInput>;
+          }) => {
+            const idx = logs.findIndex((log) => log.id === where.id);
+            if (idx < 0) throw new Error('Not found');
+            logs[idx] = { ...logs[idx], ...data };
+            return Promise.resolve(logs[idx]);
+          },
+        ),
+        delete: jest.fn(({ where }: { where: { id: string } }) => {
+          logs = logs.filter((log) => log.id !== where.id);
+          return Promise.resolve({ id: where.id });
+        }),
+      },
+    })),
+  };
+});
 
 describe('Cash Log API', () => {
   let id1: string;

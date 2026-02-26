@@ -11,9 +11,9 @@ import {
   CashLog,
 } from '@/features/cash-log/services/cashLogService';
 import {
-  walletService,
-  Wallet,
-} from '@/features/wallet/services/walletService';
+  walletsService,
+  Wallets,
+} from '@/features/wallets/services/walletsService';
 
 interface CashLogListProps {
   onEdit: (log: CashLog) => void;
@@ -109,7 +109,7 @@ function MenuActions({
 
 export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
   const [logs, setLogs] = useState<CashLog[]>([]);
-  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [wallets, setWallets] = useState<Wallets[]>([]);
   const [selectedWalletId, setSelectedWalletId] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +148,7 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const data = await walletService.getAll();
+        const data = await walletsService.getAll();
         setWallets(data);
       } catch {}
     };

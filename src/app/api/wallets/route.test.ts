@@ -1,8 +1,8 @@
 import type { NextRequest } from 'next/server';
 import { POST, GET, PATCH, DELETE } from './route';
-import { WalletInput } from '@/features/wallet/types/wallet';
+import { WalletsInput } from '@/features/wallets/types/wallets';
 
-type Wallet = WalletInput & { id: string; sortOrder: number };
+type Wallet = WalletsInput & { id: string; sortOrder: number };
 
 jest.mock('@/generated/prisma/client', () => {
   let wallets: Wallet[] = [];
@@ -10,30 +10,8 @@ jest.mock('@/generated/prisma/client', () => {
     PrismaClient: jest.fn().mockImplementation(() => ({
       wallet: {
         count: jest.fn(() => Promise.resolve(wallets.length)),
-        upsert: jest.fn(
-          ({
-            where,
-            create,
-          }: {
-            where: { name: string };
-            create: WalletInput;
-          }) => {
-            const existing = wallets.find(
-              (wallet) => wallet.name === where.name,
-            );
-            if (existing) return Promise.resolve(existing);
-
-            const wallet: Wallet = {
-              ...create,
-              id: `${wallets.length + 1}`,
-              sortOrder: wallets.length,
-            };
-            wallets.push(wallet);
-            return Promise.resolve(wallet);
-          },
-        ),
         create: jest.fn(
-          ({ data }: { data: WalletInput & { sortOrder?: number } }) => {
+          ({ data }: { data: WalletsInput & { sortOrder?: number } }) => {
             const wallet: Wallet = {
               ...data,
               id: `${wallets.length + 1}`,
@@ -73,7 +51,7 @@ jest.mock('@/generated/prisma/client', () => {
             data,
           }: {
             where: { id: string };
-            data: Partial<WalletInput> & { sortOrder?: number };
+            data: Partial<WalletsInput> & { sortOrder?: number };
           }) => {
             const idx = wallets.findIndex((w) => w.id === where.id);
             if (idx === -1) throw new Error('Not found');
@@ -97,14 +75,6 @@ describe('Wallet API', () => {
   let id1: string;
   let id2: string;
 
-  it('should create default Cash wallet on first GET when empty', async () => {
-    const res = await GET();
-    const data: Wallet[] = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(data.some((wallet) => wallet.name === 'Cash')).toBe(true);
-  });
-
   it('should create wallet data', async () => {
     const req1 = {
       method: 'POST',
@@ -113,7 +83,7 @@ describe('Wallet API', () => {
           name: 'BCA',
           balance: 1200000,
           includeFromTotal: true,
-        }) as WalletInput,
+        }) as WalletsInput,
     } as unknown as NextRequest;
 
     const req2 = {
@@ -123,7 +93,7 @@ describe('Wallet API', () => {
           name: 'OVO',
           balance: 500000,
           includeFromTotal: false,
-        }) as WalletInput,
+        }) as WalletsInput,
     } as unknown as NextRequest;
 
     const res1 = await POST(req1);
@@ -169,7 +139,7 @@ describe('Wallet API', () => {
     const data: Wallet[] = await res.json();
 
     expect(Array.isArray(data)).toBe(true);
-    expect(data.length).toBeGreaterThanOrEqual(3);
+    expect(data.length).toBeGreaterThanOrEqual(2);
   });
 
   it('should update wallet data', async () => {

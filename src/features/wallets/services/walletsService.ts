@@ -1,16 +1,16 @@
-import { WalletInput } from '@/features/wallet/types/wallet';
+import { WalletsInput } from '@/features/wallets/types/wallets';
 
-export type Wallet = WalletInput & { id: string };
+export type Wallets = WalletsInput & { id: string };
 
-const API_URL = '/api/wallet';
+const API_URL = '/api/wallets';
 
-export const walletService = {
-  async getAll(): Promise<Wallet[]> {
+export const walletsService = {
+  async getAll(): Promise<Wallets[]> {
     const res = await fetch(API_URL, { method: 'GET' });
     if (!res.ok) throw new Error('Failed to fetch wallets');
     return res.json();
   },
-  async create(data: WalletInput): Promise<Wallet> {
+  async create(data: WalletsInput): Promise<Wallets> {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -19,7 +19,7 @@ export const walletService = {
     if (!res.ok) throw new Error('Failed to create wallet');
     return res.json();
   },
-  async update(id: string, data: Partial<WalletInput>): Promise<Wallet> {
+  async update(id: string, data: Partial<WalletsInput>): Promise<Wallets> {
     const res = await fetch(API_URL, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

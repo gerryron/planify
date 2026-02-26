@@ -10,6 +10,18 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [darkMode, setDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isOptionsOpen, setIsOptionsOpen] = useState(true);
+
+  const mainMenus = [
+    { label: 'Home', href: '/' },
+    { label: 'Monthly Budget', href: '/monthly-budget' },
+    { label: 'Cash Log', href: '/cash-log' },
+  ] as const;
+
+  const subMenus = [
+    { label: 'Wallets', href: '/wallets' },
+    { label: 'Categories', href: '/categories' },
+  ] as const;
 
   const syncThemeClass = (isDark: boolean) => {
     const method = isDark ? 'add' : 'remove';
@@ -71,14 +83,7 @@ export default function Sidebar() {
       </div>
       <nav className='flex-1'>
         <ul className='space-y-4'>
-          {(
-            [
-              { label: 'Home', href: '/' },
-              { label: 'Wallet', href: '/wallet' },
-              { label: 'Monthly Budget', href: '/monthly-budget' },
-              { label: 'Cash Log', href: '/cash-log' },
-            ] as const
-          ).map(({ label, href }) => {
+          {mainMenus.map(({ label, href }) => {
             type SidebarLabel = keyof typeof sidebarIcons;
             const Icon = sidebarIcons[label as SidebarLabel];
             const isActive = pathname === href;
@@ -105,15 +110,52 @@ export default function Sidebar() {
             );
           })}
           <li>
-            <span
+            <button
+              type='button'
+              onClick={() => setIsOptionsOpen((value) => !value)}
               className={
-                darkMode
-                  ? 'text-slate-500 font-medium'
-                  : 'text-emerald-100 font-medium'
+                (darkMode
+                  ? 'text-slate-400 hover:text-slate-200'
+                  : 'text-emerald-100 hover:text-white') +
+                ' w-full text-left font-medium text-sm flex items-center justify-between transition-colors'
               }
+              aria-expanded={isOptionsOpen}
+              aria-controls='options-submenu'
             >
-              Upcoming Feature
-            </span>
+              <span>Options</span>
+              <span>{isOptionsOpen ? '−' : '+'}</span>
+            </button>
+            {isOptionsOpen && (
+              <ul id='options-submenu' className='mt-2 space-y-2 pl-3'>
+                {subMenus.map(({ label, href }) => {
+                  type SidebarLabel = keyof typeof sidebarIcons;
+                  const Icon = sidebarIcons[label as SidebarLabel];
+                  const isActive = pathname === href;
+
+                  return (
+                    <li key={label}>
+                      <Link
+                        href={href}
+                        className={
+                          (darkMode
+                            ? isActive
+                              ? 'bg-slate-700 text-white font-bold'
+                              : 'text-slate-100 hover:text-slate-300'
+                            : isActive
+                              ? 'bg-emerald-500 text-white font-bold'
+                              : 'text-emerald-50 hover:text-white') +
+                          ' font-medium flex items-center gap-2 rounded px-2 py-2 transition-colors'
+                        }
+                        aria-current={isActive ? 'page' : undefined}
+                      >
+                        {Icon && <Icon fontSize='small' className='-ml-1' />}
+                        {label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </li>
         </ul>
       </nav>

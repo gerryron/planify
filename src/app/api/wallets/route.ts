@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { WalletInput } from '@/features/wallet/types/wallet';
+import { WalletsInput } from '@/features/wallets/types/wallets';
 import { prisma } from '@/core/db/prisma';
 import { ok, badRequest, serverError } from '@/core/http/apiResponse';
 
-async function ensureDefaultWallet() {
-  await prisma.wallet.upsert({
-    where: { name: 'Cash' },
-    update: {},
-    create: {
-      name: 'Cash',
-      balance: 0,
-      includeFromTotal: true,
-    },
-  });
-}
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const { name, balance, includeFromTotal }: Partial<WalletInput> =
+    const { name, balance, includeFromTotal }: Partial<WalletsInput> =
       await req.json();
     if (!name?.trim() || balance === undefined) {
       return badRequest('All fields are required');
@@ -45,13 +33,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 export async function GET(): Promise<NextResponse> {
   try {
-    await ensureDefaultWallet();
     const wallets = await prisma.wallet.findMany({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
     return ok(wallets);
   } catch (error) {
-    console.error('GET /api/wallet error:', error);
+    console.error('GET /api/wallets error:', error);
     const message = error instanceof Error ? error.message : undefined;
     return serverError(message);
   }
@@ -59,7 +46,7 @@ export async function GET(): Promise<NextResponse> {
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
-    const payload: Partial<WalletInput> & {
+    const payload: Partial<WalletsInput> & {
       id?: string;
       orderedIds?: string[];
     } = await req.json();

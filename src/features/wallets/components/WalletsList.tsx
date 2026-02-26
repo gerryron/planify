@@ -8,9 +8,9 @@ import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import Swal from 'sweetalert2';
 import {
-  walletService,
-  Wallet,
-} from '@/features/wallet/services/walletService';
+  walletsService,
+  Wallets,
+} from '@/features/wallets/services/walletsService';
 import {
   CollisionDetection,
   closestCenter,
@@ -29,8 +29,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-interface WalletListProps {
-  onEdit: (wallet: Wallet) => void;
+interface WalletsListProps {
+  onEdit: (wallet: Wallets) => void;
   onAdd?: () => void;
 }
 
@@ -106,11 +106,11 @@ function MenuActions({
 }
 
 function buildNextWallets(
-  wallets: Wallet[],
+  wallets: Wallets[],
   fromId: string,
   targetIncludeFromTotal: boolean,
   toId?: string,
-): Wallet[] | null {
+): Wallets[] | null {
   const fromIndex = wallets.findIndex((wallet) => wallet.id === fromId);
   if (fromIndex < 0) return null;
 
@@ -157,10 +157,10 @@ function SortableWalletItem({
   onDelete,
   canDelete,
 }: {
-  wallet: Wallet;
+  wallet: Wallets;
   showNominal: boolean;
   totalAllocationBase: number;
-  onEdit: (wallet: Wallet) => void;
+  onEdit: (wallet: Wallets) => void;
   onDelete: (id: string) => void;
   canDelete: boolean;
 }) {
@@ -253,8 +253,8 @@ function SortableWalletItem({
   );
 }
 
-export default function WalletList({ onEdit, onAdd }: WalletListProps) {
-  const [wallets, setWallets] = useState<Wallet[]>([]);
+export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
+  const [wallets, setWallets] = useState<Wallets[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNominal, setShowNominal] = useState(true);
@@ -286,7 +286,7 @@ export default function WalletList({ onEdit, onAdd }: WalletListProps) {
     setLoading(true);
     setError(null);
     try {
-      const data = await walletService.getAll();
+      const data = await walletsService.getAll();
       setWallets(data);
     } catch {
       setError('Failed to fetch wallets');
@@ -351,7 +351,7 @@ export default function WalletList({ onEdit, onAdd }: WalletListProps) {
     if (!result.isConfirmed) return;
 
     try {
-      await walletService.remove(id);
+      await walletsService.remove(id);
       setWallets((prev) => prev.filter((wallet) => wallet.id !== id));
       await Swal.fire({
         title: 'Success',
@@ -381,12 +381,12 @@ export default function WalletList({ onEdit, onAdd }: WalletListProps) {
 
     try {
       if (includeChanged) {
-        await walletService.update(sourceWallet.id, {
+        await walletsService.update(sourceWallet.id, {
           includeFromTotal: targetIncludeFromTotal,
         });
       }
 
-      await walletService.reorder(nextWallets.map((wallet) => wallet.id));
+      await walletsService.reorder(nextWallets.map((wallet) => wallet.id));
     } catch {
     } finally {
       await fetchWallets();
@@ -627,7 +627,7 @@ export default function WalletList({ onEdit, onAdd }: WalletListProps) {
                 </div>
               </div>
 
-              <div className='h-px bg-emerald-200 ' />
+              <div className='h-0.5 flex-1 bg-emerald-200 dark:bg-emerald-800' />
 
               <div
                 ref={setExcludeDropRef}
