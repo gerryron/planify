@@ -126,14 +126,14 @@ function buildNextWallets(
     if (targetIndexInCurrent < 0 || targetIndex < 0) return null;
 
     const movingWithinSameSection =
-      sourceWallet.includeFromTotal === targetIncludeFromTotal;
+      !sourceWallet.excludeFromTotal === targetIncludeFromTotal;
     const movingDown = fromIndex < targetIndexInCurrent;
 
     insertIndex =
       movingWithinSameSection && movingDown ? targetIndex + 1 : targetIndex;
   } else if (targetIncludeFromTotal) {
     const firstExcludeIndex = withoutMoved.findIndex(
-      (wallet) => !wallet.includeFromTotal,
+      (wallet) => wallet.excludeFromTotal,
     );
     insertIndex =
       firstExcludeIndex >= 0 ? firstExcludeIndex : withoutMoved.length;
@@ -141,7 +141,7 @@ function buildNextWallets(
 
   const movedAfterDrop = {
     ...sourceWallet,
-    includeFromTotal: targetIncludeFromTotal,
+    excludeFromTotal: !targetIncludeFromTotal,
   };
 
   const nextWallets = [...withoutMoved];
@@ -208,7 +208,7 @@ function SortableWalletItem({
             ? Math.abs(wallet.balance).toLocaleString('id-ID')
             : '••••••••'}
         </div>
-        {wallet.includeFromTotal && (
+        {!wallet.excludeFromTotal && (
           <div className='flex items-center gap-2 mt-1'>
             <div
               className='h-2 rounded overflow-hidden flex border border-gray-300 dark:border-slate-700'
@@ -302,24 +302,24 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
   const totalBalance = useMemo(
     () =>
       wallets
-        .filter((wallet) => wallet.includeFromTotal)
+        .filter((wallet) => !wallet.excludeFromTotal)
         .reduce((sum, wallet) => sum + wallet.balance, 0),
     [wallets],
   );
 
   const totalAllocationBase = useMemo(() => {
     return wallets
-      .filter((wallet) => wallet.includeFromTotal)
+      .filter((wallet) => !wallet.excludeFromTotal)
       .reduce((sum, wallet) => sum + Math.max(wallet.balance, 0), 0);
   }, [wallets]);
 
   const includeWallets = useMemo(
-    () => wallets.filter((wallet) => wallet.includeFromTotal),
+    () => wallets.filter((wallet) => !wallet.excludeFromTotal),
     [wallets],
   );
 
   const excludeWallets = useMemo(
-    () => wallets.filter((wallet) => !wallet.includeFromTotal),
+    () => wallets.filter((wallet) => wallet.excludeFromTotal),
     [wallets],
   );
 
@@ -375,14 +375,14 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
     targetIncludeFromTotal: boolean,
   ) => {
     const includeChanged =
-      sourceWallet.includeFromTotal !== targetIncludeFromTotal;
+      !sourceWallet.excludeFromTotal !== targetIncludeFromTotal;
 
     setWallets(nextWallets);
 
     try {
       if (includeChanged) {
         await walletsService.update(sourceWallet.id, {
-          includeFromTotal: targetIncludeFromTotal,
+          excludeFromTotal: !targetIncludeFromTotal,
         });
       }
 
@@ -417,7 +417,7 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
     }
 
     setCurrentDragSection(
-      hoveredWallet.includeFromTotal ? 'include' : 'exclude',
+      hoveredWallet.excludeFromTotal ? 'exclude' : 'include',
     );
   };
 
@@ -459,7 +459,7 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
     if (overId === fromId) {
       if (
         fallbackTargetIncludeFromTotal !== null &&
-        fallbackTargetIncludeFromTotal !== sourceWallet.includeFromTotal
+        fallbackTargetIncludeFromTotal !== !sourceWallet.excludeFromTotal
       ) {
         const nextWallets = buildNextWallets(
           wallets,
@@ -496,7 +496,7 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
       return;
     }
 
-    const targetIncludeFromTotal = targetWallet.includeFromTotal;
+    const targetIncludeFromTotal = !targetWallet.excludeFromTotal;
     const nextWallets = buildNextWallets(
       wallets,
       fromId,

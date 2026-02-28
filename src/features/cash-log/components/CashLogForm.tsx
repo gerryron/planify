@@ -28,6 +28,7 @@ const defaultForm: CashLogInput = {
   amount: 0,
   walletName: '',
   categoryId: '',
+  excludeFromReport: false,
 };
 
 export default function CashLogForm({
@@ -44,6 +45,7 @@ export default function CashLogForm({
           amount: initial.amount,
           walletName: initial.walletName,
           categoryId: initial.categoryId,
+          excludeFromReport: initial.excludeFromReport,
         }
       : {
           ...defaultForm,
@@ -341,6 +343,33 @@ export default function CashLogForm({
           className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
+      </div>
+
+      <div className='flex items-center justify-between'>
+        <span className='font-medium'>Exclude from report</span>
+        <button
+          type='button'
+          role='switch'
+          aria-checked={form.excludeFromReport}
+          aria-label='Exclude from report'
+          onClick={() =>
+            setForm((prev) => ({
+              ...prev,
+              excludeFromReport: !prev.excludeFromReport,
+            }))
+          }
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            form.excludeFromReport
+              ? 'bg-emerald-600'
+              : 'bg-gray-300 dark:bg-slate-600'
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              form.excludeFromReport ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
       </div>
 
       {error && <div className='text-red-500'>{error}</div>}

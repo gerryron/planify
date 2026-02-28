@@ -4,6 +4,7 @@ export type CashLogInput = {
   amount: number;
   walletName: string;
   categoryId: string;
+  excludeFromReport: boolean;
 };
 
 export type CashLogCategory = {

@@ -5,7 +5,7 @@ import { ok, badRequest, serverError } from '@/core/http/apiResponse';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const { name, balance, includeFromTotal }: Partial<WalletsInput> =
+    const { name, balance, excludeFromTotal }: Partial<WalletsInput> =
       await req.json();
     if (!name?.trim() || balance === undefined) {
       return badRequest('All fields are required');
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       data: {
         name: name.trim(),
         balance,
-        includeFromTotal: includeFromTotal ?? true,
+        excludeFromTotal: excludeFromTotal ?? false,
         sortOrder: (lastWallet?.sortOrder ?? -1) + 1,
       },
     });

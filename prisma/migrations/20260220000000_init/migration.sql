@@ -14,7 +14,7 @@ CREATE TABLE "Wallet" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "balance" INTEGER NOT NULL DEFAULT 0,
-    "includeFromTotal" BOOLEAN NOT NULL DEFAULT true,
+    "excludeFromTotal" BOOLEAN NOT NULL DEFAULT false,
     "sortOrder" INTEGER NOT NULL DEFAULT 0
 );
 
@@ -34,6 +34,7 @@ CREATE TABLE "CashLog" (
     "description" TEXT NOT NULL,
     "amount" INTEGER NOT NULL,
     "walletName" TEXT NOT NULL,
+    "excludeFromReport" BOOLEAN NOT NULL DEFAULT false,
     "categoryId" TEXT,
     CONSTRAINT "CashLog_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -51,8 +52,8 @@ CREATE UNIQUE INDEX "Category_name_type_parentId_key" ON "Category"("name", "typ
 CREATE INDEX "CashLog_categoryId_idx" ON "CashLog"("categoryId");
 
 -- Seed Wallet (init only)
-INSERT OR IGNORE INTO "Wallet" ("id", "name", "balance", "includeFromTotal", "sortOrder")
-VALUES ('seed-wallet-cash', 'Cash', 0, true, 0);
+INSERT OR IGNORE INTO "Wallet" ("id", "name", "balance", "excludeFromTotal", "sortOrder")
+VALUES ('seed-wallet-cash', 'Cash', 0, false, 0);
 
 -- Seed Categories (init only)
 INSERT OR IGNORE INTO "Category" ("id", "name", "type", "parentId") VALUES

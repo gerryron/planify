@@ -82,7 +82,7 @@ describe('Wallet API', () => {
         ({
           name: 'BCA',
           balance: 1200000,
-          includeFromTotal: true,
+          excludeFromTotal: false,
         }) as WalletsInput,
     } as unknown as NextRequest;
 
@@ -92,7 +92,7 @@ describe('Wallet API', () => {
         ({
           name: 'OVO',
           balance: 500000,
-          includeFromTotal: false,
+          excludeFromTotal: true,
         }) as WalletsInput,
     } as unknown as NextRequest;
 
@@ -107,8 +107,8 @@ describe('Wallet API', () => {
 
     expect(data1.name).toBe('BCA');
     expect(data2.name).toBe('OVO');
-    expect(data1.includeFromTotal).toBe(true);
-    expect(data2.includeFromTotal).toBe(false);
+    expect(data1.excludeFromTotal).toBe(false);
+    expect(data2.excludeFromTotal).toBe(true);
     expect(data1.sortOrder).toBeLessThan(data2.sortOrder);
     id1 = data1.id;
     id2 = data2.id;
@@ -149,7 +149,7 @@ describe('Wallet API', () => {
         id: id1,
         name: 'BCA Updated',
         balance: 1500000,
-        includeFromTotal: false,
+        excludeFromTotal: true,
       }),
     } as unknown as NextRequest;
 
@@ -160,7 +160,7 @@ describe('Wallet API', () => {
     expect(data.id).toBe(id1);
     expect(data.name).toBe('BCA Updated');
     expect(data.balance).toBe(1500000);
-    expect(data.includeFromTotal).toBe(false);
+    expect(data.excludeFromTotal).toBe(true);
   });
 
   it('should delete wallet data', async () => {

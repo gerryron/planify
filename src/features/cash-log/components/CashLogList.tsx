@@ -415,7 +415,14 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
                       }`}
                     >
                       <div>
-                        <div className='font-bold'>{log.description}</div>
+                        <div className='flex items-center gap-2'>
+                          <div className='font-bold'>{log.description}</div>
+                          {log.excludeFromReport && (
+                            <span className='text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'>
+                              Excluded
+                            </span>
+                          )}
+                        </div>
                         <div className='text-sm text-gray-500'>
                           {log.walletName}
                         </div>

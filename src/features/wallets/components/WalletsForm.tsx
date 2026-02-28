@@ -14,7 +14,7 @@ interface WalletsFormProps {
 const defaultForm: WalletsInput = {
   name: '',
   balance: 0,
-  includeFromTotal: true,
+  excludeFromTotal: false,
 };
 
 export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
@@ -23,7 +23,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       ? {
           name: initial.name,
           balance: initial.balance,
-          includeFromTotal: initial.includeFromTotal,
+          excludeFromTotal: initial.excludeFromTotal,
         }
       : defaultForm,
   );
@@ -127,27 +127,27 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       </div>
 
       <div className='flex items-center justify-between'>
-        <span className='font-medium'>Include from total</span>
+        <span className='font-medium'>Exclude from total</span>
         <button
           type='button'
           role='switch'
-          aria-checked={form.includeFromTotal}
-          aria-label='Include from total'
+          aria-checked={form.excludeFromTotal}
+          aria-label='Exclude from total'
           onClick={() =>
             setForm((prev) => ({
               ...prev,
-              includeFromTotal: !prev.includeFromTotal,
+              excludeFromTotal: !prev.excludeFromTotal,
             }))
           }
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            form.includeFromTotal
+            form.excludeFromTotal
               ? 'bg-emerald-600'
               : 'bg-gray-300 dark:bg-slate-600'
           }`}
         >
           <span
             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              form.includeFromTotal ? 'translate-x-6' : 'translate-x-1'
+              form.excludeFromTotal ? 'translate-x-6' : 'translate-x-1'
             }`}
           />
         </button>

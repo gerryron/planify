@@ -133,6 +133,7 @@ describe('Cash Log API', () => {
         amount: 35000,
         walletName: 'Cash',
         categoryId: 'cat-outcome-food',
+        excludeFromReport: false,
       }),
     } as unknown as NextRequest;
 
@@ -144,6 +145,7 @@ describe('Cash Log API', () => {
         amount: 500000,
         walletName: 'BCA',
         categoryId: 'cat-income-salary',
+        excludeFromReport: true,
       }),
     } as unknown as NextRequest;
 
@@ -162,6 +164,8 @@ describe('Cash Log API', () => {
     expect(data2.walletName).toBe('BCA');
     expect(data1.category?.name).toBe('Food');
     expect(data2.category?.name).toBe('Salary');
+    expect(data1.excludeFromReport).toBe(false);
+    expect(data2.excludeFromReport).toBe(true);
 
     id1 = data1.id;
     id2 = data2.id;
@@ -200,6 +204,7 @@ describe('Cash Log API', () => {
         amount: 40000,
         walletName: 'OVO',
         categoryId: 'cat-outcome-food',
+        excludeFromReport: true,
       }),
     } as unknown as NextRequest;
 
@@ -213,6 +218,7 @@ describe('Cash Log API', () => {
     expect(data.amount).toBe(40000);
     expect(data.walletName).toBe('OVO');
     expect(data.categoryId).toBe('cat-outcome-food');
+    expect(data.excludeFromReport).toBe(true);
   });
 
   it('should return 400 for missing walletName', async () => {
@@ -223,6 +229,7 @@ describe('Cash Log API', () => {
         description: 'Missing Wallet',
         amount: 10000,
         categoryId: 'cat-income-salary',
+        excludeFromReport: false,
       }),
     } as unknown as NextRequest;
 

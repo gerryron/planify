@@ -46,6 +46,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         amount: payload.amount!,
         walletName: payload.walletName!.trim(),
         categoryId: payload.categoryId!,
+        excludeFromReport: payload.excludeFromReport ?? false,
       },
       include: {
         category: {
@@ -212,6 +213,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           : {}),
         ...(payload.categoryId !== undefined
           ? { categoryId: payload.categoryId }
+          : {}),
+        ...(payload.excludeFromReport !== undefined
+          ? { excludeFromReport: payload.excludeFromReport }
           : {}),
       },
       include: {
