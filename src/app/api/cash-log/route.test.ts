@@ -2,17 +2,50 @@ import { NextRequest } from 'next/server';
 import { DELETE, GET, PATCH, POST } from './route';
 import { CashLogInput } from '@/features/cash-log/types/cashLog';
 
-type CashLog = CashLogInput & { id: string };
+type CashLog = CashLogInput & {
+  id: string;
+  category: {
+    id: string;
+    name: string;
+    type: 'income' | 'outcome';
+    parentId: string | null;
+  } | null;
+};
 
 jest.mock('@/generated/prisma/client', () => {
   let logs: CashLog[] = [];
+  const categories = [
+    {
+      id: 'cat-income-salary',
+      name: 'Salary',
+      type: 'income' as const,
+      parentId: null,
+    },
+    {
+      id: 'cat-outcome-food',
+      name: 'Food',
+      type: 'outcome' as const,
+      parentId: null,
+    },
+  ];
+
   return {
     PrismaClient: jest.fn().mockImplementation(() => ({
+      category: {
+        findUnique: jest.fn(({ where }: { where: { id: string } }) => {
+          const category =
+            categories.find((item) => item.id === where.id) ?? null;
+          return Promise.resolve(category ? { id: category.id } : null);
+        }),
+      },
       cashLog: {
         create: jest.fn(({ data }: { data: CashLogInput }) => {
+          const category =
+            categories.find((item) => item.id === data.categoryId) ?? null;
           const record: CashLog = {
             id: `${logs.length + 1}`,
             ...data,
+            category,
           };
           logs.push(record);
           return Promise.resolve(record);
@@ -69,7 +102,12 @@ jest.mock('@/generated/prisma/client', () => {
           }) => {
             const idx = logs.findIndex((log) => log.id === where.id);
             if (idx < 0) throw new Error('Not found');
-            logs[idx] = { ...logs[idx], ...data };
+            const category =
+              data.categoryId !== undefined
+                ? (categories.find((item) => item.id === data.categoryId) ??
+                  null)
+                : logs[idx].category;
+            logs[idx] = { ...logs[idx], ...data, category };
             return Promise.resolve(logs[idx]);
           },
         ),
@@ -94,6 +132,7 @@ describe('Cash Log API', () => {
         description: 'Lunch',
         amount: 35000,
         walletName: 'Cash',
+        categoryId: 'cat-outcome-food',
       }),
     } as unknown as NextRequest;
 
@@ -104,6 +143,7 @@ describe('Cash Log API', () => {
         description: 'Freelance Payment',
         amount: 500000,
         walletName: 'BCA',
+        categoryId: 'cat-income-salary',
       }),
     } as unknown as NextRequest;
 
@@ -120,6 +160,8 @@ describe('Cash Log API', () => {
     expect(data2.description).toBe('Freelance Payment');
     expect(data1.walletName).toBe('Cash');
     expect(data2.walletName).toBe('BCA');
+    expect(data1.category?.name).toBe('Food');
+    expect(data2.category?.name).toBe('Salary');
 
     id1 = data1.id;
     id2 = data2.id;
@@ -157,6 +199,7 @@ describe('Cash Log API', () => {
         description: 'Lunch Updated',
         amount: 40000,
         walletName: 'OVO',
+        categoryId: 'cat-outcome-food',
       }),
     } as unknown as NextRequest;
 
@@ -169,6 +212,7 @@ describe('Cash Log API', () => {
     expect(data.description).toBe('Lunch Updated');
     expect(data.amount).toBe(40000);
     expect(data.walletName).toBe('OVO');
+    expect(data.categoryId).toBe('cat-outcome-food');
   });
 
   it('should return 400 for missing walletName', async () => {
@@ -178,6 +222,7 @@ describe('Cash Log API', () => {
         date: '2026-02-27',
         description: 'Missing Wallet',
         amount: 10000,
+        categoryId: 'cat-income-salary',
       }),
     } as unknown as NextRequest;
 
@@ -186,7 +231,7 @@ describe('Cash Log API', () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toBe(
-      'date, description, amount, and walletName are required',
+      'date, description, amount, walletName, and categoryId are required',
     );
   });
 

@@ -419,6 +419,10 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
                         <div className='text-sm text-gray-500'>
                           {log.walletName}
                         </div>
+                        <div className='text-xs text-emerald-700 dark:text-emerald-400'>
+                          {log.category?.name ?? 'Uncategorized'}
+                          {log.category?.type ? ` • ${log.category.type}` : ''}
+                        </div>
                         <div
                           className={`font-mono ${
                             showNominal

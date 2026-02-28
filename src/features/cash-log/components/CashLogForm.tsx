@@ -9,6 +9,8 @@ import {
   walletsService,
   Wallets,
 } from '@/features/wallets/services/walletsService';
+import { categoryService } from '@/features/categories/services/categoryService';
+import { Category } from '@/features/categories/types/category';
 
 interface CashLogFormProps {
   initial?: CashLog | null;
@@ -25,6 +27,7 @@ const defaultForm: CashLogInput = {
   description: '',
   amount: 0,
   walletName: '',
+  categoryId: '',
 };
 
 export default function CashLogForm({
@@ -32,6 +35,7 @@ export default function CashLogForm({
   defaultWalletName,
   onSuccess,
 }: CashLogFormProps) {
+  const initialCategoryType = initial?.category?.type ?? 'outcome';
   const [form, setForm] = useState<CashLogInput>(
     initial
       ? {
@@ -39,6 +43,7 @@ export default function CashLogForm({
           description: initial.description,
           amount: initial.amount,
           walletName: initial.walletName,
+          categoryId: initial.categoryId,
         }
       : {
           ...defaultForm,
@@ -48,6 +53,10 @@ export default function CashLogForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<Wallets[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [activeCategoryType, setActiveCategoryType] = useState<
+    'income' | 'outcome'
+  >(initialCategoryType);
 
   useEffect(() => {
     const fetchWallets = async () => {
@@ -71,6 +80,86 @@ export default function CashLogForm({
 
     fetchWallets();
   }, [defaultWalletName]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await categoryService.getAll();
+        setCategories(data);
+        setForm((prev) => {
+          const selectedCategory = data.find(
+            (category) => category.id === prev.categoryId,
+          );
+
+          if (selectedCategory) {
+            setActiveCategoryType(selectedCategory.type);
+            return prev;
+          }
+
+          const defaultByType = data
+            .filter((category) => category.type === initialCategoryType)
+            .sort((a, b) => a.name.localeCompare(b.name))[0];
+
+          const fallbackCategory =
+            defaultByType ??
+            [...data].sort((a, b) => a.name.localeCompare(b.name))[0];
+
+          if (fallbackCategory) {
+            setActiveCategoryType(fallbackCategory.type);
+          }
+
+          return {
+            ...prev,
+            categoryId: fallbackCategory?.id ?? '',
+          };
+        });
+      } catch {}
+    };
+
+    fetchCategories();
+  }, [initialCategoryType]);
+
+  const categoriesByType = useMemo(() => {
+    const buildByType = (type: 'income' | 'outcome') => {
+      const categoriesOfType = categories.filter(
+        (category) => category.type === type,
+      );
+      const parents = categoriesOfType
+        .filter((category) => category.parentId === null)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      return parents.flatMap((parent) => {
+        const children = categoriesOfType
+          .filter((category) => category.parentId === parent.id)
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        return [parent, ...children];
+      });
+    };
+
+    const income = buildByType('income');
+    const outcome = buildByType('outcome');
+
+    return { income, outcome };
+  }, [categories]);
+
+  const activeCategories =
+    activeCategoryType === 'income'
+      ? categoriesByType.income
+      : categoriesByType.outcome;
+
+  const handleCategoryTypeChange = (type: 'income' | 'outcome') => {
+    setActiveCategoryType(type);
+    const firstCategory =
+      type === 'income'
+        ? categoriesByType.income[0]
+        : categoriesByType.outcome[0];
+
+    setForm((prev) => ({
+      ...prev,
+      categoryId: firstCategory?.id ?? '',
+    }));
+  };
 
   const formattedAmount = useMemo(() => {
     if (!form.amount) return '';
@@ -146,42 +235,49 @@ export default function CashLogForm({
       onSubmit={handleSubmit}
       className='space-y-4 bg-white dark:bg-slate-800 p-4 rounded shadow'
     >
-      <div>
-        <label className='block font-medium'>Date</label>
-        <input
-          name='date'
-          type='date'
-          value={form.date}
-          onChange={handleChange}
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
-        />
-      </div>
+      <input name='date' type='hidden' value={form.date} />
 
       <div>
-        <label className='block font-medium'>Description</label>
-        <input
-          name='description'
-          value={form.description}
-          onChange={handleChange}
-          placeholder='e.g. Lunch, Fuel, Freelance'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
-        />
-      </div>
-
-      <div>
-        <label className='block font-medium'>Amount</label>
-        <input
-          name='amount'
-          type='text'
-          inputMode='numeric'
-          value={formattedAmount}
-          onChange={handleChange}
-          placeholder='e.g. 50000'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
-        />
+        <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden mb-3'>
+          <span
+            className={
+              'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +
+              (activeCategoryType === 'income'
+                ? 'bg-emerald-500 '
+                : 'bg-red-500 ') +
+              (activeCategoryType === 'income'
+                ? 'translate-x-0'
+                : 'translate-x-full')
+            }
+            aria-hidden='true'
+          />
+          <div className='relative z-10 grid grid-cols-2'>
+            <button
+              type='button'
+              onClick={() => handleCategoryTypeChange('income')}
+              className={
+                'rounded px-3 py-1.5 text-sm transition-colors duration-500 ' +
+                (activeCategoryType === 'income'
+                  ? 'text-white dark:text-slate-900'
+                  : 'text-gray-700 dark:text-gray-200')
+              }
+            >
+              Income
+            </button>
+            <button
+              type='button'
+              onClick={() => handleCategoryTypeChange('outcome')}
+              className={
+                'rounded px-3 py-1.5 text-sm transition-colors duration-500 ' +
+                (activeCategoryType === 'outcome'
+                  ? 'text-white'
+                  : 'text-gray-700 dark:text-gray-200')
+              }
+            >
+              Outcome
+            </button>
+          </div>
+        </div>
       </div>
 
       <div>
@@ -199,6 +295,52 @@ export default function CashLogForm({
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className='block font-medium'>Category</label>
+        <select
+          name='categoryId'
+          value={form.categoryId}
+          onChange={handleChange}
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          required
+        >
+          <option value='' disabled>
+            Select category
+          </option>
+          {activeCategories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.parentId ? `— ${category.name}` : category.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className='block font-medium'>Amount</label>
+        <input
+          name='amount'
+          type='text'
+          inputMode='numeric'
+          value={formattedAmount}
+          onChange={handleChange}
+          placeholder='e.g. 50000'
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          required
+        />
+      </div>
+
+      <div>
+        <label className='block font-medium'>Description</label>
+        <input
+          name='description'
+          value={form.description}
+          onChange={handleChange}
+          placeholder='e.g. Lunch, Fuel, Freelance'
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          required
+        />
       </div>
 
       {error && <div className='text-red-500'>{error}</div>}

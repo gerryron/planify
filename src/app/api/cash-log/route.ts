@@ -12,9 +12,10 @@ function validateCreatePayload(payload: Partial<CashLogInput>) {
     !payload.date ||
     !payload.description?.trim() ||
     payload.amount === undefined ||
-    !payload.walletName?.trim()
+    !payload.walletName?.trim() ||
+    !payload.categoryId?.trim()
   ) {
-    return 'date, description, amount, and walletName are required';
+    return 'date, description, amount, walletName, and categoryId are required';
   }
 
   return null;
@@ -29,12 +30,32 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return badRequest(validationError);
     }
 
+    const category = await prisma.category.findUnique({
+      where: { id: payload.categoryId! },
+      select: { id: true },
+    });
+
+    if (!category) {
+      return badRequest('categoryId is invalid');
+    }
+
     const record = await prisma.cashLog.create({
       data: {
         date: payload.date!,
         description: payload.description!.trim(),
         amount: payload.amount!,
         walletName: payload.walletName!.trim(),
+        categoryId: payload.categoryId!,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            parentId: true,
+          },
+        },
       },
     });
 
@@ -55,6 +76,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       const logs = await prisma.cashLog.findMany({
         where: { date },
         orderBy: [{ date: 'asc' }, { description: 'asc' }],
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              parentId: true,
+            },
+          },
+        },
       });
       return ok(logs);
     }
@@ -63,6 +94,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       const logs = await prisma.cashLog.findMany({
         where: { date: { gt: currentMonth } },
         orderBy: [{ date: 'asc' }, { description: 'asc' }],
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              parentId: true,
+            },
+          },
+        },
       });
       return ok(logs);
     }
@@ -70,6 +111,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (month && month > currentMonth) {
       const logs = await prisma.cashLog.findMany({
         orderBy: [{ date: 'asc' }, { description: 'asc' }],
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              parentId: true,
+            },
+          },
+        },
       });
       return ok(logs);
     }
@@ -78,12 +129,32 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       const logs = await prisma.cashLog.findMany({
         where: { date: { startsWith: month } },
         orderBy: [{ date: 'asc' }, { description: 'asc' }],
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              parentId: true,
+            },
+          },
+        },
       });
       return ok(logs);
     }
 
     const logs = await prisma.cashLog.findMany({
       orderBy: [{ date: 'asc' }, { description: 'asc' }],
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            parentId: true,
+          },
+        },
+      },
     });
 
     return ok(logs);
@@ -102,6 +173,21 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     if (payload.walletName !== undefined && !payload.walletName.trim()) {
       return badRequest('walletName is required');
+    }
+
+    if (payload.categoryId !== undefined && !payload.categoryId.trim()) {
+      return badRequest('categoryId is required');
+    }
+
+    if (payload.categoryId !== undefined) {
+      const category = await prisma.category.findUnique({
+        where: { id: payload.categoryId },
+        select: { id: true },
+      });
+
+      if (!category) {
+        return badRequest('categoryId is invalid');
+      }
     }
 
     const existing = await prisma.cashLog.findUnique({
@@ -124,6 +210,19 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         ...(payload.walletName !== undefined
           ? { walletName: payload.walletName.trim() }
           : {}),
+        ...(payload.categoryId !== undefined
+          ? { categoryId: payload.categoryId }
+          : {}),
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            parentId: true,
+          },
+        },
       },
     });
 

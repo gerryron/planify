@@ -43,6 +43,7 @@ model Category {
   parentId        String?
   parent          Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children        Category[]   @relation("CategoryHierarchy")
+  cashLogs        CashLog[]
 
   @@index([parentId])
   @@unique([name, type, parentId])
@@ -54,4 +55,8 @@ model CashLog {
   description String
   amount      Int
   walletName  String
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
 }

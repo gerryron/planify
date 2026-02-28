@@ -33,7 +33,9 @@ CREATE TABLE "CashLog" (
     "date" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "amount" INTEGER NOT NULL,
-    "walletName" TEXT NOT NULL
+    "walletName" TEXT NOT NULL,
+    "categoryId" TEXT,
+    CONSTRAINT "CashLog_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -44,6 +46,9 @@ CREATE INDEX "Category_parentId_idx" ON "Category"("parentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Category_name_type_parentId_key" ON "Category"("name", "type", "parentId");
+
+-- CreateIndex
+CREATE INDEX "CashLog_categoryId_idx" ON "CashLog"("categoryId");
 
 -- Seed Wallet (init only)
 INSERT OR IGNORE INTO "Wallet" ("id", "name", "balance", "includeFromTotal", "sortOrder")
