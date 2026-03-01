@@ -141,18 +141,18 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
     }
   };
 
+  const fetchWallets = async () => {
+    try {
+      const data = await walletsService.getAll();
+      setWallets(data);
+    } catch {}
+  };
+
   useEffect(() => {
     fetchLogs(selectedMonth);
   }, [selectedMonth]);
 
   useEffect(() => {
-    const fetchWallets = async () => {
-      try {
-        const data = await walletsService.getAll();
-        setWallets(data);
-      } catch {}
-    };
-
     fetchWallets();
   }, []);
 
@@ -204,6 +204,13 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
     }, {});
   }, [sortedLogs]);
 
+  const groupedWallets = useMemo(() => {
+    const included = wallets.filter((wallet) => !wallet.excludeFromTotal);
+    const excluded = wallets.filter((wallet) => wallet.excludeFromTotal);
+
+    return { included, excluded };
+  }, [wallets]);
+
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
       title: 'Delete this entry?',
@@ -225,6 +232,7 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
         timer: 1000,
         showConfirmButton: false,
       });
+      await fetchWallets();
       fetchLogs(selectedMonth);
     } catch {
       await Swal.fire({
@@ -248,11 +256,24 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
               className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             >
               <option value='all'>All Wallets</option>
-              {wallets.map((wallet) => (
-                <option key={wallet.id} value={wallet.id}>
-                  {wallet.name}
-                </option>
-              ))}
+              {groupedWallets.included.length > 0 && (
+                <optgroup label='Included from total'>
+                  {groupedWallets.included.map((wallet) => (
+                    <option key={wallet.id} value={wallet.id}>
+                      {wallet.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {groupedWallets.excluded.length > 0 && (
+                <optgroup label='Excluded from total'>
+                  {groupedWallets.excluded.map((wallet) => (
+                    <option key={wallet.id} value={wallet.id}>
+                      {wallet.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
 
             <div
@@ -415,20 +436,22 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
                       }`}
                     >
                       <div>
-                        <div className='flex items-center gap-2'>
-                          <div className='font-bold'>{log.description}</div>
-                          {log.excludeFromReport && (
-                            <span className='text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'>
-                              Excluded
-                            </span>
-                          )}
-                        </div>
-                        <div className='text-sm text-gray-500'>
-                          {log.walletName}
-                        </div>
-                        <div className='text-xs text-emerald-700 dark:text-emerald-400'>
+                        <div className='font-bold'>{log.description}</div>
+                        {selectedWalletId === 'all' && (
+                          <div className='text-sm text-gray-500'>
+                            {log.walletName}
+                          </div>
+                        )}
+                        <div
+                          className={`text-xs font-medium ${
+                            log.category?.type === 'income'
+                              ? 'text-green-700 dark:text-green-300'
+                              : log.category?.type === 'outcome'
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
                           {log.category?.name ?? 'Uncategorized'}
-                          {log.category?.type ? ` • ${log.category.type}` : ''}
                         </div>
                         <div
                           className={`font-mono ${
@@ -446,7 +469,12 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
                         </div>
                       </div>
 
-                      <div className='flex items-center gap-1'>
+                      <div className='flex items-start gap-2 self-start'>
+                        {log.excludeFromReport && (
+                          <span className='text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'>
+                            Excluded
+                          </span>
+                        )}
                         <MenuActions
                           onEdit={() => onEdit(log)}
                           onDelete={() => handleDelete(log.id)}

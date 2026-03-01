@@ -145,6 +145,13 @@ export default function CashLogForm({
     return { income, outcome };
   }, [categories]);
 
+  const groupedWallets = useMemo(() => {
+    const included = wallets.filter((wallet) => !wallet.excludeFromTotal);
+    const excluded = wallets.filter((wallet) => wallet.excludeFromTotal);
+
+    return { included, excluded };
+  }, [wallets]);
+
   const activeCategories =
     activeCategoryType === 'income'
       ? categoriesByType.income
@@ -291,11 +298,24 @@ export default function CashLogForm({
           className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         >
-          {wallets.map((wallet) => (
-            <option key={wallet.id} value={wallet.name}>
-              {wallet.name}
-            </option>
-          ))}
+          {groupedWallets.included.length > 0 && (
+            <optgroup label='Included from total'>
+              {groupedWallets.included.map((wallet) => (
+                <option key={wallet.id} value={wallet.name}>
+                  {wallet.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {groupedWallets.excluded.length > 0 && (
+            <optgroup label='Excluded from total'>
+              {groupedWallets.excluded.map((wallet) => (
+                <option key={wallet.id} value={wallet.name}>
+                  {wallet.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
 

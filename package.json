@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "jest"
+    "test": "jest",
+    "dev:seed-mock": "prisma db execute --file prisma/mock/seed-dev-mock.sql",
+    "dev:clear-mock": "prisma db execute --file prisma/mock/clear-dev-mock.sql"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

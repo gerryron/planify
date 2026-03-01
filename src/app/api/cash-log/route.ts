@@ -7,6 +7,28 @@ type CashLogRecord = CashLogInput & {
   id: string;
 };
 
+function getWalletDelta(amount: number, type: 'income' | 'outcome') {
+  const nominal = Math.abs(amount);
+  return type === 'income' ? nominal : -nominal;
+}
+
+function shouldAffectWallet(
+  categoryType: 'income' | 'outcome' | null,
+  description: string,
+  excludeFromReport: boolean,
+) {
+  if (!categoryType) return false;
+  const normalizedDescription = description.trim().toLowerCase();
+  if (
+    excludeFromReport &&
+    (normalizedDescription === 'adjustment balance' ||
+      normalizedDescription === 'adjust balance')
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function validateCreatePayload(payload: Partial<CashLogInput>) {
   if (
     !payload.date ||
@@ -32,36 +54,60 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const category = await prisma.category.findUnique({
       where: { id: payload.categoryId! },
-      select: { id: true },
+      select: { id: true, type: true },
     });
 
     if (!category) {
       return badRequest('categoryId is invalid');
     }
 
-    const record = await prisma.cashLog.create({
-      data: {
-        date: payload.date!,
-        description: payload.description!.trim(),
-        amount: payload.amount!,
-        walletName: payload.walletName!.trim(),
-        categoryId: payload.categoryId!,
-        excludeFromReport: payload.excludeFromReport ?? false,
-      },
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            parentId: true,
+    const walletName = payload.walletName!.trim();
+    const walletDelta = getWalletDelta(payload.amount!, category.type);
+
+    const record = await prisma.$transaction(async (tx) => {
+      const wallet = await tx.wallet.findUnique({
+        where: { name: walletName },
+        select: { id: true, balance: true },
+      });
+
+      if (!wallet) {
+        throw new Error('WALLET_NOT_FOUND');
+      }
+
+      const created = await tx.cashLog.create({
+        data: {
+          date: payload.date!,
+          description: payload.description!.trim(),
+          amount: payload.amount!,
+          walletName,
+          categoryId: payload.categoryId!,
+          excludeFromReport: payload.excludeFromReport ?? false,
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              parentId: true,
+            },
           },
         },
-      },
+      });
+
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: wallet.balance + walletDelta },
+      });
+
+      return created;
     });
 
     return ok(record as CashLogRecord, 201);
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
+      return badRequest('walletName is invalid');
+    }
     return badRequest();
   }
 }
@@ -72,6 +118,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const month = req.nextUrl.searchParams.get('month');
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const nextMonthStart = `${now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear()}-${String(((now.getMonth() + 1) % 12) + 1).padStart(2, '0')}-01`;
 
     if (date) {
       const logs = await prisma.cashLog.findMany({
@@ -93,7 +140,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (month === 'future') {
       const logs = await prisma.cashLog.findMany({
-        where: { date: { gt: currentMonth } },
+        where: { date: { gte: nextMonthStart } },
         orderBy: [{ date: 'asc' }, { description: 'asc' }],
         include: {
           category: {
@@ -183,7 +230,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     if (payload.categoryId !== undefined) {
       const category = await prisma.category.findUnique({
         where: { id: payload.categoryId },
-        select: { id: true },
+        select: { id: true, type: true },
       });
 
       if (!category) {
@@ -191,47 +238,154 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const existing = await prisma.cashLog.findUnique({
-      where: { id: payload.id },
-      select: { id: true },
-    });
-
-    if (!existing) {
-      return notFound('Cash log not found');
-    }
-
-    const updated = await prisma.cashLog.update({
-      where: { id: payload.id },
-      data: {
-        ...(payload.date !== undefined ? { date: payload.date } : {}),
-        ...(payload.description !== undefined
-          ? { description: payload.description.trim() }
-          : {}),
-        ...(payload.amount !== undefined ? { amount: payload.amount } : {}),
-        ...(payload.walletName !== undefined
-          ? { walletName: payload.walletName.trim() }
-          : {}),
-        ...(payload.categoryId !== undefined
-          ? { categoryId: payload.categoryId }
-          : {}),
-        ...(payload.excludeFromReport !== undefined
-          ? { excludeFromReport: payload.excludeFromReport }
-          : {}),
-      },
-      include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            parentId: true,
+    const updated = await prisma.$transaction(async (tx) => {
+      const existing = await tx.cashLog.findUnique({
+        where: { id: payload.id },
+        select: {
+          id: true,
+          amount: true,
+          walletName: true,
+          description: true,
+          excludeFromReport: true,
+          categoryId: true,
+          category: {
+            select: {
+              type: true,
+            },
           },
         },
-      },
+      });
+
+      if (!existing) {
+        throw new Error('CASH_LOG_NOT_FOUND');
+      }
+
+      let nextCategoryType = existing.category?.type ?? null;
+      if (payload.categoryId !== undefined) {
+        const nextCategory = await tx.category.findUnique({
+          where: { id: payload.categoryId },
+          select: { type: true },
+        });
+        if (!nextCategory) {
+          throw new Error('CATEGORY_NOT_FOUND');
+        }
+        nextCategoryType = nextCategory.type;
+      }
+
+      const nextWalletName = payload.walletName?.trim() ?? existing.walletName;
+      const nextDescription =
+        payload.description?.trim() ?? existing.description;
+      const nextExcludeFromReport =
+        payload.excludeFromReport ?? existing.excludeFromReport;
+      const nextAmount = payload.amount ?? existing.amount;
+
+      const oldAffects = shouldAffectWallet(
+        existing.category?.type ?? null,
+        existing.description,
+        existing.excludeFromReport,
+      );
+      const nextAffects = shouldAffectWallet(
+        nextCategoryType,
+        nextDescription,
+        nextExcludeFromReport,
+      );
+
+      const oldDelta =
+        oldAffects && existing.category?.type
+          ? getWalletDelta(existing.amount, existing.category.type)
+          : 0;
+      const nextDelta =
+        nextAffects && nextCategoryType
+          ? getWalletDelta(nextAmount, nextCategoryType)
+          : 0;
+
+      if (existing.walletName === nextWalletName) {
+        const wallet = await tx.wallet.findUnique({
+          where: { name: nextWalletName },
+          select: { id: true, balance: true },
+        });
+        if (!wallet) {
+          throw new Error('WALLET_NOT_FOUND');
+        }
+
+        const balanceDelta = nextDelta - oldDelta;
+        if (balanceDelta !== 0) {
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: wallet.balance + balanceDelta },
+          });
+        }
+      } else {
+        const oldWallet = await tx.wallet.findUnique({
+          where: { name: existing.walletName },
+          select: { id: true, balance: true },
+        });
+        const newWallet = await tx.wallet.findUnique({
+          where: { name: nextWalletName },
+          select: { id: true, balance: true },
+        });
+
+        if (!oldWallet || !newWallet) {
+          throw new Error('WALLET_NOT_FOUND');
+        }
+
+        if (oldDelta !== 0) {
+          await tx.wallet.update({
+            where: { id: oldWallet.id },
+            data: { balance: oldWallet.balance - oldDelta },
+          });
+        }
+
+        if (nextDelta !== 0) {
+          await tx.wallet.update({
+            where: { id: newWallet.id },
+            data: { balance: newWallet.balance + nextDelta },
+          });
+        }
+      }
+
+      return tx.cashLog.update({
+        where: { id: payload.id },
+        data: {
+          ...(payload.date !== undefined ? { date: payload.date } : {}),
+          ...(payload.description !== undefined
+            ? { description: payload.description.trim() }
+            : {}),
+          ...(payload.amount !== undefined ? { amount: payload.amount } : {}),
+          ...(payload.walletName !== undefined
+            ? { walletName: payload.walletName.trim() }
+            : {}),
+          ...(payload.categoryId !== undefined
+            ? { categoryId: payload.categoryId }
+            : {}),
+          ...(payload.excludeFromReport !== undefined
+            ? { excludeFromReport: payload.excludeFromReport }
+            : {}),
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              parentId: true,
+            },
+          },
+        },
+      });
     });
 
     return ok(updated);
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'CASH_LOG_NOT_FOUND') {
+      return notFound('Cash log not found');
+    }
+    if (error instanceof Error && error.message === 'CATEGORY_NOT_FOUND') {
+      return badRequest('categoryId is invalid');
+    }
+    if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
+      return badRequest('walletName is invalid');
+    }
     return badRequest('Failed to update cash log');
   }
 }
@@ -244,19 +398,61 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       return badRequest('ID is required');
     }
 
-    const exists = await prisma.cashLog.findUnique({
-      where: { id },
-      select: { id: true },
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.cashLog.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          amount: true,
+          walletName: true,
+          description: true,
+          excludeFromReport: true,
+          category: {
+            select: {
+              type: true,
+            },
+          },
+        },
+      });
+
+      if (!existing) {
+        throw new Error('CASH_LOG_NOT_FOUND');
+      }
+
+      const affects = shouldAffectWallet(
+        existing.category?.type ?? null,
+        existing.description,
+        existing.excludeFromReport,
+      );
+
+      if (affects && existing.category?.type) {
+        const delta = getWalletDelta(existing.amount, existing.category.type);
+        const wallet = await tx.wallet.findUnique({
+          where: { name: existing.walletName },
+          select: { id: true, balance: true },
+        });
+
+        if (!wallet) {
+          throw new Error('WALLET_NOT_FOUND');
+        }
+
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: wallet.balance - delta },
+        });
+      }
+
+      await tx.cashLog.delete({ where: { id } });
     });
 
-    if (!exists) {
+    return ok({ success: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'CASH_LOG_NOT_FOUND') {
       return notFound('Cash log not found');
     }
-
-    await prisma.cashLog.delete({ where: { id } });
-
-    return ok({ success: true });
-  } catch {
+    if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
+      return badRequest('walletName is invalid');
+    }
     return badRequest('Failed to delete cash log');
   }
 }

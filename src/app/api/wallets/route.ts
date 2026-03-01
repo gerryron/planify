@@ -74,13 +74,62 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     if (!id) return badRequest('ID is required');
 
-    const wallet = await prisma.wallet.update({
-      where: { id },
-      data,
+    const wallet = await prisma.$transaction(async (tx) => {
+      const existing = await tx.wallet.findUnique({
+        where: { id },
+        select: { id: true, name: true, balance: true },
+      });
+
+      if (!existing) {
+        throw new Error('WALLET_NOT_FOUND');
+      }
+
+      const updated = await tx.wallet.update({
+        where: { id },
+        data,
+      });
+
+      if (data.balance !== undefined && data.balance !== existing.balance) {
+        const today = new Date().toISOString().slice(0, 10);
+        const adjustmentAmount = data.balance - existing.balance;
+        const targetCategory = await tx.category.findFirst({
+          where: {
+            name: adjustmentAmount > 0 ? 'Transfer In' : 'Transfer Out',
+            type: adjustmentAmount > 0 ? 'income' : 'outcome',
+          },
+          select: { id: true },
+        });
+
+        if (!targetCategory) {
+          throw new Error('TRANSFER_CATEGORY_NOT_FOUND');
+        }
+
+        await tx.cashLog.create({
+          data: {
+            date: today,
+            description: 'Adjust Balance',
+            amount: adjustmentAmount,
+            walletName: updated.name,
+            excludeFromReport: true,
+            categoryId: targetCategory.id,
+          },
+        });
+      }
+
+      return updated;
     });
 
     return ok(wallet);
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
+      return badRequest('Wallet not found');
+    }
+    if (
+      error instanceof Error &&
+      error.message === 'TRANSFER_CATEGORY_NOT_FOUND'
+    ) {
+      return badRequest('Transfer category not found');
+    }
     return badRequest('Failed to update wallet');
   }
 }

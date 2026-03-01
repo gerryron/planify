@@ -3,71 +3,142 @@ import { POST, GET, PATCH, DELETE } from './route';
 import { WalletsInput } from '@/features/wallets/types/wallets';
 
 type Wallet = WalletsInput & { id: string; sortOrder: number };
+const adjustmentLogs: Array<{
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  walletName: string;
+  excludeFromReport: boolean;
+  categoryId: string | null;
+}> = [];
 
 jest.mock('@/generated/prisma/client', () => {
   let wallets: Wallet[] = [];
+  const categories = [
+    { id: 'cat-income-transfer-in', name: 'Transfer In', type: 'income' },
+    { id: 'cat-outcome-transfer-out', name: 'Transfer Out', type: 'outcome' },
+  ];
+
   return {
-    PrismaClient: jest.fn().mockImplementation(() => ({
-      wallet: {
-        count: jest.fn(() => Promise.resolve(wallets.length)),
-        create: jest.fn(
-          ({ data }: { data: WalletsInput & { sortOrder?: number } }) => {
-            const wallet: Wallet = {
-              ...data,
-              id: `${wallets.length + 1}`,
-              sortOrder: data.sortOrder ?? wallets.length,
-            };
-            wallets.push(wallet);
-            return Promise.resolve(wallet);
-          },
-        ),
-        findFirst: jest.fn(
-          ({
-            orderBy,
-          }: {
-            orderBy: { sortOrder: 'desc' | 'asc' };
-            select?: { sortOrder: boolean };
-          }) => {
-            if (wallets.length === 0) return Promise.resolve(null);
-            const sorted = [...wallets].sort((a, b) =>
-              orderBy.sortOrder === 'desc'
-                ? b.sortOrder - a.sortOrder
-                : a.sortOrder - b.sortOrder,
-            );
-            return Promise.resolve({ sortOrder: sorted[0].sortOrder });
-          },
-        ),
-        findMany: jest.fn(() =>
-          Promise.resolve(
-            [...wallets].sort(
-              (a, b) =>
-                a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+    PrismaClient: jest.fn().mockImplementation(() => {
+      const client = {
+        category: {
+          findFirst: jest.fn(
+            ({
+              where,
+            }: {
+              where: { name: string; type: string };
+              select?: { id: boolean };
+            }) => {
+              const found =
+                categories.find(
+                  (item) =>
+                    item.name === where.name && item.type === where.type,
+                ) ?? null;
+              return Promise.resolve(found ? { id: found.id } : null);
+            },
+          ),
+        },
+        wallet: {
+          count: jest.fn(() => Promise.resolve(wallets.length)),
+          create: jest.fn(
+            ({ data }: { data: WalletsInput & { sortOrder?: number } }) => {
+              const wallet: Wallet = {
+                ...data,
+                id: `${wallets.length + 1}`,
+                sortOrder: data.sortOrder ?? wallets.length,
+              };
+              wallets.push(wallet);
+              return Promise.resolve(wallet);
+            },
+          ),
+          findFirst: jest.fn(
+            ({
+              orderBy,
+            }: {
+              orderBy: { sortOrder: 'desc' | 'asc' };
+              select?: { sortOrder: boolean };
+            }) => {
+              if (wallets.length === 0) return Promise.resolve(null);
+              const sorted = [...wallets].sort((a, b) =>
+                orderBy.sortOrder === 'desc'
+                  ? b.sortOrder - a.sortOrder
+                  : a.sortOrder - b.sortOrder,
+              );
+              return Promise.resolve({ sortOrder: sorted[0].sortOrder });
+            },
+          ),
+          findMany: jest.fn(() =>
+            Promise.resolve(
+              [...wallets].sort(
+                (a, b) =>
+                  a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+              ),
             ),
           ),
-        ),
-        update: jest.fn(
-          ({
-            where,
-            data,
-          }: {
-            where: { id: string };
-            data: Partial<WalletsInput> & { sortOrder?: number };
-          }) => {
-            const idx = wallets.findIndex((w) => w.id === where.id);
-            if (idx === -1) throw new Error('Not found');
-            wallets[idx] = { ...wallets[idx], ...data };
-            return Promise.resolve(wallets[idx]);
-          },
-        ),
-        delete: jest.fn(({ where }: { where: { id: string } }) => {
-          wallets = wallets.filter((w) => w.id !== where.id);
-          return Promise.resolve();
+          findUnique: jest.fn(({ where }: { where: { id: string } }) => {
+            const wallet = wallets.find((item) => item.id === where.id) ?? null;
+            return Promise.resolve(
+              wallet
+                ? { id: wallet.id, name: wallet.name, balance: wallet.balance }
+                : null,
+            );
+          }),
+          update: jest.fn(
+            ({
+              where,
+              data,
+            }: {
+              where: { id: string };
+              data: Partial<WalletsInput> & { sortOrder?: number };
+            }) => {
+              const idx = wallets.findIndex((w) => w.id === where.id);
+              if (idx === -1) throw new Error('Not found');
+              wallets[idx] = { ...wallets[idx], ...data };
+              return Promise.resolve(wallets[idx]);
+            },
+          ),
+          delete: jest.fn(({ where }: { where: { id: string } }) => {
+            wallets = wallets.filter((w) => w.id !== where.id);
+            return Promise.resolve();
+          }),
+        },
+        cashLog: {
+          create: jest.fn(
+            ({
+              data,
+            }: {
+              data: {
+                date: string;
+                description: string;
+                amount: number;
+                walletName: string;
+                excludeFromReport: boolean;
+                categoryId: string | null;
+              };
+            }) => {
+              const record = {
+                id: `log-${adjustmentLogs.length + 1}`,
+                ...data,
+              };
+              adjustmentLogs.push(record);
+              return Promise.resolve(record);
+            },
+          ),
+        },
+      };
+
+      return {
+        ...client,
+        $transaction: jest.fn((input: unknown) => {
+          if (typeof input === 'function') {
+            return (input as (tx: typeof client) => unknown)(client);
+          }
+          return Promise.all(input as Promise<unknown>[]);
         }),
-      },
-      $transaction: jest.fn((actions: Promise<unknown>[]) =>
-        Promise.all(actions),
-      ),
-    })),
+      };
+    }),
   };
 });
 
@@ -161,6 +232,71 @@ describe('Wallet API', () => {
     expect(data.name).toBe('BCA Updated');
     expect(data.balance).toBe(1500000);
     expect(data.excludeFromTotal).toBe(true);
+  });
+
+  it('should create adjustment cash log when balance changes', async () => {
+    const beforeCount = adjustmentLogs.length;
+    const req = {
+      method: 'PATCH',
+      json: async () => ({
+        id: id1,
+        balance: 1700000,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.balance).toBe(1700000);
+
+    const createdLog = adjustmentLogs[adjustmentLogs.length - 1];
+    expect(adjustmentLogs.length).toBe(beforeCount + 1);
+    expect(createdLog.description).toBe('Adjust Balance');
+    expect(createdLog.excludeFromReport).toBe(true);
+    expect(createdLog.categoryId).toBe('cat-income-transfer-in');
+  });
+
+  it('should create Transfer Out adjustment when balance decreases', async () => {
+    const beforeCount = adjustmentLogs.length;
+    const req = {
+      method: 'PATCH',
+      json: async () => ({
+        id: id1,
+        balance: 1600000,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.balance).toBe(1600000);
+
+    const createdLog = adjustmentLogs[adjustmentLogs.length - 1];
+    expect(adjustmentLogs.length).toBe(beforeCount + 1);
+    expect(createdLog.description).toBe('Adjust Balance');
+    expect(createdLog.amount).toBe(-100000);
+    expect(createdLog.excludeFromReport).toBe(true);
+    expect(createdLog.categoryId).toBe('cat-outcome-transfer-out');
+  });
+
+  it('should not create adjustment cash log when balance is unchanged', async () => {
+    const beforeCount = adjustmentLogs.length;
+    const req = {
+      method: 'PATCH',
+      json: async () => ({
+        id: id1,
+        balance: 1600000,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.balance).toBe(1600000);
+    expect(adjustmentLogs.length).toBe(beforeCount);
   });
 
   it('should delete wallet data', async () => {
