@@ -21,6 +21,7 @@ export default function Sidebar() {
   const subMenus = [
     { label: 'Wallets', href: '/wallets' },
     { label: 'Categories', href: '/categories' },
+    { label: 'Swagger', href: 'http://localhost:3010', external: true },
   ] as const;
 
   const syncThemeClass = (isDark: boolean) => {
@@ -130,27 +131,46 @@ export default function Sidebar() {
                 {subMenus.map(({ label, href }) => {
                   type SidebarLabel = keyof typeof sidebarIcons;
                   const Icon = sidebarIcons[label as SidebarLabel];
+                  const isExternal =
+                    typeof href === 'string' && href.startsWith('http');
                   const isActive = pathname === href;
 
                   return (
                     <li key={label}>
-                      <Link
-                        href={href}
-                        className={
-                          (darkMode
-                            ? isActive
-                              ? 'bg-slate-700 text-white font-bold'
-                              : 'text-slate-100 hover:text-slate-300'
-                            : isActive
-                              ? 'bg-emerald-500 text-white font-bold'
+                      {isExternal ? (
+                        <a
+                          href={href}
+                          target='_blank'
+                          rel='noreferrer'
+                          className={
+                            (darkMode
+                              ? 'text-slate-100 hover:text-slate-300'
                               : 'text-emerald-50 hover:text-white') +
-                          ' font-medium flex items-center gap-2 rounded px-2 py-2 transition-colors'
-                        }
-                        aria-current={isActive ? 'page' : undefined}
-                      >
-                        {Icon && <Icon fontSize='small' className='-ml-1' />}
-                        {label}
-                      </Link>
+                            ' font-medium flex items-center gap-2 rounded px-2 py-2 transition-colors'
+                          }
+                        >
+                          {Icon && <Icon fontSize='small' className='-ml-1' />}
+                          {label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={href}
+                          className={
+                            (darkMode
+                              ? isActive
+                                ? 'bg-slate-700 text-white font-bold'
+                                : 'text-slate-100 hover:text-slate-300'
+                              : isActive
+                                ? 'bg-emerald-500 text-white font-bold'
+                                : 'text-emerald-50 hover:text-white') +
+                            ' font-medium flex items-center gap-2 rounded px-2 py-2 transition-colors'
+                          }
+                          aria-current={isActive ? 'page' : undefined}
+                        >
+                          {Icon && <Icon fontSize='small' className='-ml-1' />}
+                          {label}
+                        </Link>
+                      )}
                     </li>
                   );
                 })}

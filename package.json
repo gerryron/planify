@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev-runner.mjs",
+    "dev:next": "next dev",
+    "dev:swagger": "node scripts/swagger-server.mjs",
     "build": "next build",
     "start": "next start",
+    "swagger:dev": "npm run dev:swagger",
     "lint": "eslint",
     "test": "jest",
     "dev:seed-mock": "prisma db execute --file prisma/mock/seed-dev-mock.sql",
