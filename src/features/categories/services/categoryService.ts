@@ -17,7 +17,7 @@ export const categoryService = {
     if (!res.ok) throw new Error('Failed to create category');
     return res.json();
   },
-  async update(id: string, data: Partial<CategoryInput>): Promise<Category> {
+  async update(id: number, data: Partial<CategoryInput>): Promise<Category> {
     const res = await fetch(API_URL, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -26,7 +26,7 @@ export const categoryService = {
     if (!res.ok) throw new Error('Failed to update category');
     return res.json();
   },
-  async remove(id: string): Promise<{ success: boolean }> {
+  async remove(id: number): Promise<{ success: boolean }> {
     const res = await fetch(API_URL, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

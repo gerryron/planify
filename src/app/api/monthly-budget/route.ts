@@ -7,7 +7,7 @@ import { prisma } from '@/core/db/prisma';
 import { ok, badRequest, serverError } from '@/core/http/apiResponse';
 
 type MonthlyBudgetRecord = {
-  id: string;
+  id: number;
   name: string;
   amount: number;
   month: string;
@@ -15,6 +15,19 @@ type MonthlyBudgetRecord = {
   type: string;
   sortOrder: number;
 };
+
+function toId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
 
 function toBudgetResponse(budget: MonthlyBudgetRecord): BudgetResponse {
   return {
@@ -110,12 +123,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const payload: Partial<BudgetInput> & {
-      id?: string;
-      orderedIds?: string[];
+      id?: number | string;
+      orderedIds?: Array<number | string>;
     } = await req.json();
 
     if (Array.isArray(payload.orderedIds)) {
-      const orderedIds = payload.orderedIds.filter(Boolean);
+      const orderedIds = payload.orderedIds
+        .map((item) => toId(item))
+        .filter((item): item is number => item !== null);
 
       if (orderedIds.length === 0) {
         return badRequest('orderedIds is required');
@@ -134,8 +149,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
 
     const { id, ...data } = payload;
+    const numericId = toId(id);
 
-    if (!id) return badRequest('ID is required');
+    if (!numericId) return badRequest('ID is required');
     if (
       data.type &&
       data.type !== 'income' &&
@@ -146,7 +162,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
 
     const budget = await prisma.monthlyBudget.update({
-      where: { id },
+      where: { id: numericId },
       data,
     });
     return ok(toBudgetResponse(budget as MonthlyBudgetRecord));
@@ -158,7 +174,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 // Delete monthly budget
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
-    const { id }: { id: string } = await req.json();
+    const raw = (await req.json()) as { id?: number | string };
+    const id = toId(raw.id);
     if (!id) return badRequest('ID is required');
     await prisma.monthlyBudget.delete({ where: { id } });
     return ok({ success: true });

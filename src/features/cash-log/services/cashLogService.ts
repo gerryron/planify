@@ -25,7 +25,7 @@ export const cashLogService = {
     return res.json();
   },
 
-  async update(id: string, data: Partial<CashLogInput>): Promise<CashLog> {
+  async update(id: number, data: Partial<CashLogInput>): Promise<CashLog> {
     const res = await fetch(API_URL, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -35,7 +35,7 @@ export const cashLogService = {
     return res.json();
   },
 
-  async remove(id: string): Promise<{ success: boolean }> {
+  async remove(id: number): Promise<{ success: boolean }> {
     const res = await fetch(API_URL, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

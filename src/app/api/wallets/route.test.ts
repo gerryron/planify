@@ -2,22 +2,22 @@ import type { NextRequest } from 'next/server';
 import { POST, GET, PATCH, DELETE } from './route';
 import { WalletsInput } from '@/features/wallets/types/wallets';
 
-type Wallet = WalletsInput & { id: string; sortOrder: number };
+type Wallet = WalletsInput & { id: number; sortOrder: number };
 const adjustmentLogs: Array<{
-  id: string;
+  id: number;
   date: string;
   description: string;
   amount: number;
   walletName: string;
   excludeFromReport: boolean;
-  categoryId: string | null;
+  categoryId: number | null;
 }> = [];
 
 jest.mock('@/generated/prisma/client', () => {
   let wallets: Wallet[] = [];
   const categories = [
-    { id: 'cat-income-transfer-in', name: 'Transfer In', type: 'income' },
-    { id: 'cat-outcome-transfer-out', name: 'Transfer Out', type: 'outcome' },
+    { id: 101, name: 'Transfer In', type: 'income' },
+    { id: 102, name: 'Transfer Out', type: 'outcome' },
   ];
 
   return {
@@ -46,7 +46,7 @@ jest.mock('@/generated/prisma/client', () => {
             ({ data }: { data: WalletsInput & { sortOrder?: number } }) => {
               const wallet: Wallet = {
                 ...data,
-                id: `${wallets.length + 1}`,
+                id: wallets.length + 1,
                 sortOrder: data.sortOrder ?? wallets.length,
               };
               wallets.push(wallet);
@@ -77,7 +77,7 @@ jest.mock('@/generated/prisma/client', () => {
               ),
             ),
           ),
-          findUnique: jest.fn(({ where }: { where: { id: string } }) => {
+          findUnique: jest.fn(({ where }: { where: { id: number } }) => {
             const wallet = wallets.find((item) => item.id === where.id) ?? null;
             return Promise.resolve(
               wallet
@@ -90,7 +90,7 @@ jest.mock('@/generated/prisma/client', () => {
               where,
               data,
             }: {
-              where: { id: string };
+              where: { id: number };
               data: Partial<WalletsInput> & { sortOrder?: number };
             }) => {
               const idx = wallets.findIndex((w) => w.id === where.id);
@@ -99,7 +99,7 @@ jest.mock('@/generated/prisma/client', () => {
               return Promise.resolve(wallets[idx]);
             },
           ),
-          delete: jest.fn(({ where }: { where: { id: string } }) => {
+          delete: jest.fn(({ where }: { where: { id: number } }) => {
             wallets = wallets.filter((w) => w.id !== where.id);
             return Promise.resolve();
           }),
@@ -115,11 +115,11 @@ jest.mock('@/generated/prisma/client', () => {
                 amount: number;
                 walletName: string;
                 excludeFromReport: boolean;
-                categoryId: string | null;
+                categoryId: number | null;
               };
             }) => {
               const record = {
-                id: `log-${adjustmentLogs.length + 1}`,
+                id: adjustmentLogs.length + 1,
                 ...data,
               };
               adjustmentLogs.push(record);
@@ -143,8 +143,8 @@ jest.mock('@/generated/prisma/client', () => {
 });
 
 describe('Wallet API', () => {
-  let id1: string;
-  let id2: string;
+  let id1: number;
+  let id2: number;
 
   it('should create wallet data', async () => {
     const req1 = {
@@ -254,7 +254,7 @@ describe('Wallet API', () => {
     expect(adjustmentLogs.length).toBe(beforeCount + 1);
     expect(createdLog.description).toBe('Adjust Balance');
     expect(createdLog.excludeFromReport).toBe(true);
-    expect(createdLog.categoryId).toBe('cat-income-transfer-in');
+    expect(createdLog.categoryId).toBe(101);
   });
 
   it('should create Transfer Out adjustment when balance decreases', async () => {
@@ -278,7 +278,7 @@ describe('Wallet API', () => {
     expect(createdLog.description).toBe('Adjust Balance');
     expect(createdLog.amount).toBe(-100000);
     expect(createdLog.excludeFromReport).toBe(true);
-    expect(createdLog.categoryId).toBe('cat-outcome-transfer-out');
+    expect(createdLog.categoryId).toBe(102);
   });
 
   it('should not create adjustment cash log when balance is unchanged', async () => {

@@ -3,18 +3,18 @@ export type CashLogInput = {
   description: string;
   amount: number;
   walletName: string;
-  categoryId: string;
+  categoryId: number;
   excludeFromReport: boolean;
 };
 
 export type CashLogCategory = {
-  id: string;
+  id: number;
   name: string;
   type: 'income' | 'outcome';
-  parentId: string | null;
+  parentId: number | null;
 };
 
 export type CashLogResponse = CashLogInput & {
-  id: string;
+  id: number;
   category: CashLogCategory | null;
 };

@@ -3,6 +3,19 @@ import { WalletsInput } from '@/features/wallets/types/wallets';
 import { prisma } from '@/core/db/prisma';
 import { ok, badRequest, serverError } from '@/core/http/apiResponse';
 
+function toId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { name, balance, excludeFromTotal }: Partial<WalletsInput> =
@@ -47,12 +60,14 @@ export async function GET(): Promise<NextResponse> {
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const payload: Partial<WalletsInput> & {
-      id?: string;
-      orderedIds?: string[];
+      id?: number | string;
+      orderedIds?: Array<number | string>;
     } = await req.json();
 
     if (Array.isArray(payload.orderedIds)) {
-      const orderedIds = payload.orderedIds.filter(Boolean);
+      const orderedIds = payload.orderedIds
+        .map((item) => toId(item))
+        .filter((item): item is number => item !== null);
 
       if (orderedIds.length === 0) {
         return badRequest('orderedIds is required');
@@ -71,12 +86,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
 
     const { id, ...data } = payload;
+    const numericId = toId(id);
 
-    if (!id) return badRequest('ID is required');
+    if (!numericId) return badRequest('ID is required');
 
     const wallet = await prisma.$transaction(async (tx) => {
       const existing = await tx.wallet.findUnique({
-        where: { id },
+        where: { id: numericId },
         select: { id: true, name: true, balance: true },
       });
 
@@ -85,7 +101,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       }
 
       const updated = await tx.wallet.update({
-        where: { id },
+        where: { id: numericId },
         data,
       });
 
@@ -136,7 +152,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
-    const { id }: { id: string } = await req.json();
+    const raw = (await req.json()) as { id?: number | string };
+    const id = toId(raw.id);
     if (!id) return badRequest('ID is required');
 
     const totalWallets = await prisma.wallet.count();

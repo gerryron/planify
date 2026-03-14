@@ -23,7 +23,7 @@ export const monthlyBudgetService = {
     if (!res.ok) throw new Error('Failed to create budget');
     return res.json();
   },
-  async update(id: string, data: Partial<BudgetInput>): Promise<Budget> {
+  async update(id: number, data: Partial<BudgetInput>): Promise<Budget> {
     const res = await fetch(API_URL, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -32,7 +32,7 @@ export const monthlyBudgetService = {
     if (!res.ok) throw new Error('Failed to update budget');
     return res.json();
   },
-  async reorder(orderedIds: string[]): Promise<{ success: boolean }> {
+  async reorder(orderedIds: number[]): Promise<{ success: boolean }> {
     const res = await fetch(API_URL, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -41,7 +41,7 @@ export const monthlyBudgetService = {
     if (!res.ok) throw new Error('Failed to reorder budgets');
     return res.json();
   },
-  async remove(id: string): Promise<{ success: boolean }> {
+  async remove(id: number): Promise<{ success: boolean }> {
     const res = await fetch(API_URL, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

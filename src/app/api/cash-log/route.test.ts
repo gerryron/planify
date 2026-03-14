@@ -3,32 +3,32 @@ import { DELETE, GET, PATCH, POST } from './route';
 import { CashLogInput } from '@/features/cash-log/types/cashLog';
 
 type CashLog = CashLogInput & {
-  id: string;
+  id: number;
   category: {
-    id: string;
+    id: number;
     name: string;
     type: 'income' | 'outcome';
-    parentId: string | null;
+    parentId: number | null;
   } | null;
 };
 
 const wallets = [
-  { id: 'wallet-cash', name: 'Cash', balance: 100000 },
-  { id: 'wallet-bca', name: 'BCA', balance: 2000000 },
-  { id: 'wallet-ovo', name: 'OVO', balance: 300000 },
+  { id: 1, name: 'Cash', balance: 100000 },
+  { id: 2, name: 'BCA', balance: 2000000 },
+  { id: 3, name: 'OVO', balance: 300000 },
 ];
 
 jest.mock('@/generated/prisma/client', () => {
   let logs: CashLog[] = [];
   const categories = [
     {
-      id: 'cat-income-salary',
+      id: 101,
       name: 'Salary',
       type: 'income' as const,
       parentId: null,
     },
     {
-      id: 'cat-outcome-food',
+      id: 102,
       name: 'Food',
       type: 'outcome' as const,
       parentId: null,
@@ -39,7 +39,7 @@ jest.mock('@/generated/prisma/client', () => {
     PrismaClient: jest.fn().mockImplementation(() => {
       const client = {
         category: {
-          findUnique: jest.fn(({ where }: { where: { id: string } }) => {
+          findUnique: jest.fn(({ where }: { where: { id: number } }) => {
             const category =
               categories.find((item) => item.id === where.id) ?? null;
             return Promise.resolve(category);
@@ -62,7 +62,7 @@ jest.mock('@/generated/prisma/client', () => {
               where,
               data,
             }: {
-              where: { id: string };
+              where: { id: number };
               data: { balance: number };
             }) => {
               const idx = wallets.findIndex((item) => item.id === where.id);
@@ -77,7 +77,7 @@ jest.mock('@/generated/prisma/client', () => {
             const category =
               categories.find((item) => item.id === data.categoryId) ?? null;
             const record: CashLog = {
-              id: `${logs.length + 1}`,
+              id: logs.length + 1,
               ...data,
               category,
             };
@@ -95,8 +95,8 @@ jest.mock('@/generated/prisma/client', () => {
                   | { startsWith?: string; gt?: string; gte?: string };
               };
               orderBy?: Array<{
+                id?: 'asc' | 'desc';
                 date?: 'asc' | 'desc';
-                description?: 'asc' | 'desc';
               }>;
             } = {}) => {
               let result = [...logs];
@@ -120,16 +120,14 @@ jest.mock('@/generated/prisma/client', () => {
 
               if (orderBy?.length) {
                 result.sort(
-                  (a, b) =>
-                    a.date.localeCompare(b.date) ||
-                    a.description.localeCompare(b.description),
+                  (a, b) => b.id - a.id || b.date.localeCompare(a.date),
                 );
               }
 
               return Promise.resolve(result);
             },
           ),
-          findUnique: jest.fn(({ where }: { where: { id: string } }) => {
+          findUnique: jest.fn(({ where }: { where: { id: number } }) => {
             const found = logs.find((log) => log.id === where.id) ?? null;
             return Promise.resolve(found);
           }),
@@ -138,7 +136,7 @@ jest.mock('@/generated/prisma/client', () => {
               where,
               data,
             }: {
-              where: { id: string };
+              where: { id: number };
               data: Partial<CashLogInput>;
             }) => {
               const idx = logs.findIndex((log) => log.id === where.id);
@@ -152,7 +150,7 @@ jest.mock('@/generated/prisma/client', () => {
               return Promise.resolve(logs[idx]);
             },
           ),
-          delete: jest.fn(({ where }: { where: { id: string } }) => {
+          delete: jest.fn(({ where }: { where: { id: number } }) => {
             logs = logs.filter((log) => log.id !== where.id);
             return Promise.resolve({ id: where.id });
           }),
@@ -173,8 +171,8 @@ jest.mock('@/generated/prisma/client', () => {
 });
 
 describe('Cash Log API', () => {
-  let id1: string;
-  let id2: string;
+  let id1: number;
+  let id2: number;
 
   it('should create cash log entries', async () => {
     const req1 = {
@@ -184,7 +182,7 @@ describe('Cash Log API', () => {
         description: 'Lunch',
         amount: 35000,
         walletName: 'Cash',
-        categoryId: 'cat-outcome-food',
+        categoryId: 102,
         excludeFromReport: false,
       }),
     } as unknown as NextRequest;
@@ -196,7 +194,7 @@ describe('Cash Log API', () => {
         description: 'Freelance Payment',
         amount: 500000,
         walletName: 'BCA',
-        categoryId: 'cat-income-salary',
+        categoryId: 101,
         excludeFromReport: true,
       }),
     } as unknown as NextRequest;
@@ -270,7 +268,7 @@ describe('Cash Log API', () => {
         description: 'Current month marker',
         amount: 10000,
         walletName: 'Cash',
-        categoryId: 'cat-income-salary',
+        categoryId: 101,
         excludeFromReport: false,
       }),
     } as unknown as NextRequest;
@@ -282,7 +280,7 @@ describe('Cash Log API', () => {
         description: 'Future month marker',
         amount: 12000,
         walletName: 'Cash',
-        categoryId: 'cat-income-salary',
+        categoryId: 101,
         excludeFromReport: false,
       }),
     } as unknown as NextRequest;
@@ -332,7 +330,7 @@ describe('Cash Log API', () => {
         description: 'Lunch Updated',
         amount: 40000,
         walletName: 'OVO',
-        categoryId: 'cat-outcome-food',
+        categoryId: 102,
         excludeFromReport: true,
       }),
     } as unknown as NextRequest;
@@ -346,7 +344,7 @@ describe('Cash Log API', () => {
     expect(data.description).toBe('Lunch Updated');
     expect(data.amount).toBe(40000);
     expect(data.walletName).toBe('OVO');
-    expect(data.categoryId).toBe('cat-outcome-food');
+    expect(data.categoryId).toBe(102);
     expect(data.excludeFromReport).toBe(true);
 
     const cashWallet = wallets.find((wallet) => wallet.name === 'Cash');
@@ -362,7 +360,7 @@ describe('Cash Log API', () => {
         date: '2026-02-27',
         description: 'Missing Wallet',
         amount: 10000,
-        categoryId: 'cat-income-salary',
+        categoryId: 101,
         excludeFromReport: false,
       }),
     } as unknown as NextRequest;
@@ -405,7 +403,7 @@ describe('Cash Log API', () => {
         description: 'Unknown wallet test',
         amount: 12345,
         walletName: 'Unknown Wallet',
-        categoryId: 'cat-income-salary',
+        categoryId: 101,
         excludeFromReport: false,
       }),
     } as unknown as NextRequest;
@@ -424,7 +422,7 @@ describe('Cash Log API', () => {
         description: 'Type switch scenario',
         amount: 10000,
         walletName: 'OVO',
-        categoryId: 'cat-outcome-food',
+        categoryId: 102,
         excludeFromReport: false,
       }),
     } as unknown as NextRequest;
@@ -442,7 +440,7 @@ describe('Cash Log API', () => {
         id: created.id,
         amount: 10000,
         walletName: 'OVO',
-        categoryId: 'cat-income-salary',
+        categoryId: 101,
         description: 'Type switch scenario',
         excludeFromReport: false,
       }),
@@ -452,7 +450,7 @@ describe('Cash Log API', () => {
     expect(patchRes.status).toBe(200);
 
     const patched: CashLog = await patchRes.json();
-    expect(patched.categoryId).toBe('cat-income-salary');
+    expect(patched.categoryId).toBe(101);
 
     const ovoAfterPatch = wallets.find((wallet) => wallet.name === 'OVO');
     expect(ovoAfterPatch?.balance).toBe(270000);

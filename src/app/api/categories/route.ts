@@ -18,9 +18,9 @@ export async function GET(): Promise<NextResponse> {
 }
 
 async function validateParent(
-  parentId: string,
+  parentId: number,
   type: CategoryType,
-  currentCategoryId?: string,
+  currentCategoryId?: number,
 ): Promise<{ valid: true } | { valid: false; message: string }> {
   const parent = await prisma.category.findUnique({
     where: { id: parentId },
@@ -52,13 +52,26 @@ async function validateParent(
   return { valid: true };
 }
 
+function toId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const {
       name,
       type,
       parentId,
-    }: Partial<{ name: string; type: CategoryType; parentId: string | null }> =
+    }: Partial<{ name: string; type: CategoryType; parentId: number | null }> =
       await req.json();
 
     if (!name?.trim() || !type) {
@@ -69,7 +82,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return badRequest('Type must be income or outcome');
     }
 
-    const cleanParentId = parentId ?? null;
+    const cleanParentId =
+      parentId === null || parentId === undefined ? null : toId(parentId);
+    if (parentId !== null && parentId !== undefined && !cleanParentId) {
+      return badRequest('Parent category not found');
+    }
     if (cleanParentId) {
       const validation = await validateParent(cleanParentId, type);
       if (!validation.valid) return badRequest(validation.message);
@@ -97,18 +114,20 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       type,
       parentId,
     }: Partial<{
-      id: string;
+      id: number | string;
       name: string;
       type: CategoryType;
-      parentId: string | null;
+      parentId: number | string | null;
     }> = await req.json();
 
-    if (!id) {
+    const numericId = toId(id);
+
+    if (!numericId) {
       return badRequest('ID is required');
     }
 
     const existing = await prisma.category.findUnique({
-      where: { id },
+      where: { id: numericId },
       select: { id: true, type: true, parentId: true },
     });
 
@@ -119,7 +138,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const nextType = type ?? existing.type;
     if (type && type !== existing.type && existing.parentId === null) {
       const childCount = await prisma.category.count({
-        where: { parentId: id },
+        where: { parentId: numericId },
       });
       if (childCount > 0) {
         return badRequest(
@@ -133,17 +152,29 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
 
     const nextParentId =
-      parentId === undefined ? undefined : (parentId ?? null);
+      parentId === undefined
+        ? undefined
+        : parentId === null
+          ? null
+          : toId(parentId);
+
+    if (parentId !== undefined && parentId !== null && !nextParentId) {
+      return badRequest('Parent category not found');
+    }
 
     if (nextParentId) {
-      const validation = await validateParent(nextParentId, nextType, id);
+      const validation = await validateParent(
+        nextParentId,
+        nextType,
+        numericId,
+      );
       if (!validation.valid) return badRequest(validation.message);
     }
 
     const updateData: {
       name?: string;
       type?: CategoryType;
-      parentId?: string | null;
+      parentId?: number | null;
     } = {};
 
     if (name !== undefined) updateData.name = name.trim();
@@ -151,7 +182,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     if (nextParentId !== undefined) updateData.parentId = nextParentId;
 
     const category = await prisma.category.update({
-      where: { id },
+      where: { id: numericId },
       data: updateData,
     });
 
@@ -163,7 +194,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
-    const { id }: { id?: string } = await req.json();
+    const raw = (await req.json()) as { id?: number | string };
+    const id = toId(raw.id);
 
     if (!id) {
       return badRequest('ID is required');

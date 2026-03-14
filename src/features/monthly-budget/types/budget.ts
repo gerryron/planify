@@ -7,5 +7,5 @@ export type BudgetInput = {
 };
 
 export type BudgetResponse = BudgetInput & {
-  id: string;
+  id: number;
 };

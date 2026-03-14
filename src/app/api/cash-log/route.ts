@@ -4,8 +4,21 @@ import { badRequest, notFound, ok } from '@/core/http/apiResponse';
 import { CashLogInput } from '@/features/cash-log/types/cashLog';
 
 type CashLogRecord = CashLogInput & {
-  id: string;
+  id: number;
 };
+
+function toId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
 
 function getWalletDelta(amount: number, type: 'income' | 'outcome') {
   const nominal = Math.abs(amount);
@@ -35,7 +48,7 @@ function validateCreatePayload(payload: Partial<CashLogInput>) {
     !payload.description?.trim() ||
     payload.amount === undefined ||
     !payload.walletName?.trim() ||
-    !payload.categoryId?.trim()
+    payload.categoryId === undefined
   ) {
     return 'date, description, amount, walletName, and categoryId are required';
   }
@@ -123,7 +136,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (date) {
       const logs = await prisma.cashLog.findMany({
         where: { date },
-        orderBy: [{ date: 'asc' }, { description: 'asc' }],
+        orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
             select: {
@@ -141,7 +154,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (month === 'future') {
       const logs = await prisma.cashLog.findMany({
         where: { date: { gte: nextMonthStart } },
-        orderBy: [{ date: 'asc' }, { description: 'asc' }],
+        orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
             select: {
@@ -158,7 +171,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (month && month > currentMonth) {
       const logs = await prisma.cashLog.findMany({
-        orderBy: [{ date: 'asc' }, { description: 'asc' }],
+        orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
             select: {
@@ -176,7 +189,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (month) {
       const logs = await prisma.cashLog.findMany({
         where: { date: { startsWith: month } },
-        orderBy: [{ date: 'asc' }, { description: 'asc' }],
+        orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
             select: {
@@ -192,7 +205,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     const logs = await prisma.cashLog.findMany({
-      orderBy: [{ date: 'asc' }, { description: 'asc' }],
+      orderBy: [{ id: 'desc' }, { date: 'desc' }],
       include: {
         category: {
           select: {
@@ -213,18 +226,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
-    const payload: Partial<CashLogInput> & { id?: string } = await req.json();
+    const rawPayload: Partial<CashLogInput> & { id?: number | string } =
+      await req.json();
+    const payload = {
+      ...rawPayload,
+      id: toId(rawPayload.id),
+    };
 
     if (!payload.id) {
       return badRequest('ID is required');
     }
 
+    const logId = payload.id;
+
     if (payload.walletName !== undefined && !payload.walletName.trim()) {
       return badRequest('walletName is required');
-    }
-
-    if (payload.categoryId !== undefined && !payload.categoryId.trim()) {
-      return badRequest('categoryId is required');
     }
 
     if (payload.categoryId !== undefined) {
@@ -240,7 +256,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     const updated = await prisma.$transaction(async (tx) => {
       const existing = await tx.cashLog.findUnique({
-        where: { id: payload.id },
+        where: { id: logId },
         select: {
           id: true,
           amount: true,
@@ -345,7 +361,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       }
 
       return tx.cashLog.update({
-        where: { id: payload.id },
+        where: { id: logId },
         data: {
           ...(payload.date !== undefined ? { date: payload.date } : {}),
           ...(payload.description !== undefined
@@ -392,7 +408,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
-    const { id }: { id?: string } = await req.json();
+    const raw = (await req.json()) as { id?: number | string };
+    const id = toId(raw.id);
 
     if (!id) {
       return badRequest('ID is required');
