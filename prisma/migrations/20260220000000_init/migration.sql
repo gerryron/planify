@@ -1,6 +1,6 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE "MonthlyBudget" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" TEXT NOT NULL,
     "amount" INTEGER NOT NULL,
     "month" TEXT NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE "MonthlyBudget" (
 
 -- CreateTable
 CREATE TABLE "Wallet" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" TEXT NOT NULL,
     "balance" INTEGER NOT NULL DEFAULT 0,
     "excludeFromTotal" BOOLEAN NOT NULL DEFAULT false,
@@ -20,22 +20,22 @@ CREATE TABLE "Wallet" (
 
 -- CreateTable
 CREATE TABLE "Category" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL,
-    "parentId" TEXT,
+    "parentId" INTEGER,
     CONSTRAINT "Category_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Category" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "CashLog" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "date" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "amount" INTEGER NOT NULL,
     "walletName" TEXT NOT NULL,
     "excludeFromReport" BOOLEAN NOT NULL DEFAULT false,
-    "categoryId" TEXT,
+    "categoryId" INTEGER,
     CONSTRAINT "CashLog_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
@@ -52,77 +52,82 @@ CREATE UNIQUE INDEX "Category_name_type_parentId_key" ON "Category"("name", "typ
 CREATE INDEX "CashLog_categoryId_idx" ON "CashLog"("categoryId");
 
 -- Seed Wallet (init only)
-INSERT OR IGNORE INTO "Wallet" ("id", "name", "balance", "excludeFromTotal", "sortOrder")
-VALUES ('seed-wallet-cash', 'Cash', 0, false, 0);
+INSERT OR IGNORE INTO "Wallet" ("name", "balance", "excludeFromTotal", "sortOrder")
+VALUES ('Cash', 0, false, 0);
 
--- Seed Categories (init only)
-INSERT OR IGNORE INTO "Category" ("id", "name", "type", "parentId") VALUES
-    ('seed-v3-income-salary', 'Salary', 'income', NULL),
-    ('seed-v3-income-business', 'Business', 'income', NULL),
-    ('seed-v3-income-investment', 'Investment', 'income', NULL),
-    ('seed-v3-income-transfer', 'Transfer', 'income', NULL),
-    ('seed-v3-income-gift', 'Gift', 'income', NULL),
-    ('seed-v3-income-other', 'Other Income', 'income', NULL),
-    ('seed-v3-income-salary-main', 'Main Salary', 'income', 'seed-v3-income-salary'),
-    ('seed-v3-income-salary-overtime', 'Overtime', 'income', 'seed-v3-income-salary'),
-    ('seed-v3-income-salary-bonus', 'Performance Bonus', 'income', 'seed-v3-income-salary'),
-    ('seed-v3-income-salary-thr', 'Holiday Allowance', 'income', 'seed-v3-income-salary'),
-    ('seed-v3-income-business-consulting', 'Consulting', 'income', 'seed-v3-income-business'),
-    ('seed-v3-income-business-service', 'Service Revenue', 'income', 'seed-v3-income-business'),
-    ('seed-v3-income-business-selling', 'Selling', 'income', 'seed-v3-income-business'),
-    ('seed-v3-income-investment-dividend', 'Dividend', 'income', 'seed-v3-income-investment'),
-    ('seed-v3-income-investment-interest', 'Interest', 'income', 'seed-v3-income-investment'),
-    ('seed-v3-income-investment-capital-gain', 'Capital Gain', 'income', 'seed-v3-income-investment'),
-    ('seed-v3-income-transfer-in', 'Transfer In', 'income', 'seed-v3-income-transfer'),
-    ('seed-v3-income-transfer-wallet', 'Wallet Transfer In', 'income', 'seed-v3-income-transfer'),
-    ('seed-v3-income-gift-birthday', 'Birthday Gift', 'income', 'seed-v3-income-gift'),
-    ('seed-v3-income-gift-family', 'Family Gift', 'income', 'seed-v3-income-gift'),
-    ('seed-v3-income-other-cashback', 'Cashback', 'income', 'seed-v3-income-other'),
-    ('seed-v3-income-other-refund', 'Refund', 'income', 'seed-v3-income-other'),
-    ('seed-v3-income-other-misc', 'Miscellaneous Income', 'income', 'seed-v3-income-other'),
-    ('seed-v3-outcome-bills', 'Bills and Utilities', 'outcome', NULL),
-    ('seed-v3-outcome-food', 'Food', 'outcome', NULL),
-    ('seed-v3-outcome-transport', 'Transport', 'outcome', NULL),
-    ('seed-v3-outcome-health', 'Health', 'outcome', NULL),
-    ('seed-v3-outcome-education', 'Education', 'outcome', NULL),
-    ('seed-v3-outcome-lifestyle', 'Lifestyle', 'outcome', NULL),
-    ('seed-v3-outcome-gift-donation', 'Gift & Donations', 'outcome', NULL),
-    ('seed-v3-outcome-investment', 'Investment', 'outcome', NULL),
-    ('seed-v3-outcome-transfer', 'Transfer', 'outcome', NULL),
-    ('seed-v3-outcome-bills-credit-card', 'Credit Card Bills', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-electricity', 'Electricity Bills', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-gas', 'Gas Bills', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-house', 'House Bills', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-internet', 'Internet Bills', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-phone', 'Phone Bills', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-rentals', 'Rentals', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-streaming', 'Streaming Service', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-water', 'Water Bills', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-bills-other', 'Other Utility Bills', 'outcome', 'seed-v3-outcome-bills'),
-    ('seed-v3-outcome-food-groceries', 'Groceries', 'outcome', 'seed-v3-outcome-food'),
-    ('seed-v3-outcome-food-dining', 'Dining Out', 'outcome', 'seed-v3-outcome-food'),
-    ('seed-v3-outcome-food-snacks', 'Snacks & Coffee', 'outcome', 'seed-v3-outcome-food'),
-    ('seed-v3-outcome-transport-fuel', 'Fuel', 'outcome', 'seed-v3-outcome-transport'),
-    ('seed-v3-outcome-transport-public', 'Public Transport', 'outcome', 'seed-v3-outcome-transport'),
-    ('seed-v3-outcome-transport-parking', 'Parking', 'outcome', 'seed-v3-outcome-transport'),
-    ('seed-v3-outcome-health-insurance', 'Insurance', 'outcome', 'seed-v3-outcome-health'),
-    ('seed-v3-outcome-health-medicine', 'Medicine', 'outcome', 'seed-v3-outcome-health'),
-    ('seed-v3-outcome-health-sports', 'Sports', 'outcome', 'seed-v3-outcome-health'),
-    ('seed-v3-outcome-education-course', 'Courses', 'outcome', 'seed-v3-outcome-education'),
-    ('seed-v3-outcome-education-books', 'Books', 'outcome', 'seed-v3-outcome-education'),
-    ('seed-v3-outcome-education-tuition', 'Tuition Fee', 'outcome', 'seed-v3-outcome-education'),
-    ('seed-v3-outcome-lifestyle-shopping', 'Shopping', 'outcome', 'seed-v3-outcome-lifestyle'),
-    ('seed-v3-outcome-lifestyle-entertainment', 'Entertainment', 'outcome', 'seed-v3-outcome-lifestyle'),
-    ('seed-v3-outcome-lifestyle-movies', 'Movies', 'outcome', 'seed-v3-outcome-lifestyle'),
-    ('seed-v3-outcome-lifestyle-games', 'Games', 'outcome', 'seed-v3-outcome-lifestyle'),
-    ('seed-v3-outcome-gift-family', 'Family Gift', 'outcome', 'seed-v3-outcome-gift-donation'),
-    ('seed-v3-outcome-gift-friends', 'Friends Gift', 'outcome', 'seed-v3-outcome-gift-donation'),
-    ('seed-v3-outcome-gift-charity', 'Charity', 'outcome', 'seed-v3-outcome-gift-donation'),
-    ('seed-v3-outcome-gift-religious', 'Religious Donation', 'outcome', 'seed-v3-outcome-gift-donation'),
-    ('seed-v3-outcome-investment-stock', 'Stock Purchase', 'outcome', 'seed-v3-outcome-investment'),
-    ('seed-v3-outcome-investment-mutual', 'Mutual Fund Purchase', 'outcome', 'seed-v3-outcome-investment'),
-    ('seed-v3-outcome-investment-crypto', 'Crypto Purchase', 'outcome', 'seed-v3-outcome-investment'),
-    ('seed-v3-outcome-investment-tax', 'Tax', 'outcome', 'seed-v3-outcome-investment'),
-    ('seed-v3-outcome-transfer-out', 'Transfer Out', 'outcome', 'seed-v3-outcome-transfer'),
-    ('seed-v3-outcome-transfer-wallet', 'Wallet Transfer Out', 'outcome', 'seed-v3-outcome-transfer');
+-- Seed Categories root (init only)
+INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
+    ('Salary', 'income', NULL),
+    ('Business', 'income', NULL),
+    ('Investment', 'income', NULL),
+    ('Transfer', 'income', NULL),
+    ('Gift', 'income', NULL),
+    ('Other Income', 'income', NULL),
+    ('Bills and Utilities', 'outcome', NULL),
+    ('Food', 'outcome', NULL),
+    ('Transport', 'outcome', NULL),
+    ('Health', 'outcome', NULL),
+    ('Education', 'outcome', NULL),
+    ('Lifestyle', 'outcome', NULL),
+    ('Gift & Donations', 'outcome', NULL),
+    ('Investment', 'outcome', NULL),
+    ('Transfer', 'outcome', NULL);
 
+-- Seed income subcategories
+INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
+    ('Main Salary', 'income', (SELECT "id" FROM "Category" WHERE "name"='Salary' AND "type"='income' AND "parentId" IS NULL)),
+    ('Overtime', 'income', (SELECT "id" FROM "Category" WHERE "name"='Salary' AND "type"='income' AND "parentId" IS NULL)),
+    ('Performance Bonus', 'income', (SELECT "id" FROM "Category" WHERE "name"='Salary' AND "type"='income' AND "parentId" IS NULL)),
+    ('Holiday Allowance', 'income', (SELECT "id" FROM "Category" WHERE "name"='Salary' AND "type"='income' AND "parentId" IS NULL)),
+    ('Consulting', 'income', (SELECT "id" FROM "Category" WHERE "name"='Business' AND "type"='income' AND "parentId" IS NULL)),
+    ('Service Revenue', 'income', (SELECT "id" FROM "Category" WHERE "name"='Business' AND "type"='income' AND "parentId" IS NULL)),
+    ('Selling', 'income', (SELECT "id" FROM "Category" WHERE "name"='Business' AND "type"='income' AND "parentId" IS NULL)),
+    ('Dividend', 'income', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='income' AND "parentId" IS NULL)),
+    ('Interest', 'income', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='income' AND "parentId" IS NULL)),
+    ('Capital Gain', 'income', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='income' AND "parentId" IS NULL)),
+    ('Transfer In', 'income', (SELECT "id" FROM "Category" WHERE "name"='Transfer' AND "type"='income' AND "parentId" IS NULL)),
+    ('Wallet Transfer In', 'income', (SELECT "id" FROM "Category" WHERE "name"='Transfer' AND "type"='income' AND "parentId" IS NULL)),
+    ('Birthday Gift', 'income', (SELECT "id" FROM "Category" WHERE "name"='Gift' AND "type"='income' AND "parentId" IS NULL)),
+    ('Family Gift', 'income', (SELECT "id" FROM "Category" WHERE "name"='Gift' AND "type"='income' AND "parentId" IS NULL)),
+    ('Cashback', 'income', (SELECT "id" FROM "Category" WHERE "name"='Other Income' AND "type"='income' AND "parentId" IS NULL)),
+    ('Refund', 'income', (SELECT "id" FROM "Category" WHERE "name"='Other Income' AND "type"='income' AND "parentId" IS NULL)),
+    ('Miscellaneous Income', 'income', (SELECT "id" FROM "Category" WHERE "name"='Other Income' AND "type"='income' AND "parentId" IS NULL));
+
+-- Seed outcome subcategories
+INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
+    ('Credit Card Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Electricity Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Gas Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('House Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Internet Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Phone Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Rentals', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Streaming Service', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Water Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Other Utility Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Groceries', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Food' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Dining Out', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Food' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Snacks & Coffee', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Food' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Fuel', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Transport' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Public Transport', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Transport' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Parking', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Transport' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Insurance', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Health' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Medicine', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Health' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Sports', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Health' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Courses', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Education' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Books', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Education' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Tuition Fee', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Education' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Shopping', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Lifestyle' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Entertainment', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Lifestyle' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Movies', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Lifestyle' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Games', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Lifestyle' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Family Gift', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Gift & Donations' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Friends Gift', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Gift & Donations' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Charity', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Gift & Donations' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Religious Donation', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Gift & Donations' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Stock Purchase', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Mutual Fund Purchase', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Crypto Purchase', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Tax', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Transfer Out', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Transfer' AND "type"='outcome' AND "parentId" IS NULL)),
+    ('Wallet Transfer Out', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Transfer' AND "type"='outcome' AND "parentId" IS NULL));

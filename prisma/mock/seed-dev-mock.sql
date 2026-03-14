@@ -1,21 +1,37 @@
--- DEV MOCK DATA SEED
--- Safe to rerun: uses fixed mock IDs and INSERT OR IGNORE
+-- Development sample data seed
+-- Compatible with INTEGER AUTOINCREMENT ids
 
--- Mock Wallets
-INSERT OR IGNORE INTO "Wallet" ("id", "name", "balance", "excludeFromTotal", "sortOrder") VALUES
-  ('mock-wallet-001', 'MOCK - BCA', 3250000, false, 101),
-  ('mock-wallet-002', 'MOCK - E-Wallet', 780000, false, 102),
-  ('mock-wallet-003', 'MOCK - Travel Fund', 1200000, true, 103);
+-- Wallets
+INSERT OR IGNORE INTO "Wallet" ("name", "balance", "excludeFromTotal", "sortOrder") VALUES
+  ('BCA Payroll', 6845000, false, 101),
+  ('Cash', 465000, false, 102),
+  ('GoPay', 325000, false, 103),
+  ('Mandiri Savings', 12350000, false, 104),
+  ('Travel Fund', 2750000, true, 105),
+  ('Emergency Fund', 8500000, true, 106);
 
--- Mock Monthly Budgets
-INSERT OR IGNORE INTO "MonthlyBudget" ("id", "name", "amount", "month", "category", "type", "sortOrder") VALUES
-  ('mock-budget-001', 'MOCK Budget Salary', 9000000, '2026-02', 'Salary', 'income', 101),
-  ('mock-budget-002', 'MOCK Budget Food', 1500000, '2026-02', 'Food', 'outcome', 102),
-  ('mock-budget-003', 'MOCK Budget Transport', 700000, '2026-02', 'Transport', 'outcome', 103);
+-- Monthly budgets
+INSERT OR IGNORE INTO "MonthlyBudget" ("name", "amount", "month", "category", "type", "sortOrder") VALUES
+  ('Main Salary', 9800000, '2026-02', 'Salary', 'income', 101),
+  ('Freelance Project', 1250000, '2026-02', 'Business', 'income', 102),
+  ('Groceries', 1600000, '2026-02', 'Food', 'outcome', 103),
+  ('Transport', 700000, '2026-02', 'Transport', 'outcome', 104),
+  ('Internet and Utilities', 420000, '2026-02', 'Bills and Utilities', 'outcome', 105),
+  ('Main Salary', 9800000, '2026-03', 'Salary', 'income', 201),
+  ('Performance Bonus', 1500000, '2026-03', 'Salary', 'income', 202),
+  ('Household Groceries', 1750000, '2026-03', 'Food', 'outcome', 203),
+  ('Rent and Bills', 3150000, '2026-03', 'Bills and Utilities', 'outcome', 204),
+  ('Weekend and Leisure', 650000, '2026-03', 'Lifestyle', 'outcome', 205),
+  ('Investment Top Up', 1000000, '2026-03', 'Investment', 'outcome', 206),
+  ('Main Salary', 9800000, '2026-04', 'Salary', 'income', 301),
+  ('Carry Over March', 1350000, '2026-04', 'Carry Over', 'carryover', 302),
+  ('Family Trip', 2200000, '2026-04', 'Transport', 'outcome', 303),
+  ('Home Utilities', 700000, '2026-04', 'Bills and Utilities', 'outcome', 304),
+  ('Charity and Giving', 300000, '2026-04', 'Gift & Donations', 'outcome', 305);
 
--- Mock Cash Logs (12 records, varied)
+-- Helper style: category lookup by name + type
+-- Cash logs
 INSERT OR IGNORE INTO "CashLog" (
-  "id",
   "date",
   "description",
   "amount",
@@ -23,15 +39,34 @@ INSERT OR IGNORE INTO "CashLog" (
   "excludeFromReport",
   "categoryId"
 ) VALUES
-  ('mock-cashlog-001', '2026-02-01', 'MOCK Salary February', 8500000, 'MOCK - BCA', false, 'seed-v3-income-salary-main'),
-  ('mock-cashlog-002', '2026-02-02', 'MOCK Groceries Week 1', -245000, 'MOCK - E-Wallet', false, 'seed-v3-outcome-food-groceries'),
-  ('mock-cashlog-003', '2026-02-03', 'MOCK Coffee & Snacks', -68000, 'MOCK - E-Wallet', false, 'seed-v3-outcome-food-snacks'),
-  ('mock-cashlog-004', '2026-02-04', 'MOCK Fuel Refill', -210000, 'MOCK - BCA', false, 'seed-v3-outcome-transport-fuel'),
-  ('mock-cashlog-005', '2026-02-05', 'MOCK Transfer to Savings', -500000, 'MOCK - BCA', true, 'seed-v3-outcome-transfer-out'),
-  ('mock-cashlog-006', '2026-02-06', 'MOCK Cashback Promo', 32000, 'MOCK - E-Wallet', false, 'seed-v3-income-other-cashback'),
-  ('mock-cashlog-007', '2026-02-08', 'MOCK Dining Out', -175000, 'MOCK - E-Wallet', false, 'seed-v3-outcome-food-dining'),
-  ('mock-cashlog-008', '2026-02-10', 'MOCK Internet Bill', -389000, 'MOCK - BCA', false, 'seed-v3-outcome-bills-internet'),
-  ('mock-cashlog-009', '2026-02-12', 'MOCK Dividend Income', 275000, 'MOCK - BCA', false, 'seed-v3-income-investment-dividend'),
-  ('mock-cashlog-010', '2026-02-15', 'MOCK Movie Night', -120000, 'MOCK - E-Wallet', false, 'seed-v3-outcome-lifestyle-movies'),
-  ('mock-cashlog-011', '2026-02-18', 'MOCK Wallet Transfer In', 400000, 'MOCK - Travel Fund', true, 'seed-v3-income-transfer-wallet'),
-  ('mock-cashlog-012', '2026-02-21', 'MOCK Flight Ticket', -950000, 'MOCK - Travel Fund', false, 'seed-v3-outcome-transport-public');
+  ('2026-02-01', 'Salary payment', 9800000, 'BCA Payroll', false, (SELECT id FROM "Category" WHERE "name"='Main Salary' AND "type"='income' LIMIT 1)),
+  ('2026-02-02', 'Apartment rent', -2500000, 'BCA Payroll', false, (SELECT id FROM "Category" WHERE "name"='Rentals' AND "type"='outcome' LIMIT 1)),
+  ('2026-02-03', 'Groceries at GrandLucky', -268000, 'GoPay', false, (SELECT id FROM "Category" WHERE "name"='Groceries' AND "type"='outcome' LIMIT 1)),
+  ('2026-02-04', 'Morning coffee', -38000, 'Cash', false, (SELECT id FROM "Category" WHERE "name"='Snacks & Coffee' AND "type"='outcome' LIMIT 1)),
+  ('2026-02-05', 'Fuel refill', -240000, 'BCA Payroll', false, (SELECT id FROM "Category" WHERE "name"='Fuel' AND "type"='outcome' LIMIT 1)),
+  ('2026-02-06', 'Transfer to travel budget', -750000, 'BCA Payroll', true, (SELECT id FROM "Category" WHERE "name"='Wallet Transfer Out' AND "type"='outcome' LIMIT 1)),
+  ('2026-02-06', 'Travel fund top up', 750000, 'Travel Fund', true, (SELECT id FROM "Category" WHERE "name"='Wallet Transfer In' AND "type"='income' LIMIT 1)),
+  ('2026-02-08', 'Internet subscription', -389000, 'BCA Payroll', false, (SELECT id FROM "Category" WHERE "name"='Internet Bills' AND "type"='outcome' LIMIT 1)),
+  ('2026-02-10', 'Dividend payout', 315000, 'Mandiri Savings', false, (SELECT id FROM "Category" WHERE "name"='Dividend' AND "type"='income' LIMIT 1)),
+  ('2026-02-12', 'Dinner with clients', -265000, 'GoPay', false, (SELECT id FROM "Category" WHERE "name"='Dining Out' AND "type"='outcome' LIMIT 1)),
+  ('2026-02-14', 'Movie night', -95000, 'GoPay', false, (SELECT id FROM "Category" WHERE "name"='Movies' AND "type"='outcome' LIMIT 1)),
+  ('2026-02-18', 'Marketplace refund', 124000, 'GoPay', false, (SELECT id FROM "Category" WHERE "name"='Refund' AND "type"='income' LIMIT 1)),
+  ('2026-03-01', 'Salary payment', 9800000, 'BCA Payroll', false, (SELECT id FROM "Category" WHERE "name"='Main Salary' AND "type"='income' LIMIT 1)),
+  ('2026-03-02', 'Landing page project', 1750000, 'Mandiri Savings', false, (SELECT id FROM "Category" WHERE "name"='Consulting' AND "type"='income' LIMIT 1)),
+  ('2026-03-03', 'Groceries at Ranch Market', -312000, 'GoPay', false, (SELECT id FROM "Category" WHERE "name"='Groceries' AND "type"='outcome' LIMIT 1)),
+  ('2026-03-05', 'Electricity bill', -276000, 'BCA Payroll', false, (SELECT id FROM "Category" WHERE "name"='Electricity Bills' AND "type"='outcome' LIMIT 1)),
+  ('2026-03-07', 'Pharmacy purchase', -148000, 'Cash', false, (SELECT id FROM "Category" WHERE "name"='Medicine' AND "type"='outcome' LIMIT 1)),
+  ('2026-03-09', 'Weekend brunch', -172000, 'GoPay', false, (SELECT id FROM "Category" WHERE "name"='Dining Out' AND "type"='outcome' LIMIT 1)),
+  ('2026-03-11', 'Office parking', -45000, 'Cash', false, (SELECT id FROM "Category" WHERE "name"='Parking' AND "type"='outcome' LIMIT 1)),
+  ('2026-03-13', 'Streaming services', -169000, 'BCA Payroll', false, (SELECT id FROM "Category" WHERE "name"='Streaming Service' AND "type"='outcome' LIMIT 1)),
+  ('2026-03-17', 'Ride-hailing cashback', 28000, 'GoPay', false, (SELECT id FROM "Category" WHERE "name"='Cashback' AND "type"='income' LIMIT 1)),
+  ('2026-03-20', 'Mutual fund top up', -1000000, 'Mandiri Savings', false, (SELECT id FROM "Category" WHERE "name"='Mutual Fund Purchase' AND "type"='outcome' LIMIT 1)),
+  ('2026-04-01', 'Salary payment', 9800000, 'BCA Payroll', false, (SELECT id FROM "Category" WHERE "name"='Main Salary' AND "type"='income' LIMIT 1)),
+  ('2026-04-03', 'Holiday allowance', 2200000, 'Mandiri Savings', false, (SELECT id FROM "Category" WHERE "name"='Holiday Allowance' AND "type"='income' LIMIT 1)),
+  ('2026-04-04', 'Flight ticket to Singapore', -1850000, 'Travel Fund', false, (SELECT id FROM "Category" WHERE "name"='Public Transport' AND "type"='outcome' LIMIT 1)),
+  ('2026-04-06', 'Hotel deposit', -950000, 'Travel Fund', false, (SELECT id FROM "Category" WHERE "name"='Rentals' AND "type"='outcome' LIMIT 1)),
+  ('2026-04-08', 'Family gift', -350000, 'Mandiri Savings', false, (SELECT id FROM "Category" WHERE "name"='Family Gift' AND "type"='outcome' LIMIT 1)),
+  ('2026-04-10', 'Charity donation', -200000, 'Cash', false, (SELECT id FROM "Category" WHERE "name"='Charity' AND "type"='outcome' LIMIT 1)),
+  ('2026-04-12', 'Portfolio dividend', 420000, 'Mandiri Savings', false, (SELECT id FROM "Category" WHERE "name"='Dividend' AND "type"='income' LIMIT 1)),
+  ('2026-04-15', 'Airport transfer', -180000, 'Travel Fund', false, (SELECT id FROM "Category" WHERE "name"='Public Transport' AND "type"='outcome' LIMIT 1)),
+  ('2026-04-18', 'Airline refund', 275000, 'Travel Fund', false, (SELECT id FROM "Category" WHERE "name"='Refund' AND "type"='income' LIMIT 1));

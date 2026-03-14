@@ -19,7 +19,7 @@ enum CategoryType {
 }
 
 model MonthlyBudget {
-  id        String @id @default(uuid())
+  id        Int    @id @default(autoincrement())
   name      String
   amount    Int
   month     String
@@ -29,7 +29,7 @@ model MonthlyBudget {
 }
 
 model Wallet {
-  id               String @id @default(uuid())
+  id               Int    @id @default(autoincrement())
   name             String @unique
   balance          Int    @default(0)
   excludeFromTotal Boolean @default(false)
@@ -37,10 +37,10 @@ model Wallet {
 }
 
 model Category {
-  id              String       @id @default(uuid())
+  id              Int          @id @default(autoincrement())
   name            String
   type            CategoryType
-  parentId        String?
+  parentId        Int?
   parent          Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children        Category[]   @relation("CategoryHierarchy")
   cashLogs        CashLog[]
@@ -50,12 +50,12 @@ model Category {
 }
 
 model CashLog {
-  id          String @id @default(uuid())
+  id          Int    @id @default(autoincrement())
   date        String
   description String
   amount      Int
   walletName  String
-  categoryId  String?
+  categoryId  Int?
   excludeFromReport Boolean @default(false)
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
