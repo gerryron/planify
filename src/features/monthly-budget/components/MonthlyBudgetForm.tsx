@@ -29,6 +29,9 @@ export default function MonthlyBudgetForm({
   initial,
   onSuccess,
 }: MonthlyBudgetFormProps) {
+  const initialBudgetType: 'income' | 'outcome' =
+    initial?.type === 'outcome' ? 'outcome' : 'income';
+
   const [form, setForm] = useState<BudgetInput>(
     initial
       ? {
@@ -40,13 +43,24 @@ export default function MonthlyBudgetForm({
         }
       : defaultForm,
   );
+  const [activeBudgetType, setActiveBudgetType] = useState<
+    'income' | 'outcome'
+  >(initialBudgetType);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const formattedAmount = useMemo(() => {
     if (!form.amount) return '';
-    return `Rp ${form.amount.toLocaleString('id-ID')}`;
+    return `Rp ${Math.abs(form.amount).toLocaleString('id-ID')}`;
   }, [form.amount]);
+
+  const handleBudgetTypeChange = (type: 'income' | 'outcome') => {
+    setActiveBudgetType(type);
+    setForm((prev) => ({
+      ...prev,
+      type,
+    }));
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -112,6 +126,49 @@ export default function MonthlyBudgetForm({
       className='space-y-4 bg-white dark:bg-slate-800 p-4 rounded shadow'
     >
       <div>
+        <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden mb-3'>
+          <span
+            className={
+              'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +
+              (activeBudgetType === 'income'
+                ? 'bg-emerald-500 '
+                : 'bg-red-500 ') +
+              (activeBudgetType === 'income'
+                ? 'translate-x-0'
+                : 'translate-x-full')
+            }
+            aria-hidden='true'
+          />
+          <div className='relative z-10 grid grid-cols-2'>
+            <button
+              type='button'
+              onClick={() => handleBudgetTypeChange('income')}
+              className={
+                'rounded px-3 py-1.5 text-sm transition-colors duration-500 ' +
+                (activeBudgetType === 'income'
+                  ? 'text-white dark:text-slate-900'
+                  : 'text-gray-700 dark:text-gray-200')
+              }
+            >
+              Income
+            </button>
+            <button
+              type='button'
+              onClick={() => handleBudgetTypeChange('outcome')}
+              className={
+                'rounded px-3 py-1.5 text-sm transition-colors duration-500 ' +
+                (activeBudgetType === 'outcome'
+                  ? 'text-white'
+                  : 'text-gray-700 dark:text-gray-200')
+              }
+            >
+              Outcome
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
         <label className='block font-medium'>Name</label>
         <input
           name='name'
@@ -157,19 +214,6 @@ export default function MonthlyBudgetForm({
           className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
-      </div>
-      <div>
-        <label className='block font-medium'>Type</label>
-        <select
-          name='type'
-          value={form.type}
-          onChange={handleChange}
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
-        >
-          <option value='outcome'>Outcome</option>
-          <option value='income'>Income</option>
-        </select>
       </div>
       {error && <div className='text-red-500'>{error}</div>}
       <div>

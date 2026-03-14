@@ -116,8 +116,8 @@ function MenuActions({
 
 function buildNextBudgets(
   budgets: Budget[],
-  fromId: string,
-  toId: string,
+  fromId: number,
+  toId: number,
 ): Budget[] | null {
   const fromIndex = budgets.findIndex((budget) => budget.id === fromId);
   const toIndex = budgets.findIndex((budget) => budget.id === toId);
@@ -141,7 +141,7 @@ function SortableBudgetItem({
   showNominal: boolean;
   totalIncome: number;
   onEdit: (budget: Budget) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 }) {
   const {
     attributes,
@@ -198,8 +198,10 @@ function SortableBudgetItem({
               : 'text-gray-500 dark:text-gray-400'
           }`}
         >
-          {budget.type === 'outcome' ? '- ' : ''}Rp{' '}
-          {showNominal ? budget.amount.toLocaleString('id-ID') : '••••••••'}
+          Rp{' '}
+          {showNominal
+            ? Math.abs(budget.amount).toLocaleString('id-ID')
+            : '••••••••'}
         </div>
 
         <div className='flex items-center gap-2 mt-1'>
@@ -374,7 +376,7 @@ export default function MonthlyBudgetList({
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: 'Delete budget?',
       text: 'Deleted data cannot be restored.',
@@ -405,7 +407,7 @@ export default function MonthlyBudgetList({
     }
   };
 
-  const moveBudget = async (fromId: string, toId: string) => {
+  const moveBudget = async (fromId: number, toId: number) => {
     if (fromId === toId) return;
 
     const nextBudgets = buildNextBudgets(budgets, fromId, toId);
@@ -426,9 +428,9 @@ export default function MonthlyBudgetList({
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
     if (!over) return;
 
-    const fromId = String(active.id);
-    const toId = String(over.id);
-    if (!fromId || !toId || fromId === toId) return;
+    const fromId = Number(active.id);
+    const toId = Number(over.id);
+    if (Number.isNaN(fromId) || Number.isNaN(toId) || fromId === toId) return;
 
     await moveBudget(fromId, toId);
   };
@@ -457,7 +459,7 @@ export default function MonthlyBudgetList({
               }`}
               style={{ minHeight: '2.5rem', alignItems: 'center' }}
             >
-              {totalTransaction < 0 ? '- ' : ''}Rp{' '}
+              Rp{' '}
               {showNominal
                 ? Math.abs(totalTransaction).toLocaleString('id-ID')
                 : '••••••••'}
