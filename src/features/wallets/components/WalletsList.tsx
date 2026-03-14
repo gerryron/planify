@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import LockIcon from '@mui/icons-material/Lock';
@@ -31,6 +33,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface WalletsListProps {
   onEdit: (wallet: Wallets) => void;
+  onTransfer: (wallet: Wallets) => void;
   onAdd?: () => void;
 }
 
@@ -39,10 +42,12 @@ const EXCLUDE_ZONE_ID = 'exclude-zone';
 
 function MenuActions({
   onEdit,
+  onTransfer,
   onDelete,
   canDelete,
 }: {
   onEdit: () => void;
+  onTransfer: () => void;
   onDelete: () => void;
   canDelete: boolean;
 }) {
@@ -64,7 +69,11 @@ function MenuActions({
   }, [open]);
 
   return (
-    <div ref={containerRef} className='relative'>
+    <div
+      ref={containerRef}
+      className='relative'
+      onClick={(event) => event.stopPropagation()}
+    >
       <button
         className='p-2 rounded hover:bg-emerald-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
         aria-label='Action'
@@ -85,6 +94,17 @@ function MenuActions({
           >
             <EditIcon fontSize='small' />
             Edit
+          </button>
+          <button
+            className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2'
+            onClick={() => {
+              setOpen(false);
+              onTransfer();
+            }}
+            type='button'
+          >
+            <SwapHorizIcon fontSize='small' />
+            Transfer
           </button>
           {canDelete && (
             <button
@@ -107,9 +127,9 @@ function MenuActions({
 
 function buildNextWallets(
   wallets: Wallets[],
-  fromId: string,
+  fromId: number,
   targetIncludeFromTotal: boolean,
-  toId?: string,
+  toId?: number,
 ): Wallets[] | null {
   const fromIndex = wallets.findIndex((wallet) => wallet.id === fromId);
   if (fromIndex < 0) return null;
@@ -153,15 +173,19 @@ function SortableWalletItem({
   wallet,
   showNominal,
   totalAllocationBase,
+  onOpenCashLog,
   onEdit,
+  onTransfer,
   onDelete,
   canDelete,
 }: {
   wallet: Wallets;
   showNominal: boolean;
   totalAllocationBase: number;
+  onOpenCashLog: (wallet: Wallets) => void;
   onEdit: (wallet: Wallets) => void;
-  onDelete: (id: string) => void;
+  onTransfer: (wallet: Wallets) => void;
+  onDelete: (id: number) => void;
   canDelete: boolean;
 }) {
   const {
@@ -188,11 +212,23 @@ function SortableWalletItem({
     <div
       ref={setNodeRef}
       style={style}
+      onClick={() => onOpenCashLog(wallet)}
       className={`flex items-center justify-between border-b border-gray-300 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0 transition-all ${
         isDragging ? 'opacity-70 scale-[0.99] shadow-md' : ''
       }`}
+      role='button'
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpenCashLog(wallet);
+        }
+      }}
     >
-      <div>
+      <div
+        className='text-left rounded p-1 -m-1 hover:bg-emerald-50 dark:hover:bg-slate-700/40 transition-colors flex-1'
+        title='Open cash log for this wallet'
+      >
         <div className='font-bold'>{wallet.name}</div>
         <div
           className={`font-mono ${
@@ -232,6 +268,7 @@ function SortableWalletItem({
 
       <div className='flex items-center gap-1'>
         <span
+          onClick={(event) => event.stopPropagation()}
           className={`p-2 cursor-move text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 rounded transition-all ${
             isDragging
               ? 'bg-emerald-100 dark:bg-slate-700 shadow ring-2 ring-emerald-300 dark:ring-emerald-600'
@@ -245,6 +282,7 @@ function SortableWalletItem({
         </span>
         <MenuActions
           onEdit={() => onEdit(wallet)}
+          onTransfer={() => onTransfer(wallet)}
           onDelete={() => onDelete(wallet.id)}
           canDelete={canDelete}
         />
@@ -253,7 +291,12 @@ function SortableWalletItem({
   );
 }
 
-export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
+export default function WalletsList({
+  onEdit,
+  onTransfer,
+  onAdd,
+}: WalletsListProps) {
+  const router = useRouter();
   const [wallets, setWallets] = useState<Wallets[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -338,7 +381,7 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
     return closestCenter(args);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: 'Delete wallet?',
       text: 'Deleted wallet cannot be restored.',
@@ -367,6 +410,10 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
         icon: 'error',
       });
     }
+  };
+
+  const handleOpenCashLog = (wallet: Wallets) => {
+    router.push(`/cash-log?walletId=${encodeURIComponent(String(wallet.id))}`);
   };
 
   const persistMove = async (
@@ -410,7 +457,9 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
       return;
     }
 
-    const hoveredWallet = wallets.find((wallet) => wallet.id === overId);
+    const hoveredWallet = wallets.find(
+      (wallet) => wallet.id === Number(overId),
+    );
     if (!hoveredWallet) {
       setCurrentDragSection(null);
       return;
@@ -422,7 +471,7 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
   };
 
   const handleDragEnd = async ({ active, over }: DragEndEvent) => {
-    const fromId = String(active.id);
+    const fromId = Number(active.id);
     const sourceWallet = wallets.find((wallet) => wallet.id === fromId);
     if (!sourceWallet) {
       setCurrentDragSection(null);
@@ -456,7 +505,7 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
 
     const overId = String(over.id);
 
-    if (overId === fromId) {
+    if (Number(overId) === fromId) {
       if (
         fallbackTargetIncludeFromTotal !== null &&
         fallbackTargetIncludeFromTotal !== !sourceWallet.excludeFromTotal
@@ -490,7 +539,7 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
       return;
     }
 
-    const targetWallet = wallets.find((wallet) => wallet.id === overId);
+    const targetWallet = wallets.find((wallet) => wallet.id === Number(overId));
     if (!targetWallet) {
       setCurrentDragSection(null);
       return;
@@ -617,7 +666,9 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
                           wallet={wallet}
                           showNominal={showNominal}
                           totalAllocationBase={totalAllocationBase}
+                          onOpenCashLog={handleOpenCashLog}
                           onEdit={onEdit}
+                          onTransfer={onTransfer}
                           onDelete={handleDelete}
                           canDelete={wallets.length > 1}
                         />
@@ -656,7 +707,9 @@ export default function WalletsList({ onEdit, onAdd }: WalletsListProps) {
                           wallet={wallet}
                           showNominal={showNominal}
                           totalAllocationBase={totalAllocationBase}
+                          onOpenCashLog={handleOpenCashLog}
                           onEdit={onEdit}
+                          onTransfer={onTransfer}
                           onDelete={handleDelete}
                           canDelete={wallets.length > 1}
                         />
