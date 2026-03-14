@@ -32,3 +32,47 @@ body.theme-dark .app-card {
 body.theme-dark .app-card {
   @apply bg-slate-800;
 }
+
+.dark input[type='date'],
+.dark input[type='month'],
+.dark input[type='time'],
+.dark input[type='datetime-local'],
+body.theme-dark input[type='date'],
+body.theme-dark input[type='month'],
+body.theme-dark input[type='time'],
+body.theme-dark input[type='datetime-local'] {
+  color-scheme: dark;
+}
+
+.dark input[type='date']::-webkit-calendar-picker-indicator,
+.dark input[type='month']::-webkit-calendar-picker-indicator,
+.dark input[type='time']::-webkit-calendar-picker-indicator,
+.dark input[type='datetime-local']::-webkit-calendar-picker-indicator,
+body.theme-dark input[type='date']::-webkit-calendar-picker-indicator,
+body.theme-dark input[type='month']::-webkit-calendar-picker-indicator,
+body.theme-dark input[type='time']::-webkit-calendar-picker-indicator,
+body.theme-dark
+  input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  -webkit-filter: invert(1) sepia(1) saturate(0) hue-rotate(180deg)
+    brightness(2.4) contrast(1.2);
+  filter: invert(1) sepia(1) saturate(0) hue-rotate(180deg) brightness(2.4)
+    contrast(1.2);
+  color: #ffffff;
+  background-color: transparent;
+  opacity: 1;
+}
+
+.dark input[type='date']::-webkit-calendar-picker-indicator:hover,
+.dark input[type='month']::-webkit-calendar-picker-indicator:hover,
+.dark input[type='time']::-webkit-calendar-picker-indicator:hover,
+.dark input[type='datetime-local']::-webkit-calendar-picker-indicator:hover,
+body.theme-dark input[type='date']::-webkit-calendar-picker-indicator:hover,
+body.theme-dark input[type='month']::-webkit-calendar-picker-indicator:hover,
+body.theme-dark input[type='time']::-webkit-calendar-picker-indicator:hover,
+body.theme-dark
+  input[type='datetime-local']::-webkit-calendar-picker-indicator:hover {
+  -webkit-filter: invert(1) sepia(1) saturate(0) hue-rotate(180deg)
+    brightness(2.7) contrast(1.2);
+  filter: invert(1) sepia(1) saturate(0) hue-rotate(180deg) brightness(2.7)
+    contrast(1.2);
+}

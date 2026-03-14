@@ -27,7 +27,7 @@ const defaultForm: CashLogInput = {
   description: '',
   amount: 0,
   walletName: '',
-  categoryId: '',
+  categoryId: 0,
   excludeFromReport: false,
 };
 
@@ -42,7 +42,7 @@ export default function CashLogForm({
       ? {
           date: initial.date,
           description: initial.description,
-          amount: initial.amount,
+          amount: Math.abs(initial.amount),
           walletName: initial.walletName,
           categoryId: initial.categoryId,
           excludeFromReport: initial.excludeFromReport,
@@ -112,7 +112,7 @@ export default function CashLogForm({
 
           return {
             ...prev,
-            categoryId: fallbackCategory?.id ?? '',
+            categoryId: fallbackCategory?.id ?? 0,
           };
         });
       } catch {}
@@ -166,13 +166,13 @@ export default function CashLogForm({
 
     setForm((prev) => ({
       ...prev,
-      categoryId: firstCategory?.id ?? '',
+      categoryId: firstCategory?.id ?? 0,
     }));
   };
 
   const formattedAmount = useMemo(() => {
     if (!form.amount) return '';
-    return `Rp ${form.amount.toLocaleString('id-ID')}`;
+    return `Rp ${Math.abs(form.amount).toLocaleString('id-ID')}`;
   }, [form.amount]);
 
   const handleChange = (
@@ -187,12 +187,24 @@ export default function CashLogForm({
           ? value === ''
             ? 0
             : Number(value.replace(/[^\d]/g, ''))
-          : value,
+          : name === 'categoryId'
+            ? Number(value)
+            : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const normalizedAmount =
+      activeCategoryType === 'outcome'
+        ? -Math.abs(form.amount)
+        : Math.abs(form.amount);
+
+    const payload: CashLogInput = {
+      ...form,
+      amount: normalizedAmount,
+    };
 
     const isUpdate = initial && initial.id;
     const confirmResult = await Swal.fire({
@@ -213,7 +225,7 @@ export default function CashLogForm({
 
     try {
       if (isUpdate) {
-        await cashLogService.update(initial.id, form);
+        await cashLogService.update(initial.id, payload);
         await Swal.fire({
           icon: 'success',
           title: 'Transaction updated!',
@@ -221,7 +233,7 @@ export default function CashLogForm({
           timer: 1200,
         });
       } else {
-        await cashLogService.create(form);
+        await cashLogService.create(payload);
         await Swal.fire({
           icon: 'success',
           title: 'Transaction added!',
@@ -244,8 +256,6 @@ export default function CashLogForm({
       onSubmit={handleSubmit}
       className='space-y-4 bg-white dark:bg-slate-800 p-4 rounded shadow'
     >
-      <input name='date' type='hidden' value={form.date} />
-
       <div>
         <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden mb-3'>
           <span
@@ -337,6 +347,18 @@ export default function CashLogForm({
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className='block font-medium'>Transaction Date</label>
+        <input
+          name='date'
+          type='date'
+          value={form.date}
+          onChange={handleChange}
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          required
+        />
       </div>
 
       <div>

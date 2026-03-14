@@ -18,6 +18,8 @@ import {
 interface CashLogListProps {
   onEdit: (log: CashLog) => void;
   onAdd?: (walletName?: string) => void;
+  initialWalletId?: number | null;
+  refreshToken?: number;
 }
 
 type MonthFilter = string | 'future';
@@ -107,13 +109,21 @@ function MenuActions({
   );
 }
 
-export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
+export default function CashLogList({
+  onEdit,
+  onAdd,
+  initialWalletId,
+  refreshToken,
+}: CashLogListProps) {
   const [logs, setLogs] = useState<CashLog[]>([]);
   const [wallets, setWallets] = useState<Wallets[]>([]);
-  const [selectedWalletId, setSelectedWalletId] = useState('all');
+  const [selectedWalletId, setSelectedWalletId] = useState<'all' | number>(
+    'all',
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNominal, setShowNominal] = useState(true);
+  const hasAppliedInitialWalletRef = useRef(false);
   const monthPickerRef = useRef<HTMLInputElement>(null);
   const currentMonth = useMemo(() => {
     const now = new Date();
@@ -156,6 +166,31 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
     fetchWallets();
   }, []);
 
+  useEffect(() => {
+    if (hasAppliedInitialWalletRef.current) return;
+    if (!initialWalletId) {
+      hasAppliedInitialWalletRef.current = true;
+      return;
+    }
+    if (wallets.length === 0) return;
+
+    const targetWalletExists = wallets.some(
+      (wallet) => wallet.id === initialWalletId,
+    );
+
+    if (targetWalletExists) {
+      setSelectedWalletId(initialWalletId);
+    }
+
+    hasAppliedInitialWalletRef.current = true;
+  }, [initialWalletId, wallets]);
+
+  useEffect(() => {
+    if (!refreshToken) return;
+    fetchWallets();
+    fetchLogs(selectedMonth);
+  }, [refreshToken, selectedMonth]);
+
   const sortedLogs = useMemo(() => {
     const selectedWallet = wallets.find(
       (wallet) => wallet.id === selectedWalletId,
@@ -167,7 +202,7 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
 
     return [...filteredLogs].sort((a, b) => {
       if (a.date === b.date) {
-        return Number(b.id) - Number(a.id);
+        return b.id - a.id;
       }
       return a.date < b.date ? 1 : -1;
     });
@@ -211,7 +246,7 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
     return { included, excluded };
   }, [wallets]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: 'Delete this entry?',
       text: 'This action cannot be undone.',
@@ -252,7 +287,10 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
             <label className='block text-sm text-gray-500 mb-1'>Wallet</label>
             <select
               value={selectedWalletId}
-              onChange={(event) => setSelectedWalletId(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setSelectedWalletId(value === 'all' ? 'all' : Number(value));
+              }}
               className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             >
               <option value='all'>All Wallets</option>
@@ -456,13 +494,17 @@ export default function CashLogList({ onEdit, onAdd }: CashLogListProps) {
                         <div
                           className={`font-mono ${
                             showNominal
-                              ? log.amount < 0
+                              ? log.category?.type === 'outcome'
                                 ? 'text-red-600 dark:text-red-400'
-                                : 'text-green-700 dark:text-green-300'
+                                : log.category?.type === 'income'
+                                  ? 'text-green-700 dark:text-green-300'
+                                  : log.amount < 0
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-green-700 dark:text-green-300'
                               : 'text-gray-500 dark:text-gray-400'
                           }`}
                         >
-                          {log.amount < 0 ? '- ' : ''}Rp{' '}
+                          Rp{' '}
                           {showNominal
                             ? Math.abs(log.amount).toLocaleString('id-ID')
                             : '••••••••'}

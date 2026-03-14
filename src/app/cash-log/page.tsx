@@ -1,11 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import CashLogList from '../../features/cash-log/components/CashLogList';
 import CashLogForm from '../../features/cash-log/components/CashLogForm';
 import { CashLog } from '../../features/cash-log/services/cashLogService';
 
 export default function CashLogPage() {
+  const searchParams = useSearchParams();
+  const rawWalletId = searchParams.get('walletId');
+  const initialWalletId = rawWalletId ? Number(rawWalletId) : null;
   const [editing, setEditing] = useState<CashLog | null>(null);
   const [defaultWalletName, setDefaultWalletName] = useState<string | null>(
     null,
@@ -39,7 +43,12 @@ export default function CashLogPage() {
 
   return (
     <div className='max-w-2xl mx-auto py-8 space-y-8'>
-      <CashLogList key={refreshKey} onEdit={handleEdit} onAdd={handleAdd} />
+      <CashLogList
+        initialWalletId={initialWalletId}
+        refreshToken={refreshKey}
+        onEdit={handleEdit}
+        onAdd={handleAdd}
+      />
 
       {showForm && (
         <div
