@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Planify
 
-## Getting Started
+Planify is a personal finance application built with Next.js + Prisma + PostgreSQL.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 20+
+- Local PostgreSQL (for development)
+
+## Environment
+
+This project uses the following env files:
+
+- `.env` for local development
+- `.env.example` as a template for local/deploy
+
+Main variable example:
+
+```env
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/planify?schema=public"
+NODE_ENV="development"
+```
+
+For production deployment:
+
+```env
+DATABASE_URL="postgresql://DB_USER:DB_PASSWORD@DB_HOST:5432/planify?schema=public&sslmode=require"
+NODE_ENV="production"
+```
+
+## First-Time Local Setup
+
+1. Install dependencies
+
+```bash
+npm install
+```
+
+2. Make sure the `planify` database already exists in local PostgreSQL.
+
+3. Run migration and development mock seed:
+
+```bash
+npm run db:setup:local
+```
+
+4. Run the application:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app will run on:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js: http://localhost:3000
+- Swagger UI: http://localhost:3010
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Re-running Dev Seed
 
-## Learn More
+```bash
+npm run dev:clear-mock
+npm run dev:seed-mock
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Build and Run in Production
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Make sure the production `DATABASE_URL` is set in your server environment.
+2. Apply migration in the deployment environment:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run db:setup:deploy
+```
 
-## Deploy on Vercel
+3. Build the application:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Start the application:
+
+```bash
+npm run start
+```
+
+## Important Scripts
+
+- `npm run db:generate` generate Prisma client
+- `npm run db:migrate:deploy` apply migration
+- `npm run db:setup:local` migration + dev mock seed
+- `npm run db:setup:deploy` migration + generate for deploy server
+- `npm run dev` run Next + Swagger

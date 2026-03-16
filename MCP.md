@@ -25,7 +25,7 @@ Planify dirancang untuk menyatukan seluruh alur tersebut ke dalam satu aplikasi 
 
 - Menyediakan fondasi aplikasi budgeting personal yang terstruktur.
 - Mempercepat proses iterasi fitur finansial secara modular.
-- Menjaga kemungkinan migrasi dari SQLite ke PostgreSQL atau MySQL.
+- Menjaga kemungkinan migrasi dari PostgreSQL ke MySQL.
 
 ### Tujuan Pengguna
 
@@ -68,7 +68,7 @@ Planify memberikan nilai utama berikut:
 - Cash log management
 - Wallet management
 - Category management
-- SQLite database melalui Prisma
+- PostgreSQL database melalui Prisma
 - Next.js API routes
 - Unit test untuk backend route utama
 
@@ -427,8 +427,8 @@ Membantu pengguna mengelola tindakan dan rencana finansial di luar pencatatan tr
 
 ### Portability
 
-- Database default adalah SQLite untuk local usage.
-- Skema harus tetap memungkinkan migrasi ke PostgreSQL atau MySQL.
+- Database default adalah PostgreSQL untuk local usage.
+- Skema harus tetap memungkinkan migrasi ke MySQL.
 
 ### Testability
 
@@ -573,7 +573,7 @@ Membantu pengguna mengelola tindakan dan rencana finansial di luar pencatatan tr
 
 - **Frontend:** Next.js, React, TypeScript
 - **Backend:** Next.js API routes
-- **Database:** SQLite untuk lokal
+- **Database:** PostgreSQL untuk lokal
 - **ORM:** Prisma
 - **Styling:** Tailwind CSS
 - **UI Components:** Material UI icons dan utility integration
@@ -617,7 +617,7 @@ planify/
 Contoh environment variable lokal:
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/planify?schema=public"
 ```
 
 ## 19. Setup dan Development Notes
@@ -626,7 +626,7 @@ DATABASE_URL="file:./dev.db"
 
 - Gunakan Next.js + TypeScript + Tailwind CSS.
 - Gunakan Prisma sebagai ORM.
-- Gunakan SQLite sebagai database lokal.
+- Gunakan PostgreSQL sebagai database lokal.
 - Jalankan migration dan generate Prisma client sebelum menjalankan aplikasi.
 - Unit test backend wajib tersedia untuk route utama.
 

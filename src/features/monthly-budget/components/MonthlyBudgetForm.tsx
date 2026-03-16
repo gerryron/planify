@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import {
   monthlyBudgetService,
   Budget,
 } from '@/features/monthly-budget/services/monthlyBudgetService';
 import { BudgetInput } from '@/features/monthly-budget/types/budget';
+import { categoryService } from '@/features/categories/services/categoryService';
+import type { Category } from '@/features/categories/types/category';
 
 interface MonthlyBudgetFormProps {
   initial?: Budget | null;
@@ -46,6 +48,9 @@ export default function MonthlyBudgetForm({
   const [activeBudgetType, setActiveBudgetType] = useState<
     'income' | 'outcome'
   >(initialBudgetType);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +58,54 @@ export default function MonthlyBudgetForm({
     if (!form.amount) return '';
     return `Rp ${Math.abs(form.amount).toLocaleString('id-ID')}`;
   }, [form.amount]);
+
+  const availableParentCategories = useMemo(
+    () =>
+      categories
+        .filter(
+          (category) =>
+            category.parentId === null && category.type === activeBudgetType,
+        )
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [categories, activeBudgetType],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCategories = async () => {
+      setLoadingCategories(true);
+      setCategoryError(null);
+      try {
+        const data = await categoryService.getAll();
+        if (!isMounted) return;
+        setCategories(data);
+      } catch {
+        if (!isMounted) return;
+        setCategoryError('Failed to load categories');
+      } finally {
+        if (!isMounted) return;
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      category: availableParentCategories.some(
+        (category) => category.name === prev.category,
+      )
+        ? prev.category
+        : '',
+    }));
+  }, [availableParentCategories]);
 
   const handleBudgetTypeChange = (type: 'income' | 'outcome') => {
     setActiveBudgetType(type);
@@ -206,14 +259,30 @@ export default function MonthlyBudgetForm({
       </div>
       <div>
         <label className='block font-medium'>Category</label>
-        <input
+        <select
           name='category'
           value={form.category}
           onChange={handleChange}
-          placeholder='e.g. Food, Salary, Utilities'
           className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          disabled={loadingCategories || !!categoryError}
           required
-        />
+        >
+          <option value=''>
+            {loadingCategories
+              ? 'Loading categories...'
+              : categoryError
+                ? 'Failed to load categories'
+                : 'Select category'}
+          </option>
+          {availableParentCategories.map((category) => (
+            <option key={category.id} value={category.name}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+        {categoryError && (
+          <p className='mt-1 text-sm text-red-500'>{categoryError}</p>
+        )}
       </div>
       {error && <div className='text-red-500'>{error}</div>}
       <div>

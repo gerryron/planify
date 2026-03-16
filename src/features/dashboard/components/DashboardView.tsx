@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
@@ -77,6 +77,14 @@ type ExpenseChartItem = {
   fill: string;
 };
 type ExpenseDrillMode = 'top' | 'other' | 'child';
+type BudgetVsActualItem = {
+  rowKey: string;
+  categoryLabel: string;
+  type: 'income' | 'outcome';
+  category: string;
+  budget: number;
+  actual: number;
+};
 
 function buildTop5WithOther(expenseMap: Record<string, number>) {
   const ranked = Object.entries(expenseMap)
@@ -138,15 +146,30 @@ function getOutcomeCategoryLabels(log: CashLog, categories: Category[]) {
   };
 }
 
-function getOutcomeBudgetParentCategoryName(
+function getBudgetParentCategoryName(
   categoryName: string,
+  type: 'income' | 'outcome',
   categories: Category[],
 ): string {
   const category = categories.find(
-    (item) => item.type === 'outcome' && item.name === categoryName,
+    (item) => item.type === type && item.name === categoryName,
   );
 
   if (!category) return categoryName;
+  if (category.parentId === null) return category.name;
+
+  const parentCategory = categories.find(
+    (item) => item.id === category.parentId,
+  );
+  return parentCategory?.name ?? category.name;
+}
+
+function getLogParentCategoryName(
+  log: CashLog,
+  categories: Category[],
+): string {
+  const category = log.category;
+  if (!category) return 'Other';
   if (category.parentId === null) return category.name;
 
   const parentCategory = categories.find(
@@ -591,35 +614,75 @@ export default function DashboardView() {
   }, [selectedSummaryParent, summaryAllParentExpenses]);
 
   // Budget vs Actual
-  const budgetVsActual = useMemo(() => {
-    const budgetMap: Record<string, number> = {};
-    monthBudgets
-      .filter((b) => b.type === 'outcome')
-      .forEach((b) => {
-        const parentCategory = getOutcomeBudgetParentCategoryName(
-          b.category,
-          categories,
-        );
-        budgetMap[parentCategory] = (budgetMap[parentCategory] || 0) + b.amount;
-      });
+  const budgetVsActual = useMemo<BudgetVsActualItem[]>(() => {
+    const getPriority = (item: { budget: number; actual: number }) => {
+      if (item.budget > 0 && item.actual > 0) return 0;
+      if (item.budget > 0 && item.actual === 0) return 1;
+      if (item.budget === 0 && item.actual > 0) return 2;
+      return 3;
+    };
 
-    const actualMap: Record<string, number> = {};
-    monthLogs
-      .filter((l) => l.category?.type === 'outcome' && !l.excludeFromReport)
-      .forEach((l) => {
-        const { parentName: name } = getOutcomeCategoryLabels(l, categories);
-        actualMap[name] = (actualMap[name] || 0) + l.amount;
-      });
+    const makeGroup = (type: 'income' | 'outcome') => {
+      const budgetMap: Record<string, number> = {};
+      monthBudgets
+        .filter((budget) =>
+          type === 'income'
+            ? budget.type === 'income' || budget.type === 'carryover'
+            : budget.type === 'outcome',
+        )
+        .forEach((budget) => {
+          const parentCategory = getBudgetParentCategoryName(
+            budget.category,
+            type,
+            categories,
+          );
+          budgetMap[parentCategory] =
+            (budgetMap[parentCategory] || 0) + budget.amount;
+        });
 
-    const allCategories = new Set([
-      ...Object.keys(budgetMap),
-      ...Object.keys(actualMap),
-    ]);
-    return Array.from(allCategories).map((cat) => ({
-      category: cat,
-      budget: budgetMap[cat] || 0,
-      actual: actualMap[cat] || 0,
-    }));
+      const actualMap: Record<string, number> = {};
+      monthLogs
+        .filter((log) => log.category?.type === type && !log.excludeFromReport)
+        .forEach((log) => {
+          const key =
+            type === 'outcome'
+              ? getOutcomeCategoryLabels(log, categories).parentName
+              : getLogParentCategoryName(log, categories);
+          actualMap[key] = (actualMap[key] || 0) + log.amount;
+        });
+
+      const allCategories = new Set([
+        ...Object.keys(budgetMap),
+        ...Object.keys(actualMap),
+      ]);
+
+      return Array.from(allCategories)
+        .map((category) => ({
+          rowKey: `${type}:${category}`,
+          categoryLabel: category,
+          type,
+          category,
+          budget: budgetMap[category] || 0,
+          actual: actualMap[category] || 0,
+        }))
+        .sort((a, b) => {
+          const priorityDiff = getPriority(a) - getPriority(b);
+          if (priorityDiff !== 0) return priorityDiff;
+
+          if (b.budget !== a.budget) return b.budget - a.budget;
+          if (b.actual !== a.actual) return b.actual - a.actual;
+          return a.category.localeCompare(b.category);
+        });
+    };
+
+    return [...makeGroup('income'), ...makeGroup('outcome')].sort((a, b) => {
+      const priorityDiff = getPriority(a) - getPriority(b);
+      if (priorityDiff !== 0) return priorityDiff;
+
+      if (b.budget !== a.budget) return b.budget - a.budget;
+      if (b.actual !== a.actual) return b.actual - a.actual;
+      return a.category.localeCompare(b.category);
+    });
   }, [monthBudgets, monthLogs, categories]);
 
   const budgetVsActualPageSize = 5;
@@ -635,6 +698,58 @@ export default function DashboardView() {
     const start = budgetVsActualPage * budgetVsActualPageSize;
     return budgetVsActual.slice(start, start + budgetVsActualPageSize);
   }, [budgetVsActual, budgetVsActualPage]);
+  const isSingleBudgetVsActualRow = budgetVsActualVisible.length === 1;
+  const hasBudgetSeriesValue = budgetVsActualVisible.some(
+    (item) => item.budget > 0,
+  );
+  const hasActualSeriesValue = budgetVsActualVisible.some(
+    (item) => item.actual > 0,
+  );
+  const budgetVsActualVisibleMap = useMemo(
+    () => new Map(budgetVsActualVisible.map((item) => [item.rowKey, item])),
+    [budgetVsActualVisible],
+  );
+
+  const budgetVsActualTick = useCallback(
+    ({
+      x,
+      y,
+      payload,
+    }: {
+      x?: string | number;
+      y?: string | number;
+      payload?: { value?: string | number };
+    }) => {
+      const key = String(payload?.value ?? '');
+      const item = budgetVsActualVisibleMap.get(key);
+      const label = item?.category ?? key;
+      const fill = item
+        ? item.type === 'income'
+          ? isDark
+            ? '#86efac'
+            : '#15803d'
+          : isDark
+            ? '#fca5a5'
+            : '#b91c1c'
+        : isDark
+          ? '#94a3b8'
+          : '#64748b';
+
+      return (
+        <text
+          x={Number(x ?? 0) - 6}
+          y={Number(y ?? 0)}
+          dy={4}
+          textAnchor='end'
+          fill={fill}
+          fontSize={11}
+        >
+          {label}
+        </text>
+      );
+    },
+    [budgetVsActualVisibleMap, isDark],
+  );
 
   // Recent transactions (10 latest)
   const recentTransactions = useMemo(
@@ -1136,13 +1251,15 @@ export default function DashboardView() {
                     }}
                   />
                   <YAxis
-                    dataKey='category'
+                    dataKey='rowKey'
                     type='category'
                     width={100}
-                    tick={{
-                      fontSize: 11,
-                      fill: isDark ? '#94a3b8' : '#64748b',
-                    }}
+                    padding={
+                      isSingleBudgetVsActualRow
+                        ? { top: 80, bottom: 80 }
+                        : undefined
+                    }
+                    tick={budgetVsActualTick}
                   />
                   <Tooltip
                     content={
@@ -1153,18 +1270,24 @@ export default function DashboardView() {
                     }
                     cursor={false}
                   />
-                  <Bar
-                    dataKey='budget'
-                    name='Budget'
-                    fill='#3b82f6'
-                    radius={[0, 4, 4, 0]}
-                  />
-                  <Bar
-                    dataKey='actual'
-                    name='Actual'
-                    fill='#f59e0b'
-                    radius={[0, 4, 4, 0]}
-                  />
+                  {hasBudgetSeriesValue && (
+                    <Bar
+                      dataKey='budget'
+                      name='Budget'
+                      fill='#3b82f6'
+                      radius={[0, 4, 4, 0]}
+                      maxBarSize={isSingleBudgetVsActualRow ? 26 : undefined}
+                    />
+                  )}
+                  {hasActualSeriesValue && (
+                    <Bar
+                      dataKey='actual'
+                      name='Actual'
+                      fill='#f59e0b'
+                      radius={[0, 4, 4, 0]}
+                      maxBarSize={isSingleBudgetVsActualRow ? 26 : undefined}
+                    />
+                  )}
                 </BarChart>
               </ResponsiveContainer>
 
@@ -1602,15 +1725,24 @@ function TopExpenseTooltip({
   showNominal,
 }: {
   active?: boolean;
-  payload?: Array<{ name?: string; value?: number | string }>;
+  payload?: Array<{
+    name?: string;
+    value?: number | string;
+    payload?: { category?: string };
+  }>;
   label?: string;
   isDark: boolean;
   showNominal: boolean;
 }) {
   if (!active || !payload || payload.length === 0) return null;
 
-  const item = payload[0];
-  const value = Number(item.value ?? 0);
+  const budgetValue = Number(
+    payload.find((item) => item.name === 'Budget')?.value ?? 0,
+  );
+  const actualValue = Number(
+    payload.find((item) => item.name === 'Actual')?.value ?? 0,
+  );
+  const categoryLabel = payload[0]?.payload?.category ?? label ?? 'Category';
 
   return (
     <div
@@ -1620,9 +1752,12 @@ function TopExpenseTooltip({
           : 'bg-white border-slate-300 text-slate-900'
       }`}
     >
-      <div className='font-semibold'>{label ?? item.name ?? 'Category'}</div>
+      <div className='font-semibold'>{categoryLabel}</div>
       <div className={isDark ? 'text-slate-200' : 'text-slate-700'}>
-        Amount : {showNominal ? formatCurrency(value) : HIDDEN_VALUE}
+        Budget : {showNominal ? formatCurrency(budgetValue) : HIDDEN_VALUE}
+      </div>
+      <div className={isDark ? 'text-slate-200' : 'text-slate-700'}>
+        Actual : {showNominal ? formatCurrency(actualValue) : HIDDEN_VALUE}
       </div>
     </div>
   );

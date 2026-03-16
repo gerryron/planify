@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -57,15 +58,29 @@ export default function Sidebar() {
       }
     >
       <div className='flex items-center justify-between mb-8'>
-        <h2
-          className={
-            darkMode
-              ? 'text-xl font-bold text-slate-100'
-              : 'text-xl font-bold text-white'
-          }
-        >
-          Planify
-        </h2>
+        <div className='flex items-center gap-3'>
+          <Image
+            src={
+              darkMode
+                ? '/brand/planify-logo-outline.svg'
+                : '/brand/planify-logo-primary.svg'
+            }
+            alt='Planify logo'
+            width={34}
+            height={34}
+            priority
+            className='rounded-lg'
+          />
+          <h2
+            className={
+              darkMode
+                ? 'text-xl font-bold text-slate-100'
+                : 'text-xl font-bold text-white'
+            }
+          >
+            Planify
+          </h2>
+        </div>
         <button
           className={
             darkMode

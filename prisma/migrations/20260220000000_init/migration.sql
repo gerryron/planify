@@ -1,42 +1,54 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
+-- CreateEnum
+CREATE TYPE "CategoryType" AS ENUM ('income', 'outcome');
+
 -- CreateTable
 CREATE TABLE "MonthlyBudget" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "amount" INTEGER NOT NULL,
     "month" TEXT NOT NULL,
     "category" TEXT NOT NULL,
     "type" TEXT NOT NULL,
-    "sortOrder" INTEGER NOT NULL DEFAULT 0
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "MonthlyBudget_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Wallet" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "balance" INTEGER NOT NULL DEFAULT 0,
     "excludeFromTotal" BOOLEAN NOT NULL DEFAULT false,
-    "sortOrder" INTEGER NOT NULL DEFAULT 0
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+
+    CONSTRAINT "Wallet_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Category" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "type" TEXT NOT NULL,
+    "type" "CategoryType" NOT NULL,
     "parentId" INTEGER,
-    CONSTRAINT "Category_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Category" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+
+    CONSTRAINT "Category_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "CashLog" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "date" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "amount" INTEGER NOT NULL,
     "walletName" TEXT NOT NULL,
-    "excludeFromReport" BOOLEAN NOT NULL DEFAULT false,
     "categoryId" INTEGER,
-    CONSTRAINT "CashLog_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    "excludeFromReport" BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT "CashLog_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -51,12 +63,19 @@ CREATE UNIQUE INDEX "Category_name_type_parentId_key" ON "Category"("name", "typ
 -- CreateIndex
 CREATE INDEX "CashLog_categoryId_idx" ON "CashLog"("categoryId");
 
+-- AddForeignKey
+ALTER TABLE "Category" ADD CONSTRAINT "Category_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CashLog" ADD CONSTRAINT "CashLog_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
 -- Seed Wallet (init only)
-INSERT OR IGNORE INTO "Wallet" ("name", "balance", "excludeFromTotal", "sortOrder")
-VALUES ('Cash', 0, false, 0);
+INSERT INTO "Wallet" ("name", "balance", "excludeFromTotal", "sortOrder")
+VALUES ('Cash', 0, false, 0)
+ON CONFLICT DO NOTHING;
 
 -- Seed Categories root (init only)
-INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
+INSERT INTO "Category" ("name", "type", "parentId") VALUES
     ('Salary', 'income', NULL),
     ('Business', 'income', NULL),
     ('Investment', 'income', NULL),
@@ -71,10 +90,11 @@ INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
     ('Lifestyle', 'outcome', NULL),
     ('Gift & Donations', 'outcome', NULL),
     ('Investment', 'outcome', NULL),
-    ('Transfer', 'outcome', NULL);
+    ('Transfer', 'outcome', NULL)
+ON CONFLICT DO NOTHING;
 
 -- Seed income subcategories
-INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
+INSERT INTO "Category" ("name", "type", "parentId") VALUES
     ('Main Salary', 'income', (SELECT "id" FROM "Category" WHERE "name"='Salary' AND "type"='income' AND "parentId" IS NULL)),
     ('Overtime', 'income', (SELECT "id" FROM "Category" WHERE "name"='Salary' AND "type"='income' AND "parentId" IS NULL)),
     ('Performance Bonus', 'income', (SELECT "id" FROM "Category" WHERE "name"='Salary' AND "type"='income' AND "parentId" IS NULL)),
@@ -91,10 +111,11 @@ INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
     ('Family Gift', 'income', (SELECT "id" FROM "Category" WHERE "name"='Gift' AND "type"='income' AND "parentId" IS NULL)),
     ('Cashback', 'income', (SELECT "id" FROM "Category" WHERE "name"='Other Income' AND "type"='income' AND "parentId" IS NULL)),
     ('Refund', 'income', (SELECT "id" FROM "Category" WHERE "name"='Other Income' AND "type"='income' AND "parentId" IS NULL)),
-    ('Miscellaneous Income', 'income', (SELECT "id" FROM "Category" WHERE "name"='Other Income' AND "type"='income' AND "parentId" IS NULL));
+    ('Miscellaneous Income', 'income', (SELECT "id" FROM "Category" WHERE "name"='Other Income' AND "type"='income' AND "parentId" IS NULL))
+ON CONFLICT DO NOTHING;
 
 -- Seed outcome subcategories
-INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
+INSERT INTO "Category" ("name", "type", "parentId") VALUES
     ('Credit Card Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
     ('Electricity Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
     ('Gas Bills', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Bills and Utilities' AND "type"='outcome' AND "parentId" IS NULL)),
@@ -130,4 +151,5 @@ INSERT OR IGNORE INTO "Category" ("name", "type", "parentId") VALUES
     ('Crypto Purchase', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='outcome' AND "parentId" IS NULL)),
     ('Tax', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Investment' AND "type"='outcome' AND "parentId" IS NULL)),
     ('Transfer Out', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Transfer' AND "type"='outcome' AND "parentId" IS NULL)),
-    ('Wallet Transfer Out', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Transfer' AND "type"='outcome' AND "parentId" IS NULL));
+    ('Wallet Transfer Out', 'outcome', (SELECT "id" FROM "Category" WHERE "name"='Transfer' AND "type"='outcome' AND "parentId" IS NULL))
+ON CONFLICT DO NOTHING;

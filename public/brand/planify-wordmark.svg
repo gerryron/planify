@@ -1,0 +1,19 @@
+<svg width="980" height="240" viewBox="0 0 980 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="chip" x1="32" y1="32" x2="208" y2="208" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="pulse" x1="76" y1="72" x2="176" y2="176" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="20" y="20" width="200" height="200" rx="52" fill="url(#chip)"/>
+  <path d="M74 172V67H124C159 67 180 85 180 117C180 149 159 167 124 167H107V172H74Z" fill="url(#pulse)"/>
+  <path d="M107 95V139H124C137 139 146 131 146 117C146 103 137 95 124 95H107Z" fill="#E2E8F0"/>
+
+  <text x="262" y="148" fill="#0F172A" font-size="112" font-family="Segoe UI, Arial, sans-serif" font-weight="700" letter-spacing="1.2">Planify</text>
+  <text x="266" y="190" fill="#475569" font-size="28" font-family="Segoe UI, Arial, sans-serif" font-weight="500" letter-spacing="3">BUDGET. TRACK. GROW.</text>
+</svg>

@@ -1,6 +1,16 @@
 import './globals.css';
 import Sidebar from '@/shared/layout/Sidebar';
 import { ThemeProvider } from '@/shared/theme/ThemeProvider';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Planify',
+  icons: {
+    icon: '/brand/planify-logo-primary.svg',
+    shortcut: '/brand/planify-logo-primary.svg',
+    apple: '/brand/planify-logo-primary.svg',
+  },
+};
 
 export default function RootLayout({
   children,
