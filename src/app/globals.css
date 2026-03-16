@@ -76,3 +76,45 @@ body.theme-dark
   filter: invert(1) sepia(1) saturate(0) hue-rotate(180deg) brightness(2.7)
     contrast(1.2);
 }
+
+/* Hide scrollbar globally (scroll remains functional) */
+html,
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent;
+}
+
+/* Recharts tooltip text color normalization for theme contrast */
+.recharts-default-tooltip,
+.recharts-default-tooltip .recharts-tooltip-item,
+.recharts-default-tooltip .recharts-tooltip-label {
+  color: #1e293b !important;
+}
+
+.dark .recharts-default-tooltip,
+.dark .recharts-default-tooltip .recharts-tooltip-item,
+.dark .recharts-default-tooltip .recharts-tooltip-label,
+body.theme-dark .recharts-default-tooltip,
+body.theme-dark .recharts-default-tooltip .recharts-tooltip-item,
+body.theme-dark .recharts-default-tooltip .recharts-tooltip-label {
+  color: #e2e8f0 !important;
+}
