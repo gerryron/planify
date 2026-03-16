@@ -218,7 +218,9 @@ export default function CashLogList({
 
   const selectedWalletBalance = useMemo(() => {
     if (selectedWalletId === 'all') {
-      return wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
+      return wallets
+        .filter((wallet) => !wallet.excludeFromTotal)
+        .reduce((sum, wallet) => sum + wallet.balance, 0);
     }
 
     const selectedWallet = wallets.find(
