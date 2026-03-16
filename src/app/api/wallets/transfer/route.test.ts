@@ -252,6 +252,7 @@ describe('Wallet Transfer API', () => {
       log.description.includes('Transfer fee'),
     );
     expect(feeLog?.walletName).toBe('BCA');
+    expect(feeLog?.amount).toBe(10000);
   });
 
   it('should transfer with fee paid by receiver', async () => {
@@ -280,6 +281,7 @@ describe('Wallet Transfer API', () => {
       log.description.includes('Transfer fee'),
     );
     expect(feeLog?.walletName).toBe('Cash');
+    expect(feeLog?.amount).toBe(15000);
   });
 
   it('should reject transfer to same wallet', async () => {
@@ -358,10 +360,12 @@ describe('Wallet Transfer API', () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
 
-    const transferOutLog = cashLogs.find((log) => log.amount < 0);
-    const transferInLog = cashLogs.find((log) => log.amount > 0);
+    const transferOutLog = cashLogs.find((log) => log.categoryId === 102);
+    const transferInLog = cashLogs.find((log) => log.categoryId === 101);
 
     expect(transferOutLog?.categoryId).toBe(102);
+    expect(transferOutLog?.amount).toBe(50000);
     expect(transferInLog?.categoryId).toBe(101);
+    expect(transferInLog?.amount).toBe(50000);
   });
 });

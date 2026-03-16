@@ -260,7 +260,7 @@ export const openApiSpec = {
                   value: {
                     date: '2026-03-14',
                     description: 'Lunch',
-                    amount: -45000,
+                    amount: 45000,
                     walletName: 'Cash',
                     categoryId: 102,
                     excludeFromReport: false,
@@ -302,7 +302,7 @@ export const openApiSpec = {
                   value: {
                     id: 55,
                     description: 'Lunch updated',
-                    amount: -50000,
+                    amount: 50000,
                     walletName: 'Cash',
                     categoryId: 102,
                     excludeFromReport: false,
@@ -838,7 +838,7 @@ export const openApiSpec = {
         properties: {
           date: { type: 'string', example: '2026-03-14' },
           description: { type: 'string' },
-          amount: { type: 'integer' },
+          amount: { type: 'integer', minimum: 1 },
           walletName: { type: 'string' },
           categoryId: { type: 'integer' },
           excludeFromReport: { type: 'boolean' },
@@ -851,7 +851,7 @@ export const openApiSpec = {
           id: { type: 'integer' },
           date: { type: 'string' },
           description: { type: 'string' },
-          amount: { type: 'integer' },
+          amount: { type: 'integer', minimum: 1 },
           walletName: { type: 'string' },
           categoryId: { type: 'integer' },
           excludeFromReport: { type: 'boolean' },

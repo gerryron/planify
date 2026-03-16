@@ -276,7 +276,7 @@ describe('Wallet API', () => {
     const createdLog = adjustmentLogs[adjustmentLogs.length - 1];
     expect(adjustmentLogs.length).toBe(beforeCount + 1);
     expect(createdLog.description).toBe('Adjust Balance');
-    expect(createdLog.amount).toBe(-100000);
+    expect(createdLog.amount).toBe(100000);
     expect(createdLog.excludeFromReport).toBe(true);
     expect(createdLog.categoryId).toBe(102);
   });

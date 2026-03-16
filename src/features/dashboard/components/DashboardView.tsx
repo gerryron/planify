@@ -26,15 +26,19 @@ import {
   Legend,
 } from 'recharts';
 import {
-  mockWallets,
-  mockBudgets,
-  mockCashLogs,
-  mockCategories,
-} from '@/features/dashboard/services/mockDashboardData';
-import type {
-  DashboardCashLog,
-  DashboardBudget,
-} from '@/features/dashboard/types/dashboard';
+  cashLogService,
+  type CashLog,
+} from '@/features/cash-log/services/cashLogService';
+import {
+  monthlyBudgetService,
+  type Budget,
+} from '@/features/monthly-budget/services/monthlyBudgetService';
+import {
+  walletsService,
+  type Wallets,
+} from '@/features/wallets/services/walletsService';
+import { categoryService } from '@/features/categories/services/categoryService';
+import type { Category } from '@/features/categories/types/category';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('id-ID', {
@@ -115,7 +119,7 @@ function buildAllExpenses(expenseMap: Record<string, number>) {
     }));
 }
 
-function getOutcomeCategoryLabels(log: DashboardCashLog) {
+function getOutcomeCategoryLabels(log: CashLog, categories: Category[]) {
   const category = log.category;
   if (!category || category.type !== 'outcome') {
     return { parentName: 'Other', childName: 'Other' };
@@ -125,7 +129,7 @@ function getOutcomeCategoryLabels(log: DashboardCashLog) {
     return { parentName: category.name, childName: 'Other' };
   }
 
-  const parentCategory = mockCategories.find(
+  const parentCategory = categories.find(
     (item) => item.id === category.parentId,
   );
   return {
@@ -134,15 +138,18 @@ function getOutcomeCategoryLabels(log: DashboardCashLog) {
   };
 }
 
-function getOutcomeBudgetParentCategoryName(categoryName: string): string {
-  const category = mockCategories.find(
+function getOutcomeBudgetParentCategoryName(
+  categoryName: string,
+  categories: Category[],
+): string {
+  const category = categories.find(
     (item) => item.type === 'outcome' && item.name === categoryName,
   );
 
   if (!category) return categoryName;
   if (category.parentId === null) return category.name;
 
-  const parentCategory = mockCategories.find(
+  const parentCategory = categories.find(
     (item) => item.id === category.parentId,
   );
   return parentCategory?.name ?? category.name;
@@ -150,21 +157,21 @@ function getOutcomeBudgetParentCategoryName(categoryName: string): string {
 
 // ─── Data derivation ───
 
-function getMonthLogs(logs: DashboardCashLog[], month: string) {
+function getMonthLogs(logs: CashLog[], month: string) {
   return logs.filter((l) => l.date.startsWith(month) && !l.excludeFromReport);
 }
 
-function getMonthBudgets(budgets: DashboardBudget[], month: string) {
+function getMonthBudgets(budgets: Budget[], month: string) {
   return budgets.filter((b) => b.month === month);
 }
 
-function calcIncome(logs: DashboardCashLog[]) {
+function calcIncome(logs: CashLog[]) {
   return logs
     .filter((l) => l.category?.type === 'income' && !l.excludeFromReport)
     .reduce((s, l) => s + l.amount, 0);
 }
 
-function calcOutcome(logs: DashboardCashLog[]) {
+function calcOutcome(logs: CashLog[]) {
   return logs
     .filter((l) => l.category?.type === 'outcome' && !l.excludeFromReport)
     .reduce((s, l) => s + l.amount, 0);
@@ -210,6 +217,12 @@ export default function DashboardView() {
     useState<ExpenseDrillMode>('top');
   const [summaryChildFromOther, setSummaryChildFromOther] = useState(false);
   const [budgetVsActualPageRaw, setBudgetVsActualPageRaw] = useState(0);
+  const [wallets, setWallets] = useState<Wallets[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [cashLogs, setCashLogs] = useState<CashLog[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -235,35 +248,71 @@ export default function DashboardView() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDashboardData = async () => {
+      setLoadingData(true);
+      setDataError(null);
+
+      try {
+        const [walletsData, budgetsData, logsData, categoriesData] =
+          await Promise.all([
+            walletsService.getAll(),
+            monthlyBudgetService.getAll(),
+            cashLogService.getAll(),
+            categoryService.getAll(),
+          ]);
+
+        if (!isMounted) return;
+        setWallets(walletsData);
+        setBudgets(budgetsData);
+        setCashLogs(logsData);
+        setCategories(categoriesData);
+      } catch {
+        if (!isMounted) return;
+        setDataError('Failed to load dashboard data');
+      } finally {
+        if (!isMounted) return;
+        setLoadingData(false);
+      }
+    };
+
+    fetchDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // ─── Derived data ───
   const groupedWallets = useMemo(() => {
-    const included = mockWallets.filter((wallet) => !wallet.excludeFromTotal);
-    const excluded = mockWallets.filter((wallet) => wallet.excludeFromTotal);
+    const included = wallets.filter((wallet) => !wallet.excludeFromTotal);
+    const excluded = wallets.filter((wallet) => wallet.excludeFromTotal);
 
     return { included, excluded };
-  }, []);
+  }, [wallets]);
 
   const selectedWallet = useMemo(
     () =>
       selectedWalletId === 'all'
         ? null
-        : (mockWallets.find((wallet) => wallet.id === selectedWalletId) ??
-          null),
-    [selectedWalletId],
+        : (wallets.find((wallet) => wallet.id === selectedWalletId) ?? null),
+    [selectedWalletId, wallets],
   );
 
   const filteredCashLogs = useMemo(() => {
-    if (!selectedWallet) return mockCashLogs;
-    return mockCashLogs.filter((log) => log.walletName === selectedWallet.name);
-  }, [selectedWallet]);
+    if (!selectedWallet) return cashLogs;
+    return cashLogs.filter((log) => log.walletName === selectedWallet.name);
+  }, [cashLogs, selectedWallet]);
 
   const monthLogs = useMemo(
     () => getMonthLogs(filteredCashLogs, selectedMonth),
     [filteredCashLogs, selectedMonth],
   );
   const monthBudgets = useMemo(
-    () => getMonthBudgets(mockBudgets, selectedMonth),
-    [selectedMonth],
+    () => getMonthBudgets(budgets, selectedMonth),
+    [budgets, selectedMonth],
   );
 
   const totalIncome = useMemo(() => calcIncome(monthLogs), [monthLogs]);
@@ -274,10 +323,10 @@ export default function DashboardView() {
   const totalWalletBalance = useMemo(() => {
     if (selectedWallet) return selectedWallet.balance;
 
-    return mockWallets
+    return wallets
       .filter((w) => !w.excludeFromTotal)
       .reduce((s, w) => s + w.balance, 0);
-  }, [selectedWallet]);
+  }, [selectedWallet, wallets]);
 
   // 6-month trend
   const trendMonths = useMemo(
@@ -339,12 +388,12 @@ export default function DashboardView() {
     monthLogs
       .filter((l) => l.category?.type === 'outcome' && !l.excludeFromReport)
       .forEach((log) => {
-        const { parentName } = getOutcomeCategoryLabels(log);
+        const { parentName } = getOutcomeCategoryLabels(log, categories);
         map[parentName] = (map[parentName] || 0) + log.amount;
       });
 
     return map;
-  }, [monthLogs]);
+  }, [monthLogs, categories]);
 
   const monthlyAllParentExpenses = useMemo<ExpenseChartItem[]>(() => {
     return buildAllExpenses(monthlyParentExpenseMap);
@@ -367,13 +416,16 @@ export default function DashboardView() {
     monthLogs
       .filter((l) => l.category?.type === 'outcome' && !l.excludeFromReport)
       .forEach((log) => {
-        const { parentName, childName } = getOutcomeCategoryLabels(log);
+        const { parentName, childName } = getOutcomeCategoryLabels(
+          log,
+          categories,
+        );
         if (parentName !== selectedMonthlyParent) return;
         map[childName] = (map[childName] || 0) + log.amount;
       });
 
     return buildAllExpenses(map);
-  }, [monthLogs, selectedMonthlyParent]);
+  }, [monthLogs, selectedMonthlyParent, categories]);
 
   const dailyTrend = useMemo(() => {
     const incomeMap: Record<string, number> = {};
@@ -470,13 +522,13 @@ export default function DashboardView() {
           !log.excludeFromReport,
       )
       .forEach((log) => {
-        const { parentName } = getOutcomeCategoryLabels(log);
+        const { parentName } = getOutcomeCategoryLabels(log, categories);
         const key = parentName;
         expenseMap[key] = (expenseMap[key] || 0) + log.amount;
       });
 
     return expenseMap;
-  }, [filteredCashLogs, trendMonths]);
+  }, [filteredCashLogs, trendMonths, categories]);
 
   const summaryAllParentExpenses = useMemo<ExpenseChartItem[]>(() => {
     return buildAllExpenses(summaryParentExpenseMap);
@@ -506,13 +558,16 @@ export default function DashboardView() {
           !log.excludeFromReport,
       )
       .forEach((log) => {
-        const { parentName, childName } = getOutcomeCategoryLabels(log);
+        const { parentName, childName } = getOutcomeCategoryLabels(
+          log,
+          categories,
+        );
         if (parentName !== selectedSummaryParent) return;
         expenseMap[childName] = (expenseMap[childName] || 0) + log.amount;
       });
 
     return buildAllExpenses(expenseMap);
-  }, [filteredCashLogs, selectedSummaryParent, trendMonths]);
+  }, [filteredCashLogs, selectedSummaryParent, trendMonths, categories]);
 
   const summaryExpenseChartData =
     summaryExpenseDrillMode === 'child'
@@ -541,7 +596,10 @@ export default function DashboardView() {
     monthBudgets
       .filter((b) => b.type === 'outcome')
       .forEach((b) => {
-        const parentCategory = getOutcomeBudgetParentCategoryName(b.category);
+        const parentCategory = getOutcomeBudgetParentCategoryName(
+          b.category,
+          categories,
+        );
         budgetMap[parentCategory] = (budgetMap[parentCategory] || 0) + b.amount;
       });
 
@@ -549,7 +607,7 @@ export default function DashboardView() {
     monthLogs
       .filter((l) => l.category?.type === 'outcome' && !l.excludeFromReport)
       .forEach((l) => {
-        const { parentName: name } = getOutcomeCategoryLabels(l);
+        const { parentName: name } = getOutcomeCategoryLabels(l, categories);
         actualMap[name] = (actualMap[name] || 0) + l.amount;
       });
 
@@ -562,7 +620,7 @@ export default function DashboardView() {
       budget: budgetMap[cat] || 0,
       actual: actualMap[cat] || 0,
     }));
-  }, [monthBudgets, monthLogs]);
+  }, [monthBudgets, monthLogs, categories]);
 
   const budgetVsActualPageSize = 5;
   const budgetVsActualTotalPages = Math.max(
@@ -627,6 +685,14 @@ export default function DashboardView() {
     if (value === undefined) return '';
     return showNominal ? formatCurrency(Number(value)) : HIDDEN_VALUE;
   };
+
+  if (loadingData) {
+    return <div className='text-slate-500 dark:text-slate-400'>Loading...</div>;
+  }
+
+  if (dataError) {
+    return <div className='text-red-500'>{dataError}</div>;
+  }
 
   return (
     <div className='space-y-6'>
@@ -1190,7 +1256,7 @@ export default function DashboardView() {
                           }`}
                         >
                           {showNominal
-                            ? `${tx.category?.type === 'income' ? '+' : '-'}${formatCurrency(tx.amount)}`
+                            ? formatCurrency(tx.amount)
                             : HIDDEN_VALUE}
                         </td>
                       </tr>

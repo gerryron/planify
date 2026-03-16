@@ -108,6 +108,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       if (data.balance !== undefined && data.balance !== existing.balance) {
         const today = new Date().toISOString().slice(0, 10);
         const adjustmentAmount = data.balance - existing.balance;
+        const adjustmentNominal = Math.abs(adjustmentAmount);
         const targetCategory = await tx.category.findFirst({
           where: {
             name: adjustmentAmount > 0 ? 'Transfer In' : 'Transfer Out',
@@ -124,7 +125,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           data: {
             date: today,
             description: 'Adjust Balance',
-            amount: adjustmentAmount,
+            amount: adjustmentNominal,
             walletName: updated.name,
             excludeFromReport: true,
             categoryId: targetCategory.id,

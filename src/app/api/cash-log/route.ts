@@ -53,6 +53,10 @@ function validateCreatePayload(payload: Partial<CashLogInput>) {
     return 'date, description, amount, walletName, and categoryId are required';
   }
 
+  if (!Number.isFinite(payload.amount) || Number(payload.amount) <= 0) {
+    return 'amount must be greater than 0';
+  }
+
   return null;
 }
 
@@ -235,6 +239,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     if (!payload.id) {
       return badRequest('ID is required');
+    }
+
+    if (
+      payload.amount !== undefined &&
+      (!Number.isFinite(payload.amount) || payload.amount <= 0)
+    ) {
+      return badRequest('amount must be greater than 0');
     }
 
     const logId = payload.id;

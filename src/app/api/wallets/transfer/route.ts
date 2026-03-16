@@ -220,7 +220,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         data: {
           date,
           description: transferOutDescription,
-          amount: -amount,
+          amount,
           walletName: fromWallet.name,
           excludeFromReport: true,
           categoryId: transferOutCategory.id,
@@ -249,7 +249,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           data: {
             date,
             description: feeDescription,
-            amount: -feeAmount,
+            amount: feeAmount,
             walletName: feeWallet.name,
             excludeFromReport: true,
             categoryId: feeCategoryId,

@@ -374,6 +374,42 @@ describe('Cash Log API', () => {
     );
   });
 
+  it('should return 400 when creating cash log with negative amount', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-02-27',
+        description: 'Invalid negative amount',
+        amount: -10000,
+        walletName: 'Cash',
+        categoryId: 102,
+        excludeFromReport: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('amount must be greater than 0');
+  });
+
+  it('should return 400 when updating cash log with zero amount', async () => {
+    const req = {
+      method: 'PATCH',
+      json: async () => ({
+        id: id1,
+        amount: 0,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('amount must be greater than 0');
+  });
+
   it('should delete cash log entry', async () => {
     const req = {
       method: 'DELETE',
