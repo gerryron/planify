@@ -24,22 +24,58 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return badRequest('All fields are required');
     }
 
-    const lastWallet = await prisma.wallet.findFirst({
-      orderBy: { sortOrder: 'desc' },
-      select: { sortOrder: true },
-    });
+    const wallet = await prisma.$transaction(async (tx) => {
+      const lastWallet = await tx.wallet.findFirst({
+        orderBy: { sortOrder: 'desc' },
+        select: { sortOrder: true },
+      });
 
-    const wallet = await prisma.wallet.create({
-      data: {
-        name: name.trim(),
-        balance,
-        excludeFromTotal: excludeFromTotal ?? false,
-        sortOrder: (lastWallet?.sortOrder ?? -1) + 1,
-      },
+      const created = await tx.wallet.create({
+        data: {
+          name: name.trim(),
+          balance,
+          excludeFromTotal: excludeFromTotal ?? false,
+          sortOrder: (lastWallet?.sortOrder ?? -1) + 1,
+        },
+      });
+
+      if (balance !== 0) {
+        const today = new Date().toISOString().slice(0, 10);
+        const targetCategory = await tx.category.findFirst({
+          where: {
+            name: balance > 0 ? 'Transfer In' : 'Transfer Out',
+            type: balance > 0 ? 'income' : 'outcome',
+          },
+          select: { id: true },
+        });
+
+        if (!targetCategory) {
+          throw new Error('TRANSFER_CATEGORY_NOT_FOUND');
+        }
+
+        await tx.cashLog.create({
+          data: {
+            date: today,
+            description: 'Adjust Balance',
+            amount: Math.abs(balance),
+            walletName: created.name,
+            excludeFromReport: true,
+            categoryId: targetCategory.id,
+          },
+        });
+      }
+
+      return created;
     });
 
     return ok(wallet, 201);
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message === 'TRANSFER_CATEGORY_NOT_FOUND'
+    ) {
+      return badRequest('Transfer category not found');
+    }
     return badRequest('Failed to create wallet');
   }
 }

@@ -22,6 +22,7 @@ export default function Sidebar() {
   const subMenus = [
     { label: 'Wallets', href: '/wallets' },
     { label: 'Categories', href: '/categories' },
+    { label: 'Settings', href: '/settings' },
     { label: 'Swagger', href: 'http://localhost:3010', external: true },
   ] as const;
 

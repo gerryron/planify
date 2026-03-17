@@ -147,6 +147,7 @@ describe('Wallet API', () => {
   let id2: number;
 
   it('should create wallet data', async () => {
+    const beforeCount = adjustmentLogs.length;
     const req1 = {
       method: 'POST',
       json: async () =>
@@ -181,6 +182,15 @@ describe('Wallet API', () => {
     expect(data1.excludeFromTotal).toBe(false);
     expect(data2.excludeFromTotal).toBe(true);
     expect(data1.sortOrder).toBeLessThan(data2.sortOrder);
+    expect(adjustmentLogs.length).toBe(beforeCount + 2);
+    expect(adjustmentLogs[beforeCount].walletName).toBe('BCA');
+    expect(adjustmentLogs[beforeCount].amount).toBe(1200000);
+    expect(adjustmentLogs[beforeCount].excludeFromReport).toBe(true);
+    expect(adjustmentLogs[beforeCount].categoryId).toBe(101);
+    expect(adjustmentLogs[beforeCount + 1].walletName).toBe('OVO');
+    expect(adjustmentLogs[beforeCount + 1].amount).toBe(500000);
+    expect(adjustmentLogs[beforeCount + 1].excludeFromReport).toBe(true);
+    expect(adjustmentLogs[beforeCount + 1].categoryId).toBe(101);
     id1 = data1.id;
     id2 = data2.id;
   });

@@ -13,6 +13,7 @@ export const openApiSpec = {
     { name: 'Wallets' },
     { name: 'Wallet Transfer' },
     { name: 'Categories' },
+    { name: 'Settings' },
   ],
   paths: {
     '/api/monthly-budget': {
@@ -742,6 +743,53 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/settings/purge': {
+      post: {
+        tags: ['Settings'],
+        summary: 'Purge selected data from settings page',
+        description:
+          'Supports deleting Cash Log and Monthly Budget by selected months or all data, deleting all wallets along with related transactions, and deleting only user-added categories.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/SettingsPurgeInput' },
+              examples: {
+                purgeExample: {
+                  value: {
+                    cashLog: {
+                      scope: 'months',
+                      months: ['2026-02', '2026-03'],
+                    },
+                    monthlyBudget: { scope: 'all', months: [] },
+                    deleteWallets: false,
+                    deleteUserCategories: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Purge completed',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SettingsPurgeResponse' },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad request',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     schemas: {
@@ -955,6 +1003,63 @@ export const openApiSpec = {
               balance: { type: 'integer' },
             },
           },
+        },
+      },
+      DeleteScope: {
+        type: 'string',
+        enum: ['none', 'months', 'all'],
+      },
+      SettingsDeleteRuleInput: {
+        type: 'object',
+        required: ['scope', 'months'],
+        properties: {
+          scope: { $ref: '#/components/schemas/DeleteScope' },
+          months: {
+            type: 'array',
+            items: { type: 'string', example: '2026-03' },
+          },
+        },
+      },
+      SettingsPurgeInput: {
+        type: 'object',
+        required: [
+          'cashLog',
+          'monthlyBudget',
+          'deleteWallets',
+          'deleteUserCategories',
+        ],
+        properties: {
+          cashLog: { $ref: '#/components/schemas/SettingsDeleteRuleInput' },
+          monthlyBudget: {
+            $ref: '#/components/schemas/SettingsDeleteRuleInput',
+          },
+          deleteWallets: { type: 'boolean' },
+          deleteUserCategories: { type: 'boolean' },
+        },
+      },
+      SettingsPurgeSummary: {
+        type: 'object',
+        required: [
+          'cashLogDeleted',
+          'cashLogDeletedByWallet',
+          'monthlyBudgetDeleted',
+          'walletDeleted',
+          'userCategoryDeleted',
+        ],
+        properties: {
+          cashLogDeleted: { type: 'integer' },
+          cashLogDeletedByWallet: { type: 'integer' },
+          monthlyBudgetDeleted: { type: 'integer' },
+          walletDeleted: { type: 'integer' },
+          userCategoryDeleted: { type: 'integer' },
+        },
+      },
+      SettingsPurgeResponse: {
+        type: 'object',
+        required: ['success', 'summary'],
+        properties: {
+          success: { type: 'boolean', example: true },
+          summary: { $ref: '#/components/schemas/SettingsPurgeSummary' },
         },
       },
     },
