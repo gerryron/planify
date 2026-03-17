@@ -5,6 +5,10 @@ type Wallet = {
   id: number;
   name: string;
   balance: number;
+  walletKind: 'basic' | 'goal';
+  goalAmount: number | null;
+  goalStartMonth: string | null;
+  goalDueMonth: string | null;
 };
 
 type Category = {
@@ -30,9 +34,51 @@ let cashLogs: CashLog[] = [];
 
 function resetStore() {
   wallets = [
-    { id: 1, name: 'BCA', balance: 1000000 },
-    { id: 2, name: 'Cash', balance: 200000 },
-    { id: 3, name: 'GoPay', balance: 50000 },
+    {
+      id: 1,
+      name: 'BCA',
+      balance: 1000000,
+      walletKind: 'basic',
+      goalAmount: null,
+      goalStartMonth: null,
+      goalDueMonth: null,
+    },
+    {
+      id: 2,
+      name: 'Cash',
+      balance: 200000,
+      walletKind: 'basic',
+      goalAmount: null,
+      goalStartMonth: null,
+      goalDueMonth: null,
+    },
+    {
+      id: 3,
+      name: 'GoPay',
+      balance: 50000,
+      walletKind: 'basic',
+      goalAmount: null,
+      goalStartMonth: null,
+      goalDueMonth: null,
+    },
+    {
+      id: 4,
+      name: 'Emergency Fund',
+      balance: 300000,
+      walletKind: 'goal',
+      goalAmount: 1000000,
+      goalStartMonth: '2026-03',
+      goalDueMonth: '2026-12',
+    },
+    {
+      id: 5,
+      name: 'Vacation Fund',
+      balance: 1000000,
+      walletKind: 'goal',
+      goalAmount: 1000000,
+      goalStartMonth: '2026-03',
+      goalDueMonth: '2026-08',
+    },
   ];
 
   categories = [
@@ -329,6 +375,64 @@ describe('Wallet Transfer API', () => {
 
     const res = await POST(req);
     expect(res.status).toBe(400);
+  });
+
+  it('should block withdrawal from goal wallet before target is achieved', async () => {
+    const req = {
+      json: async () => ({
+        fromWalletId: 4,
+        toWalletId: 2,
+        amount: 100000,
+        date: '2026-03-14',
+        enableFee: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe(
+      'Goal Wallet is locked. Withdrawal is available after target is achieved',
+    );
+  });
+
+  it('should allow withdrawal from goal wallet after target is achieved', async () => {
+    const req = {
+      json: async () => ({
+        fromWalletId: 5,
+        toWalletId: 2,
+        amount: 100000,
+        date: '2026-03-14',
+        enableFee: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const achievedGoalWallet = wallets.find((wallet) => wallet.id === 5);
+    const destinationWallet = wallets.find((wallet) => wallet.id === 2);
+    expect(achievedGoalWallet?.balance).toBe(900000);
+    expect(destinationWallet?.balance).toBe(300000);
+  });
+
+  it('should reject transfer into achieved goal wallet', async () => {
+    const req = {
+      json: async () => ({
+        fromWalletId: 1,
+        toWalletId: 5,
+        amount: 100000,
+        date: '2026-03-14',
+        enableFee: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe(
+      'Goal Wallet already achieved its target and cannot receive transfer',
+    );
   });
 
   it('should prefer Wallet Transfer categories when both name variants exist', async () => {

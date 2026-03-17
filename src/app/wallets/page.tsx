@@ -4,7 +4,9 @@ import { useState } from 'react';
 import WalletsList from '@/features/wallets/components/WalletsList';
 import WalletsForm from '@/features/wallets/components/WalletsForm';
 import WalletTransferForm from '@/features/wallets/components/WalletTransferForm';
+import GoalTrackingModal from '@/features/wallets/components/GoalTrackingModal';
 import { Wallets } from '@/features/wallets/services/walletsService';
+import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
 
 export default function WalletsPage() {
   const [editing, setEditing] = useState<Wallets | null>(null);
@@ -12,6 +14,7 @@ export default function WalletsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [showTransferForm, setShowTransferForm] = useState(false);
+  const [trackingGoal, setTrackingGoal] = useState<Wallets | null>(null);
 
   const handleEdit = (wallet: Wallets) => {
     setEditing(wallet);
@@ -28,9 +31,14 @@ export default function WalletsPage() {
     setShowTransferForm(true);
   };
 
+  const handleTrackGoal = (wallet: Wallets) => {
+    setTrackingGoal(wallet);
+  };
+
   const handleSuccess = () => {
     setEditing(null);
     setTransferring(null);
+    setTrackingGoal(null);
     setShowForm(false);
     setShowTransferForm(false);
     setRefreshKey((key) => key + 1);
@@ -39,9 +47,21 @@ export default function WalletsPage() {
   const handleCancel = () => {
     setEditing(null);
     setTransferring(null);
+    setTrackingGoal(null);
     setShowForm(false);
     setShowTransferForm(false);
   };
+
+  const transferModalTitle =
+    transferring?.walletKind === 'goal' &&
+    computeGoalProgress({
+      balance: transferring.balance,
+      goalAmount: transferring.goalAmount,
+      goalStartMonth: transferring.goalStartMonth,
+      goalDueMonth: transferring.goalDueMonth,
+    }).withdrawalReady
+      ? 'Withdrawal'
+      : 'Transfer Wallet';
 
   return (
     <div className='max-w-2xl mx-auto py-8 space-y-8'>
@@ -49,6 +69,7 @@ export default function WalletsPage() {
         key={refreshKey}
         onEdit={handleEdit}
         onTransfer={handleTransfer}
+        onTrackGoal={handleTrackGoal}
         onAdd={handleAdd}
       />
 
@@ -95,13 +116,20 @@ export default function WalletsPage() {
               ×
             </button>
 
-            <h2 className='text-lg font-semibold mb-4'>Transfer Wallet</h2>
+            <h2 className='text-lg font-semibold mb-4'>{transferModalTitle}</h2>
             <WalletTransferForm
               initialFromWalletId={transferring?.id}
               onSuccess={handleSuccess}
             />
           </div>
         </div>
+      )}
+
+      {trackingGoal && (
+        <GoalTrackingModal
+          wallet={trackingGoal}
+          onClose={() => setTrackingGoal(null)}
+        />
       )}
     </div>
   );

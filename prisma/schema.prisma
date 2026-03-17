@@ -18,6 +18,11 @@ enum CategoryType {
   outcome
 }
 
+enum WalletKind {
+  basic
+  goal
+}
+
 model MonthlyBudget {
   id        Int    @id @default(autoincrement())
   name      String
@@ -33,6 +38,10 @@ model Wallet {
   name             String @unique
   balance          Int    @default(0)
   excludeFromTotal Boolean @default(false)
+  walletKind       WalletKind @default(basic)
+  goalAmount       Int?
+  goalStartMonth   String?
+  goalDueMonth     String?
   sortOrder        Int    @default(0)
 }
 

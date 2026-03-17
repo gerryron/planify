@@ -310,8 +310,12 @@ export default function DashboardView() {
 
   // ─── Derived data ───
   const groupedWallets = useMemo(() => {
-    const included = wallets.filter((wallet) => !wallet.excludeFromTotal);
-    const excluded = wallets.filter((wallet) => wallet.excludeFromTotal);
+    const included = wallets.filter(
+      (wallet) => !wallet.excludeFromTotal && wallet.walletKind !== 'goal',
+    );
+    const excluded = wallets.filter(
+      (wallet) => wallet.excludeFromTotal || wallet.walletKind === 'goal',
+    );
 
     return { included, excluded };
   }, [wallets]);
@@ -347,7 +351,7 @@ export default function DashboardView() {
     if (selectedWallet) return selectedWallet.balance;
 
     return wallets
-      .filter((w) => !w.excludeFromTotal)
+      .filter((w) => !w.excludeFromTotal && w.walletKind !== 'goal')
       .reduce((s, w) => s + w.balance, 0);
   }, [selectedWallet, wallets]);
 

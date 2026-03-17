@@ -16,6 +16,10 @@ type TransferPayload = {
   feeNote?: string;
 };
 
+function isGoalAchieved(balance: number, goalAmount: number | null) {
+  return goalAmount !== null && balance >= goalAmount;
+}
+
 function isIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
@@ -85,16 +89,50 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const [fromWallet, toWallet] = await Promise.all([
         tx.wallet.findUnique({
           where: { id: fromWalletId },
-          select: { id: true, name: true, balance: true },
+          select: {
+            id: true,
+            name: true,
+            balance: true,
+            walletKind: true,
+            goalAmount: true,
+          },
         }),
         tx.wallet.findUnique({
           where: { id: toWalletId },
-          select: { id: true, name: true, balance: true },
+          select: {
+            id: true,
+            name: true,
+            balance: true,
+            walletKind: true,
+            goalAmount: true,
+          },
         }),
       ]);
 
       if (!fromWallet || !toWallet) {
         throw new Error('WALLET_NOT_FOUND');
+      }
+
+      if (fromWallet.walletKind === 'goal' && !fromWallet.goalAmount) {
+        throw new Error('GOAL_WALLET_INVALID');
+      }
+
+      if (toWallet.walletKind === 'goal' && !toWallet.goalAmount) {
+        throw new Error('GOAL_WALLET_INVALID');
+      }
+
+      if (
+        fromWallet.walletKind === 'goal' &&
+        !isGoalAchieved(fromWallet.balance, fromWallet.goalAmount)
+      ) {
+        throw new Error('GOAL_WITHDRAWAL_LOCKED');
+      }
+
+      if (
+        toWallet.walletKind === 'goal' &&
+        isGoalAchieved(toWallet.balance, toWallet.goalAmount)
+      ) {
+        throw new Error('GOAL_ALREADY_ACHIEVED');
       }
 
       const senderDebit =
@@ -297,6 +335,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       error.message === 'TRANSFER_FEE_CATEGORY_CREATE_FAILED'
     ) {
       return badRequest('Failed to create transfer fee category');
+    }
+
+    if (error instanceof Error && error.message === 'GOAL_WITHDRAWAL_LOCKED') {
+      return badRequest(
+        'Goal Wallet is locked. Withdrawal is available after target is achieved',
+      );
+    }
+
+    if (error instanceof Error && error.message === 'GOAL_ALREADY_ACHIEVED') {
+      return badRequest(
+        'Goal Wallet already achieved its target and cannot receive transfer',
+      );
+    }
+
+    if (error instanceof Error && error.message === 'GOAL_WALLET_INVALID') {
+      return badRequest('Goal Wallet is missing goal configuration');
     }
 
     return badRequest('Failed to transfer between wallets');

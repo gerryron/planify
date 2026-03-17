@@ -5,6 +5,7 @@ import {
   WalletTransferInput,
   Wallets,
 } from '@/features/wallets/services/walletsService';
+import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
 
 interface WalletTransferFormProps {
   initialFromWalletId?: number;
@@ -133,6 +134,34 @@ export default function WalletTransferForm({
       return 'Wallet tidak valid';
     }
 
+    const fromGoalSummary =
+      fromWallet.walletKind === 'goal'
+        ? computeGoalProgress({
+            balance: fromWallet.balance,
+            goalAmount: fromWallet.goalAmount,
+            goalStartMonth: fromWallet.goalStartMonth,
+            goalDueMonth: fromWallet.goalDueMonth,
+          })
+        : null;
+
+    if (fromGoalSummary && !fromGoalSummary.withdrawalReady) {
+      return 'Goal Wallet asal masih terkunci. Withdrawal tersedia setelah target tercapai';
+    }
+
+    const toGoalSummary =
+      toWallet.walletKind === 'goal'
+        ? computeGoalProgress({
+            balance: toWallet.balance,
+            goalAmount: toWallet.goalAmount,
+            goalStartMonth: toWallet.goalStartMonth,
+            goalDueMonth: toWallet.goalDueMonth,
+          })
+        : null;
+
+    if (toGoalSummary && toGoalSummary.achieved) {
+      return 'Goal Wallet tujuan sudah achieved dan tidak menerima transfer lagi';
+    }
+
     if (fromWallet.balance < senderRequiredBalance) {
       return 'Saldo wallet asal tidak mencukupi';
     }
@@ -240,7 +269,9 @@ export default function WalletTransferForm({
           </option>
           {wallets.map((wallet) => (
             <option key={wallet.id} value={wallet.id}>
-              {wallet.name} (Rp {wallet.balance.toLocaleString('id-ID')})
+              {wallet.name}
+              {wallet.walletKind === 'goal' ? ' - Goal' : ''} (Rp{' '}
+              {wallet.balance.toLocaleString('id-ID')})
             </option>
           ))}
         </select>
@@ -263,7 +294,9 @@ export default function WalletTransferForm({
             .filter((wallet) => wallet.id !== form.fromWalletId)
             .map((wallet) => (
               <option key={wallet.id} value={wallet.id}>
-                {wallet.name} (Rp {wallet.balance.toLocaleString('id-ID')})
+                {wallet.name}
+                {wallet.walletKind === 'goal' ? ' - Goal' : ''} (Rp{' '}
+                {wallet.balance.toLocaleString('id-ID')})
               </option>
             ))}
         </select>

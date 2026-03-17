@@ -8,11 +8,13 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
+import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 import Swal from 'sweetalert2';
 import {
   walletsService,
   Wallets,
 } from '@/features/wallets/services/walletsService';
+import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
 import {
   CollisionDetection,
   closestCenter,
@@ -34,6 +36,7 @@ import { CSS } from '@dnd-kit/utilities';
 interface WalletsListProps {
   onEdit: (wallet: Wallets) => void;
   onTransfer: (wallet: Wallets) => void;
+  onTrackGoal: (wallet: Wallets) => void;
   onAdd?: () => void;
 }
 
@@ -45,11 +48,13 @@ function MenuActions({
   onTransfer,
   onDelete,
   canDelete,
+  transferLabel,
 }: {
   onEdit: () => void;
   onTransfer: () => void;
   onDelete: () => void;
   canDelete: boolean;
+  transferLabel: string;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -104,7 +109,7 @@ function MenuActions({
             type='button'
           >
             <SwapHorizIcon fontSize='small' />
-            Transfer
+            {transferLabel}
           </button>
           {canDelete && (
             <button
@@ -177,6 +182,7 @@ function SortableWalletItem({
   onEdit,
   onTransfer,
   onDelete,
+  onTrackGoal,
   canDelete,
 }: {
   wallet: Wallets;
@@ -186,6 +192,7 @@ function SortableWalletItem({
   onEdit: (wallet: Wallets) => void;
   onTransfer: (wallet: Wallets) => void;
   onDelete: (id: number) => void;
+  onTrackGoal: (wallet: Wallets) => void;
   canDelete: boolean;
 }) {
   const {
@@ -207,6 +214,25 @@ function SortableWalletItem({
       ? (Math.max(wallet.balance, 0) / totalAllocationBase) * 100
       : 0;
   const clampedPercent = Math.max(0, Math.min(allocationPercent, 100));
+  const goalSummary =
+    wallet.walletKind === 'goal'
+      ? computeGoalProgress({
+          balance: wallet.balance,
+          goalAmount: wallet.goalAmount,
+          goalStartMonth: wallet.goalStartMonth,
+          goalDueMonth: wallet.goalDueMonth,
+        })
+      : null;
+
+  const statusTone: Record<string, string> = {
+    'on-track':
+      'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
+    'at-risk':
+      'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
+    overdue: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
+    achieved:
+      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
+  };
 
   return (
     <div
@@ -230,6 +256,24 @@ function SortableWalletItem({
         title='Open cash log for this wallet'
       >
         <div className='font-bold'>{wallet.name}</div>
+        {goalSummary && (
+          <div className='flex items-center gap-2 mt-1 flex-wrap'>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusTone[goalSummary.status]}`}
+            >
+              {goalSummary.status.toUpperCase()}
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                goalSummary.withdrawalReady
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+                  : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+              }`}
+            >
+              {goalSummary.withdrawalReady ? 'Ready for Withdrawal' : 'Locked'}
+            </span>
+          </div>
+        )}
         <div
           className={`font-mono ${
             showNominal
@@ -264,6 +308,21 @@ function SortableWalletItem({
             </span>
           </div>
         )}
+        {goalSummary && (
+          <div className='mt-2'>
+            <button
+              type='button'
+              onClick={(event) => {
+                event.stopPropagation();
+                onTrackGoal(wallet);
+              }}
+              className='inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 hover:bg-emerald-200 dark:hover:bg-emerald-800/60'
+            >
+              <TrackChangesIcon fontSize='inherit' />
+              Track Goal
+            </button>
+          </div>
+        )}
       </div>
 
       <div className='flex items-center gap-1'>
@@ -285,6 +344,9 @@ function SortableWalletItem({
           onTransfer={() => onTransfer(wallet)}
           onDelete={() => onDelete(wallet.id)}
           canDelete={canDelete}
+          transferLabel={
+            goalSummary?.withdrawalReady ? 'Withdrawal' : 'Transfer'
+          }
         />
       </div>
     </div>
@@ -294,6 +356,7 @@ function SortableWalletItem({
 export default function WalletsList({
   onEdit,
   onTransfer,
+  onTrackGoal,
   onAdd,
 }: WalletsListProps) {
   const router = useRouter();
@@ -417,8 +480,8 @@ export default function WalletsList({
   };
 
   const persistMove = async (
-    sourceWallet: Wallet,
-    nextWallets: Wallet[],
+    sourceWallet: Wallets,
+    nextWallets: Wallets[],
     targetIncludeFromTotal: boolean,
   ) => {
     const includeChanged =
@@ -670,6 +733,7 @@ export default function WalletsList({
                           onEdit={onEdit}
                           onTransfer={onTransfer}
                           onDelete={handleDelete}
+                          onTrackGoal={onTrackGoal}
                           canDelete={wallets.length > 1}
                         />
                       ))}
@@ -711,6 +775,7 @@ export default function WalletsList({
                           onEdit={onEdit}
                           onTransfer={onTransfer}
                           onDelete={handleDelete}
+                          onTrackGoal={onTrackGoal}
                           canDelete={wallets.length > 1}
                         />
                       ))}

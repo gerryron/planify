@@ -426,6 +426,21 @@ export const openApiSpec = {
                     name: 'BCA Payroll',
                     balance: 1500000,
                     excludeFromTotal: false,
+                    walletKind: 'basic',
+                    goalAmount: null,
+                    goalStartMonth: null,
+                    goalDueMonth: null,
+                  },
+                },
+                createGoal: {
+                  value: {
+                    name: 'Emergency Fund',
+                    balance: 500000,
+                    excludeFromTotal: true,
+                    walletKind: 'goal',
+                    goalAmount: 12000000,
+                    goalStartMonth: '2026-03',
+                    goalDueMonth: '2027-03',
                   },
                 },
               },
@@ -471,6 +486,8 @@ export const openApiSpec = {
                     name: 'BCA Updated',
                     balance: 1800000,
                     excludeFromTotal: false,
+                    goalAmount: null,
+                    goalDueMonth: null,
                   },
                 },
                 reorder: {
@@ -928,11 +945,19 @@ export const openApiSpec = {
       },
       WalletInput: {
         type: 'object',
-        required: ['name', 'balance', 'excludeFromTotal'],
+        required: ['name', 'balance', 'excludeFromTotal', 'walletKind'],
         properties: {
           name: { type: 'string' },
           balance: { type: 'integer' },
           excludeFromTotal: { type: 'boolean' },
+          walletKind: { type: 'string', enum: ['basic', 'goal'] },
+          goalAmount: { type: 'integer', nullable: true },
+          goalStartMonth: {
+            type: 'string',
+            nullable: true,
+            example: '2026-03',
+          },
+          goalDueMonth: { type: 'string', nullable: true, example: '2027-03' },
         },
       },
       Wallet: {
@@ -956,6 +981,14 @@ export const openApiSpec = {
           name: { type: 'string' },
           balance: { type: 'integer' },
           excludeFromTotal: { type: 'boolean' },
+          walletKind: { type: 'string', enum: ['basic', 'goal'] },
+          goalAmount: { type: 'integer', nullable: true },
+          goalStartMonth: {
+            type: 'string',
+            nullable: true,
+            example: '2026-03',
+          },
+          goalDueMonth: { type: 'string', nullable: true, example: '2027-03' },
         },
       },
       ReorderWalletInput: {

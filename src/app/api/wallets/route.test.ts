@@ -155,6 +155,10 @@ describe('Wallet API', () => {
           name: 'BCA',
           balance: 1200000,
           excludeFromTotal: false,
+          walletKind: 'basic',
+          goalAmount: null,
+          goalStartMonth: null,
+          goalDueMonth: null,
         }) as WalletsInput,
     } as unknown as NextRequest;
 
@@ -165,6 +169,10 @@ describe('Wallet API', () => {
           name: 'OVO',
           balance: 500000,
           excludeFromTotal: true,
+          walletKind: 'basic',
+          goalAmount: null,
+          goalStartMonth: null,
+          goalDueMonth: null,
         }) as WalletsInput,
     } as unknown as NextRequest;
 
@@ -231,6 +239,8 @@ describe('Wallet API', () => {
         name: 'BCA Updated',
         balance: 1500000,
         excludeFromTotal: true,
+        goalAmount: null,
+        goalDueMonth: null,
       }),
     } as unknown as NextRequest;
 
@@ -265,6 +275,47 @@ describe('Wallet API', () => {
     expect(createdLog.description).toBe('Adjust Balance');
     expect(createdLog.excludeFromReport).toBe(true);
     expect(createdLog.categoryId).toBe(101);
+  });
+
+  it('should create goal wallet and force excludeFromTotal', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        name: 'Emergency Fund',
+        balance: 300000,
+        excludeFromTotal: false,
+        walletKind: 'goal',
+        goalAmount: 10000000,
+        goalStartMonth: '2026-03',
+        goalDueMonth: '2027-03',
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const data = await res.json();
+    expect(data.walletKind).toBe('goal');
+    expect(data.excludeFromTotal).toBe(true);
+    expect(data.goalAmount).toBe(10000000);
+    expect(data.goalDueMonth).toBe('2027-03');
+  });
+
+  it('should reject walletKind change after wallet is created', async () => {
+    const req = {
+      method: 'PATCH',
+      json: async () => ({
+        id: id1,
+        walletKind: 'goal',
+        goalAmount: 1000000,
+        goalDueMonth: '2026-12',
+      }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Wallet type cannot be changed once created');
   });
 
   it('should create Transfer Out adjustment when balance decreases', async () => {
