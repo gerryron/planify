@@ -244,7 +244,7 @@ export default function WalletTransferForm({
   return (
     <form onSubmit={handleSubmit} className='space-y-4'>
       <div>
-        <label className='block font-medium'>Wallet Asal</label>
+        <label className='block text-sm font-medium'>Wallet Asal</label>
         <select
           value={form.fromWalletId}
           onChange={(e) => {
@@ -261,7 +261,7 @@ export default function WalletTransferForm({
               toWalletId: nextToWalletId,
             }));
           }}
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         >
           <option value={0} disabled>
@@ -278,13 +278,13 @@ export default function WalletTransferForm({
       </div>
 
       <div>
-        <label className='block font-medium'>Wallet Tujuan</label>
+        <label className='block text-sm font-medium'>Wallet Tujuan</label>
         <select
           value={form.toWalletId}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, toWalletId: Number(e.target.value) }))
           }
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         >
           <option value={0} disabled>
@@ -303,13 +303,13 @@ export default function WalletTransferForm({
       </div>
 
       <div>
-        <label className='block font-medium'>Nominal Transfer</label>
+        <label className='block text-sm font-medium'>Nominal Transfer</label>
         <input
           type='text'
           inputMode='numeric'
           value={form.amount.toLocaleString('id-ID')}
           onChange={(e) => handleNumberChange('amount', e.target.value)}
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
         <p className='text-xs text-gray-500 mt-1'>
@@ -319,32 +319,34 @@ export default function WalletTransferForm({
       </div>
 
       <div>
-        <label className='block font-medium'>Tanggal Transfer</label>
+        <label className='block text-sm font-medium'>Tanggal Transfer</label>
         <input
           type='date'
           value={form.date}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, date: e.target.value }))
           }
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
 
       <div>
-        <label className='block font-medium'>Note Transfer (opsional)</label>
+        <label className='block text-sm font-medium'>
+          Note Transfer (opsional)
+        </label>
         <input
           value={form.transferNote}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, transferNote: e.target.value }))
           }
           placeholder='Contoh: Pindah dana operasional'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
         />
       </div>
 
       <div className='flex items-center justify-between'>
-        <span className='font-medium'>Aktifkan Transfer Fee</span>
+        <span className='text-sm font-medium'>Aktifkan Transfer Fee</span>
         <button
           type='button'
           role='switch'
@@ -374,19 +376,19 @@ export default function WalletTransferForm({
       {form.enableFee && (
         <div className='space-y-4 rounded border border-emerald-200 dark:border-slate-700 p-3'>
           <div>
-            <label className='block font-medium'>Nominal Fee</label>
+            <label className='block text-sm font-medium'>Nominal Fee</label>
             <input
               type='text'
               inputMode='numeric'
               value={form.feeAmount.toLocaleString('id-ID')}
               onChange={(e) => handleNumberChange('feeAmount', e.target.value)}
-              className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
               required
             />
           </div>
 
           <div>
-            <label className='block font-medium'>Pembayar Fee</label>
+            <label className='block text-sm font-medium'>Pembayar Fee</label>
             <select
               value={form.feePayer}
               onChange={(e) =>
@@ -395,7 +397,7 @@ export default function WalletTransferForm({
                   feePayer: e.target.value as FeePayer,
                 }))
               }
-              className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             >
               <option value='sender'>Wallet Pengirim</option>
               <option value='receiver'>Wallet Penerima</option>
@@ -403,14 +405,16 @@ export default function WalletTransferForm({
           </div>
 
           <div>
-            <label className='block font-medium'>Note Fee (opsional)</label>
+            <label className='block text-sm font-medium'>
+              Note Fee (opsional)
+            </label>
             <input
               value={form.feeNote}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, feeNote: e.target.value }))
               }
               placeholder='Contoh: Biaya admin transfer'
-              className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             />
           </div>
 
@@ -428,7 +432,7 @@ export default function WalletTransferForm({
       <button
         type='submit'
         disabled={submitting}
-        className='w-full px-4 py-2 bg-emerald-600 text-white rounded mt-2 disabled:opacity-60'
+        className='w-full px-4 py-2.5 bg-emerald-600 text-white rounded mt-2 min-h-11 disabled:opacity-60'
       >
         {submitting ? 'Memproses...' : 'Transfer'}
       </button>

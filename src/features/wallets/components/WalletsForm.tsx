@@ -147,7 +147,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className='space-y-4 bg-white dark:bg-slate-800 p-4 rounded shadow'
+      className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
     >
       <div>
         <div className='relative inline-flex rounded-lg border border-gray-300 dark:border-slate-700 overflow-hidden w-full p-1 bg-gray-100 dark:bg-slate-900'>
@@ -161,7 +161,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
             type='button'
             onClick={() => handleKindChange('basic')}
             disabled={Boolean(initial)}
-            className={`relative z-10 flex-1 py-2 text-sm font-medium transition-colors duration-300 ${
+            className={`relative z-10 flex-1 py-2.5 text-sm font-medium transition-colors duration-300 ${
               form.walletKind === 'basic'
                 ? 'text-white'
                 : 'text-slate-700 dark:text-slate-200'
@@ -173,7 +173,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
             type='button'
             onClick={() => handleKindChange('goal')}
             disabled={Boolean(initial)}
-            className={`relative z-10 flex-1 py-2 text-sm font-medium transition-colors duration-300 ${
+            className={`relative z-10 flex-1 py-2.5 text-sm font-medium transition-colors duration-300 ${
               form.walletKind === 'goal'
                 ? 'text-white'
                 : 'text-slate-700 dark:text-slate-200'
@@ -190,19 +190,19 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       </div>
 
       <div>
-        <label className='block font-medium'>Name</label>
+        <label className='block text-sm font-medium'>Name</label>
         <input
           name='name'
           value={form.name}
           onChange={handleChange}
           placeholder='e.g. Cash, Bank, E-Wallet'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
 
       <div>
-        <label className='block font-medium'>Balance</label>
+        <label className='block text-sm font-medium'>Balance</label>
         <input
           name='balance'
           type='text'
@@ -210,7 +210,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
           value={formattedBalance}
           onChange={handleChange}
           placeholder='e.g. 1000000'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
@@ -224,7 +224,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       >
         <div className='space-y-4 pb-1'>
           <div>
-            <label className='block font-medium'>Savings Goal</label>
+            <label className='block text-sm font-medium'>Savings Goal</label>
             <input
               name='goalAmount'
               type='text'
@@ -232,20 +232,20 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
               value={formattedGoalAmount}
               onChange={handleChange}
               placeholder='e.g. 5000000'
-              className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
               required={form.walletKind === 'goal'}
             />
           </div>
 
           <div>
-            <label className='block font-medium'>Due Month</label>
+            <label className='block text-sm font-medium'>Due Month</label>
             <input
               type='month'
               value={form.goalDueMonth ?? ''}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, goalDueMonth: e.target.value }))
               }
-              className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
               required={form.walletKind === 'goal'}
             />
           </div>
@@ -273,7 +273,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
         }`}
       >
         <div className='flex items-center justify-between pb-1'>
-          <span className='font-medium'>Exclude from total</span>
+          <span className='text-sm font-medium'>Exclude from total</span>
           <button
             type='button'
             role='switch'
@@ -305,7 +305,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       <div>
         <button
           type='submit'
-          className='w-full px-4 py-2 bg-green-600 text-white rounded mt-2'
+          className='w-full px-4 py-2.5 bg-green-600 text-white rounded mt-2 min-h-11'
           disabled={loading}
         >
           {initial ? 'Update' : 'Add'}

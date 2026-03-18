@@ -64,7 +64,7 @@ export default function WalletsPage() {
       : 'Transfer Wallet';
 
   return (
-    <div className='max-w-2xl mx-auto py-8 space-y-8'>
+    <div className='max-w-2xl mx-auto pt-0 pb-8 space-y-8'>
       <WalletsList
         key={refreshKey}
         onEdit={handleEdit}
@@ -75,11 +75,11 @@ export default function WalletsPage() {
 
       {showForm && (
         <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
+          className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4'
           onClick={handleCancel}
         >
           <div
-            className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 min-w-[320px] max-w-md w-full relative'
+            className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
             onClick={(event) => event.stopPropagation()}
           >
             <button
@@ -101,11 +101,11 @@ export default function WalletsPage() {
 
       {showTransferForm && (
         <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black/50'
+          className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4'
           onClick={handleCancel}
         >
           <div
-            className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 min-w-[320px] max-w-md w-full relative'
+            className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
             onClick={(event) => event.stopPropagation()}
           >
             <button

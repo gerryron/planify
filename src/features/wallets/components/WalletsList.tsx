@@ -57,6 +57,7 @@ function MenuActions({
   transferLabel: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [menuAlign, setMenuAlign] = useState<'left' | 'right'>('right');
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,6 +74,21 @@ function MenuActions({
     return () => window.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  const handleToggleMenu = () => {
+    if (!open) {
+      const triggerRect = containerRef.current?.getBoundingClientRect();
+      if (triggerRect) {
+        const estimatedMenuWidth = 180;
+        const viewportPadding = 12;
+        const hasLeftOverflowRisk =
+          triggerRect.right - estimatedMenuWidth < viewportPadding;
+        setMenuAlign(hasLeftOverflowRisk ? 'left' : 'right');
+      }
+    }
+
+    setOpen((value) => !value);
+  };
+
   return (
     <div
       ref={containerRef}
@@ -83,12 +99,17 @@ function MenuActions({
         className='p-2 rounded hover:bg-emerald-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
         aria-label='Action'
         type='button'
-        onClick={() => setOpen((value) => !value)}
+        onClick={handleToggleMenu}
       >
         <MoreVertIcon fontSize='small' />
       </button>
       {open && (
-        <div className='absolute right-0 top-10 z-10 min-w-32 rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md'>
+        <div
+          className={
+            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md ' +
+            (menuAlign === 'left' ? 'left-0' : 'right-0')
+          }
+        >
           <button
             className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2'
             onClick={() => {
@@ -634,8 +655,8 @@ export default function WalletsList({
 
   return (
     <div className='w-full'>
-      <div className='sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 py-4'>
-        <div className='flex items-center justify-between mb-4'>
+      <div className='md:sticky md:top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-1 pb-2'>
+        <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-2'>
           <div>
             <div className='text-lg font-semibold'>Total Balance</div>
             <div
@@ -676,7 +697,7 @@ export default function WalletsList({
           </div>
           {onAdd && (
             <button
-              className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
+              className='w-full md:w-auto min-h-11 px-4 py-2.5 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
               onClick={onAdd}
               type='button'
             >

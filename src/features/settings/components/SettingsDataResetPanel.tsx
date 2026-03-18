@@ -24,6 +24,13 @@ import {
   buildSeedCategoryKey,
   seedCategoryKeys,
 } from '@/features/settings/constants/seedCategories';
+import {
+  clearFailedWriteHistory,
+  getFailedWriteHistory,
+  getQueuedWriteCount,
+  type FailedWriteHistoryItem,
+  requestReplayQueuedWrites,
+} from '@/shared/pwa/writeQueueClient';
 
 function sortMonthsDesc(months: string[]) {
   return [...months].sort((a, b) => b.localeCompare(a));
@@ -40,6 +47,15 @@ export default function SettingsDataResetPanel() {
   const router = useRouter();
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [queueCount, setQueueCount] = useState(0);
+  const [syncingQueue, setSyncingQueue] = useState(false);
+  const [failedHistory, setFailedHistory] = useState<FailedWriteHistoryItem[]>(
+    [],
+  );
+  const [failedMethodFilter, setFailedMethodFilter] = useState<string>('all');
+  const [failedStatusFilter, setFailedStatusFilter] = useState<
+    'all' | 'network' | 'http'
+  >('all');
 
   const [allLogs, setAllLogs] = useState<CashLog[]>([]);
   const [allBudgets, setAllBudgets] = useState<Budget[]>([]);
@@ -117,6 +133,96 @@ export default function SettingsDataResetPanel() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let mounted = true;
+
+    const refreshSyncDiagnostics = async () => {
+      try {
+        const [count, failed] = await Promise.all([
+          getQueuedWriteCount(),
+          getFailedWriteHistory(8),
+        ]);
+        if (!mounted) return;
+        setQueueCount(count);
+        setFailedHistory(failed);
+      } catch {
+        if (!mounted) return;
+        setQueueCount(0);
+        setFailedHistory([]);
+      }
+    };
+
+    const onOnline = () => {
+      void refreshSyncDiagnostics();
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshSyncDiagnostics();
+      }
+    };
+
+    void refreshSyncDiagnostics();
+    window.addEventListener('online', onOnline);
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('online', onOnline);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
+  const syncNow = async () => {
+    if (syncingQueue) return;
+    setSyncingQueue(true);
+
+    try {
+      await requestReplayQueuedWrites();
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      const [count, failed] = await Promise.all([
+        getQueuedWriteCount(),
+        getFailedWriteHistory(8),
+      ]);
+      setQueueCount(count);
+      setFailedHistory(failed);
+
+      if (count === 0) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Queue synced',
+          text: 'All offline requests have been replayed.',
+        });
+      } else {
+        await Swal.fire({
+          icon: 'info',
+          title: 'Queue still pending',
+          text: `${count} request(s) are still waiting.`,
+        });
+      }
+    } catch {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Sync failed',
+        text: 'Unable to sync queued requests right now.',
+      });
+    } finally {
+      setSyncingQueue(false);
+    }
+  };
+
+  const clearFailedHistory = async () => {
+    await clearFailedWriteHistory();
+    setFailedHistory([]);
+    await Swal.fire({
+      icon: 'success',
+      title: 'Failed history cleared',
+      text: 'All failed sync logs have been removed.',
+    });
+  };
+
   const hasAnyAction = useMemo(
     () =>
       cashLogScope !== 'none' ||
@@ -125,6 +231,24 @@ export default function SettingsDataResetPanel() {
       deleteUserCategories,
     [cashLogScope, budgetScope, deleteWallets, deleteUserCategories],
   );
+
+  const filteredFailedHistory = useMemo(() => {
+    return failedHistory.filter((item) => {
+      const passMethod =
+        failedMethodFilter === 'all' || item.method === failedMethodFilter;
+
+      const passStatus =
+        failedStatusFilter === 'all' ||
+        (failedStatusFilter === 'network' && item.status === -1) ||
+        (failedStatusFilter === 'http' && item.status >= 400);
+
+      return passMethod && passStatus;
+    });
+  }, [failedHistory, failedMethodFilter, failedStatusFilter]);
+
+  const availableFailedMethods = useMemo(() => {
+    return Array.from(new Set(failedHistory.map((item) => item.method))).sort();
+  }, [failedHistory]);
 
   const summary = useMemo(() => {
     const selectedCashLogMonths = new Set(cashLogMonths);
@@ -297,12 +421,105 @@ export default function SettingsDataResetPanel() {
   };
 
   return (
-    <div className='max-w-3xl mx-auto py-8'>
+    <div className='max-w-3xl mx-auto pt-0 pb-8'>
       <div className='app-card rounded-xl shadow p-6 border border-slate-200 dark:border-slate-700'>
         <h1 className='text-2xl font-bold mb-2'>Settings</h1>
-        <p className='text-sm text-slate-600 dark:text-slate-300 mb-6'>
-          Use this page to clean selected data safely.
-        </p>
+
+        <hr className='my-6 border-slate-300 dark:border-slate-600' />
+
+        <div className='mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-950/20'>
+          <h2 className='font-semibold mb-2'>Offline sync queue</h2>
+          <p className='text-sm text-slate-700 dark:text-slate-200'>
+            Pending offline write requests: <b>{queueCount}</b>
+          </p>
+          <button
+            type='button'
+            onClick={syncNow}
+            disabled={syncingQueue || queueCount === 0}
+            className='mt-3 px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+          >
+            {syncingQueue ? 'Syncing...' : 'Sync now'}
+          </button>
+
+          <div className='mt-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900'>
+            <div className='flex flex-wrap items-center justify-between gap-2 mb-2'>
+              <h3 className='text-sm font-semibold'>Recent failed sync</h3>
+              <button
+                type='button'
+                onClick={clearFailedHistory}
+                disabled={failedHistory.length === 0}
+                className='px-3 py-1.5 rounded bg-slate-700 text-white text-xs disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                Clear history
+              </button>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-2 mb-3'>
+              <label className='text-xs text-slate-600 dark:text-slate-300'>
+                Method
+                <select
+                  value={failedMethodFilter}
+                  onChange={(event) =>
+                    setFailedMethodFilter(event.target.value)
+                  }
+                  className='mt-1 w-full p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-xs'
+                >
+                  <option value='all'>All methods</option>
+                  {availableFailedMethods.map((method) => (
+                    <option key={method} value={method}>
+                      {method}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className='text-xs text-slate-600 dark:text-slate-300'>
+                Status
+                <select
+                  value={failedStatusFilter}
+                  onChange={(event) =>
+                    setFailedStatusFilter(
+                      event.target.value as 'all' | 'network' | 'http',
+                    )
+                  }
+                  className='mt-1 w-full p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-xs'
+                >
+                  <option value='all'>All statuses</option>
+                  <option value='network'>Network error</option>
+                  <option value='http'>HTTP error</option>
+                </select>
+              </label>
+            </div>
+
+            {filteredFailedHistory.length === 0 ? (
+              <p className='text-xs text-slate-500 dark:text-slate-400'>
+                No failed requests match current filter.
+              </p>
+            ) : (
+              <ul className='space-y-2'>
+                {filteredFailedHistory.map((item) => (
+                  <li
+                    key={item.id}
+                    className='rounded border border-slate-200 px-2 py-2 text-xs dark:border-slate-700'
+                  >
+                    <p className='font-semibold text-slate-700 dark:text-slate-200'>
+                      {item.method}{' '}
+                      {item.status === -1 ? 'NETWORK' : item.status}
+                    </p>
+                    <p className='truncate text-slate-600 dark:text-slate-300'>
+                      {item.url}
+                    </p>
+                    <p className='text-slate-500 dark:text-slate-400'>
+                      {item.statusText} -{' '}
+                      {new Date(item.lastAttemptAt).toLocaleString('id-ID')}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        <hr className='my-6 border-slate-300 dark:border-slate-600' />
 
         <div className='mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950/20'>
           <h2 className='font-semibold mb-2'>Deletion summary (preview)</h2>

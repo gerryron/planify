@@ -1,0 +1,37 @@
+import type { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    id: '/',
+    name: 'Planify',
+    short_name: 'Planify',
+    description:
+      'Aplikasi pencatatan cash flow harian dan pengelolaan budget bulanan.',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    background_color: '#ffffff',
+    theme_color: '#059669',
+    orientation: 'portrait',
+    icons: [
+      {
+        src: '/brand/pwa-192.png',
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/brand/pwa-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/brand/pwa-maskable-512.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable',
+      },
+    ],
+  };
+}

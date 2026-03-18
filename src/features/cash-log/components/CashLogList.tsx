@@ -53,6 +53,7 @@ function MenuActions({
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [menuAlign, setMenuAlign] = useState<'left' | 'right'>('right');
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,18 +70,38 @@ function MenuActions({
     return () => window.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  const handleToggleMenu = () => {
+    if (!open) {
+      const triggerRect = containerRef.current?.getBoundingClientRect();
+      if (triggerRect) {
+        const estimatedMenuWidth = 180;
+        const viewportPadding = 12;
+        const hasLeftOverflowRisk =
+          triggerRect.right - estimatedMenuWidth < viewportPadding;
+        setMenuAlign(hasLeftOverflowRisk ? 'left' : 'right');
+      }
+    }
+
+    setOpen((value) => !value);
+  };
+
   return (
     <div ref={containerRef} className='relative'>
       <button
         className='p-2 rounded hover:bg-emerald-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
         aria-label='Action'
         type='button'
-        onClick={() => setOpen((value) => !value)}
+        onClick={handleToggleMenu}
       >
         <MoreVertIcon fontSize='small' />
       </button>
       {open && (
-        <div className='absolute right-0 top-10 z-10 min-w-32 rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md'>
+        <div
+          className={
+            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md ' +
+            (menuAlign === 'left' ? 'left-0' : 'right-0')
+          }
+        >
           <button
             className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2'
             onClick={() => {
@@ -283,9 +304,9 @@ export default function CashLogList({
 
   return (
     <div className='w-full'>
-      <div className='sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-4 pb-3 border-b border-emerald-100 dark:border-slate-800'>
-        <div className='flex items-center justify-between mb-4'>
-          <div className='w-full sm:w-80'>
+      <div className='md:sticky md:top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-1 pb-2 border-b border-emerald-100 dark:border-slate-800'>
+        <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-2'>
+          <div className='w-full md:w-80'>
             <label className='block text-sm text-gray-500 mb-1'>Wallet</label>
             <select
               value={selectedWalletId}
@@ -293,7 +314,7 @@ export default function CashLogList({
                 const value = event.target.value;
                 setSelectedWalletId(value === 'all' ? 'all' : Number(value));
               }}
-              className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             >
               <option value='all'>All Wallets</option>
               {groupedWallets.included.length > 0 && (
@@ -352,9 +373,9 @@ export default function CashLogList({
               </button>
             </div>
           </div>
-          <div className='flex items-center gap-2'>
+          <div className='w-full md:w-auto flex items-center gap-2'>
             <button
-              className='px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded'
+              className='w-full md:w-auto min-h-11 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded'
               onClick={() => onAdd?.(selectedWalletName)}
               type='button'
             >
@@ -363,13 +384,13 @@ export default function CashLogList({
           </div>
         </div>
 
-        <div className='mb-4 w-full flex flex-wrap gap-2 items-center'>
+        <div className='mb-2 w-full flex items-center gap-2 overflow-x-auto pb-1'>
           {prevMonths.map((month) => (
             <button
               key={month}
               type='button'
               onClick={() => setSelectedMonth(month)}
-              className={`rounded px-3 py-1.5 text-sm border transition ${
+              className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
                 selectedMonth === month
                   ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                   : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
@@ -383,7 +404,7 @@ export default function CashLogList({
             <button
               type='button'
               onClick={() => setSelectedMonth(currentMonth)}
-              className={`rounded px-3 py-1.5 text-sm border transition ${
+              className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
                 selectedMonth === currentMonth
                   ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                   : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
@@ -396,7 +417,7 @@ export default function CashLogList({
           <button
             type='button'
             onClick={() => setSelectedMonth('future')}
-            className={`rounded px-3 py-1.5 text-sm border transition ${
+            className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
               selectedMonth === 'future'
                 ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                 : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
@@ -405,10 +426,10 @@ export default function CashLogList({
             Future
           </button>
 
-          <div className='relative'>
+          <div className='relative shrink-0'>
             <button
               type='button'
-              className={`rounded px-3 py-1.5 text-sm border transition flex items-center gap-2 ${
+              className={`whitespace-nowrap rounded px-3 py-2 text-sm border transition flex items-center gap-2 ${
                 selectedMonth !== 'future' &&
                 selectedMonth !== currentMonth &&
                 !prevMonths.includes(selectedMonth)

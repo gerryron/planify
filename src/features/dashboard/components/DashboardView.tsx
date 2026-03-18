@@ -215,6 +215,7 @@ function getRecentMonths(count: number, currentMonth: string): string[] {
 // ─── Component ───
 
 export default function DashboardView() {
+  const DASHBOARD_SNAPSHOT_KEY = 'dashboard-offline-snapshot-v1';
   const now = new Date();
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
@@ -224,6 +225,7 @@ export default function DashboardView() {
   const [showNominal, setShowNominal] = useState(true);
   const [mode, setMode] = useState<DashboardMode>('month');
   const [isDark, setIsDark] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [showDailyIncome, setShowDailyIncome] = useState(true);
   const [showDailyOutcome, setShowDailyOutcome] = useState(true);
   const [showDailyTrend, setShowDailyTrend] = useState(true);
@@ -272,6 +274,21 @@ export default function DashboardView() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const applyViewportMode = (event: MediaQueryList | MediaQueryListEvent) =>
+      setIsMobileViewport(event.matches);
+
+    applyViewportMode(mediaQuery);
+
+    const listener = (event: MediaQueryListEvent) => applyViewportMode(event);
+    mediaQuery.addEventListener('change', listener);
+
+    return () => mediaQuery.removeEventListener('change', listener);
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
 
     const fetchDashboardData = async () => {
@@ -307,6 +324,30 @@ export default function DashboardView() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || loadingData || dataError) {
+      return;
+    }
+
+    const monthLogs = getMonthLogs(cashLogs, selectedMonth);
+    const income = calcIncome(monthLogs);
+    const outcome = calcOutcome(monthLogs);
+    const walletTotal = wallets
+      .filter((wallet) => !wallet.excludeFromTotal)
+      .reduce((sum, wallet) => sum + wallet.balance, 0);
+
+    const snapshot = {
+      month: selectedMonth,
+      income,
+      outcome,
+      net: income - outcome,
+      walletTotal,
+      savedAt: new Date().toLocaleString('id-ID'),
+    };
+
+    localStorage.setItem(DASHBOARD_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  }, [cashLogs, dataError, loadingData, selectedMonth, wallets]);
 
   // ─── Derived data ───
   const groupedWallets = useMemo(() => {
@@ -799,6 +840,33 @@ export default function DashboardView() {
     color: isDark ? '#e2e8f0' : '#1e293b',
   };
 
+  const chartTooltipCursor = isMobileViewport
+    ? {
+        fill: isDark ? 'rgba(148, 163, 184, 0.18)' : 'rgba(16, 185, 129, 0.12)',
+      }
+    : false;
+
+  const mobileActiveBarStyle = {
+    stroke: isDark ? '#cbd5e1' : '#0f172a',
+    strokeWidth: isMobileViewport ? 2 : 1,
+    strokeOpacity: isMobileViewport ? 0.6 : 0.3,
+  };
+
+  const smallActiveDot = {
+    r: isMobileViewport ? 6 : 3,
+    strokeWidth: isMobileViewport ? 2 : 1,
+  };
+
+  const mediumActiveDot = {
+    r: isMobileViewport ? 7 : 5,
+    strokeWidth: isMobileViewport ? 2 : 1,
+  };
+
+  const strongActiveDot = {
+    r: isMobileViewport ? 8 : 6,
+    strokeWidth: isMobileViewport ? 2 : 1,
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currencyFormatter = (value: any) => {
     if (value === undefined) return '';
@@ -816,14 +884,14 @@ export default function DashboardView() {
   return (
     <div className='space-y-6'>
       {/* ─── Header ─── */}
-      <div className='sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-4 pb-3 flex items-center justify-between flex-wrap gap-4'>
-        <div className='flex flex-col gap-1'>
-          <div className='flex items-center gap-3 flex-wrap'>
+      <div className='md:sticky md:top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-1 pb-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2'>
+        <div className='flex flex-col gap-2 w-full md:w-auto'>
+          <div className='flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap'>
             <h1 className='text-2xl font-bold text-emerald-700 dark:text-slate-100 mr-1'>
               Dashboard
             </h1>
 
-            <div className='relative'>
+            <div className='relative w-full sm:w-auto'>
               <select
                 value={selectedWalletId}
                 onChange={(event) => {
@@ -837,7 +905,7 @@ export default function DashboardView() {
                   setSelectedSummaryParent(null);
                   setSummaryChildFromOther(false);
                 }}
-                className='bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-44'
+                className='w-full sm:w-auto min-h-11 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:min-w-44'
                 aria-label='Wallet filter'
               >
                 <option value='all'>All Wallets</option>
@@ -875,16 +943,16 @@ export default function DashboardView() {
                 setSelectedSummaryParent(null);
                 setSummaryChildFromOther(false);
               }}
-              className='bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+              className='w-full sm:w-auto min-h-11 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500'
             />
           </div>
         </div>
-        <div className='flex items-center gap-3'>
-          <div className='inline-flex rounded-lg border border-slate-300 dark:border-slate-600 overflow-hidden'>
+        <div className='w-full md:w-auto flex items-center gap-3'>
+          <div className='flex-1 md:flex-none inline-flex rounded-lg border border-slate-300 dark:border-slate-600 overflow-hidden'>
             <button
               type='button'
               onClick={() => setMode('month')}
-              className={`px-3 py-1.5 text-sm transition-colors ${
+              className={`flex-1 md:flex-none px-3 py-2 text-sm transition-colors ${
                 mode === 'month'
                   ? 'bg-emerald-600 text-white'
                   : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-700'
@@ -895,7 +963,7 @@ export default function DashboardView() {
             <button
               type='button'
               onClick={() => setMode('summary')}
-              className={`px-3 py-1.5 text-sm transition-colors ${
+              className={`flex-1 md:flex-none px-3 py-2 text-sm transition-colors ${
                 mode === 'summary'
                   ? 'bg-emerald-600 text-white'
                   : 'bg-white text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-slate-700'
@@ -1018,7 +1086,7 @@ export default function DashboardView() {
                         showNominal={showNominal}
                       />
                     }
-                    cursor={false}
+                    cursor={chartTooltipCursor}
                   />
                   <Line
                     type='monotone'
@@ -1030,7 +1098,7 @@ export default function DashboardView() {
                     strokeWidth={1.8}
                     strokeDasharray='5 3'
                     dot={false}
-                    activeDot={{ r: 3 }}
+                    activeDot={smallActiveDot}
                   />
                   <Line
                     type='monotone'
@@ -1042,7 +1110,7 @@ export default function DashboardView() {
                     strokeWidth={1.8}
                     strokeDasharray='5 3'
                     dot={false}
-                    activeDot={{ r: 3 }}
+                    activeDot={smallActiveDot}
                   />
                   <Bar
                     yAxisId='left'
@@ -1051,6 +1119,7 @@ export default function DashboardView() {
                     hide={!showDailyOutcome}
                     fill='#ef4444'
                     radius={[4, 4, 0, 0]}
+                    activeBar={mobileActiveBarStyle}
                   />
                   <Bar
                     yAxisId='right'
@@ -1059,6 +1128,7 @@ export default function DashboardView() {
                     hide={!showDailyIncome}
                     fill='#10b981'
                     radius={[4, 4, 0, 0]}
+                    activeBar={mobileActiveBarStyle}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -1193,9 +1263,14 @@ export default function DashboardView() {
                     labelStyle={tooltipLabelStyle}
                     itemStyle={tooltipItemStyle}
                     formatter={currencyFormatter}
-                    cursor={false}
+                    cursor={chartTooltipCursor}
                   />
-                  <Bar dataKey='amount' name='Amount' radius={[0, 4, 4, 0]}>
+                  <Bar
+                    dataKey='amount'
+                    name='Amount'
+                    radius={[0, 4, 4, 0]}
+                    activeBar={mobileActiveBarStyle}
+                  >
                     {monthlyExpenseChartData.map((entry, i) => (
                       <Cell
                         key={i}
@@ -1272,7 +1347,7 @@ export default function DashboardView() {
                         showNominal={showNominal}
                       />
                     }
-                    cursor={false}
+                    cursor={chartTooltipCursor}
                   />
                   {hasBudgetSeriesValue && (
                     <Bar
@@ -1281,6 +1356,7 @@ export default function DashboardView() {
                       fill='#3b82f6'
                       radius={[0, 4, 4, 0]}
                       maxBarSize={isSingleBudgetVsActualRow ? 26 : undefined}
+                      activeBar={mobileActiveBarStyle}
                     />
                   )}
                   {hasActualSeriesValue && (
@@ -1290,6 +1366,7 @@ export default function DashboardView() {
                       fill='#f59e0b'
                       radius={[0, 4, 4, 0]}
                       maxBarSize={isSingleBudgetVsActualRow ? 26 : undefined}
+                      activeBar={mobileActiveBarStyle}
                     />
                   )}
                 </BarChart>
@@ -1513,19 +1590,21 @@ export default function DashboardView() {
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={currencyFormatter}
-                    cursor={false}
+                    cursor={chartTooltipCursor}
                   />
                   <Bar
                     dataKey='income'
                     name='Income'
                     fill='#10b981'
                     radius={[4, 4, 0, 0]}
+                    activeBar={mobileActiveBarStyle}
                   />
                   <Bar
                     dataKey='outcome'
                     name='Outcome'
                     fill='#ef4444'
                     radius={[4, 4, 0, 0]}
+                    activeBar={mobileActiveBarStyle}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -1557,7 +1636,7 @@ export default function DashboardView() {
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={currencyFormatter}
-                    cursor={false}
+                    cursor={chartTooltipCursor}
                   />
                   <Legend />
                   <Line
@@ -1568,7 +1647,7 @@ export default function DashboardView() {
                     strokeWidth={2}
                     strokeDasharray='5 4'
                     dot={false}
-                    activeDot={{ r: 5 }}
+                    activeDot={mediumActiveDot}
                   />
                   <Line
                     type='monotone'
@@ -1578,7 +1657,7 @@ export default function DashboardView() {
                     strokeWidth={2}
                     strokeDasharray='5 4'
                     dot={false}
-                    activeDot={{ r: 5 }}
+                    activeDot={mediumActiveDot}
                   />
                   <Line
                     type='monotone'
@@ -1587,7 +1666,7 @@ export default function DashboardView() {
                     stroke='#38bdf8'
                     strokeWidth={3}
                     dot={{ r: 4, fill: '#38bdf8' }}
-                    activeDot={{ r: 6 }}
+                    activeDot={strongActiveDot}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -1673,9 +1752,14 @@ export default function DashboardView() {
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={currencyFormatter}
-                    cursor={false}
+                    cursor={chartTooltipCursor}
                   />
-                  <Bar dataKey='amount' name='Amount' radius={[0, 4, 4, 0]}>
+                  <Bar
+                    dataKey='amount'
+                    name='Amount'
+                    radius={[0, 4, 4, 0]}
+                    activeBar={mobileActiveBarStyle}
+                  >
                     {summaryExpenseChartData.map((entry, i) => (
                       <Cell
                         key={i}

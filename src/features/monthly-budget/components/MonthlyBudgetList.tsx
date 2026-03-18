@@ -59,6 +59,7 @@ function MenuActions({
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [menuAlign, setMenuAlign] = useState<'left' | 'right'>('right');
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,18 +75,38 @@ function MenuActions({
     return () => window.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  const handleToggleMenu = () => {
+    if (!open) {
+      const triggerRect = containerRef.current?.getBoundingClientRect();
+      if (triggerRect) {
+        const estimatedMenuWidth = 180;
+        const viewportPadding = 12;
+        const hasLeftOverflowRisk =
+          triggerRect.right - estimatedMenuWidth < viewportPadding;
+        setMenuAlign(hasLeftOverflowRisk ? 'left' : 'right');
+      }
+    }
+
+    setOpen((value) => !value);
+  };
+
   return (
     <div ref={containerRef} className='relative'>
       <button
         className='p-2 rounded hover:bg-emerald-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
         aria-label='Action'
         type='button'
-        onClick={() => setOpen((value) => !value)}
+        onClick={handleToggleMenu}
       >
         <MoreVertIcon fontSize='small' />
       </button>
       {open && (
-        <div className='absolute right-0 top-10 z-10 min-w-32 rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md'>
+        <div
+          className={
+            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md ' +
+            (menuAlign === 'left' ? 'left-0' : 'right-0')
+          }
+        >
           <button
             className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2'
             onClick={() => {
@@ -442,11 +463,11 @@ export default function MonthlyBudgetList({
       <div
         className={
           stickyHeader
-            ? 'sticky top-0 z-40 bg-emerald-50 dark:bg-slate-900 py-4'
+            ? 'md:sticky md:top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-1 pb-2'
             : ''
         }
       >
-        <div className='flex items-center justify-between mb-4'>
+        <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-2'>
           <div>
             <div className='text-lg font-semibold'>Total Budget</div>
             <div
@@ -487,9 +508,9 @@ export default function MonthlyBudgetList({
           </div>
 
           {onAdd && (
-            <div className='ml-4 flex items-center gap-2'>
+            <div className='w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:ml-4'>
               <button
-                className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition disabled:opacity-40 disabled:cursor-not-allowed'
+                className='w-full sm:w-auto min-h-11 px-4 py-2.5 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition disabled:opacity-40 disabled:cursor-not-allowed'
                 onClick={handleCarryOver}
                 type='button'
                 disabled={!canCarryOver}
@@ -497,7 +518,7 @@ export default function MonthlyBudgetList({
                 Carry Over
               </button>
               <button
-                className='px-4 py-2 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
+                className='w-full sm:w-auto min-h-11 px-4 py-2.5 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
                 onClick={onAdd}
                 type='button'
               >
@@ -507,13 +528,13 @@ export default function MonthlyBudgetList({
           )}
         </div>
 
-        <div className='mb-4 w-full flex flex-wrap gap-2 items-center'>
+        <div className='mb-2 w-full flex items-center gap-2 overflow-x-auto pb-1'>
           {prevMonths.map((month) => (
             <button
               key={month}
               type='button'
               onClick={() => setSelectedMonth(month)}
-              className={`rounded px-3 py-1.5 text-sm border transition ${
+              className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
                 selectedMonth === month
                   ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                   : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
@@ -527,7 +548,7 @@ export default function MonthlyBudgetList({
             <button
               type='button'
               onClick={() => setSelectedMonth(currentMonth)}
-              className={`rounded px-3 py-1.5 text-sm border transition ${
+              className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
                 selectedMonth === currentMonth
                   ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                   : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
@@ -540,7 +561,7 @@ export default function MonthlyBudgetList({
           <button
             type='button'
             onClick={() => setSelectedMonth('future')}
-            className={`rounded px-3 py-1.5 text-sm border transition ${
+            className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
               selectedMonth === 'future'
                 ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
                 : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
@@ -549,10 +570,10 @@ export default function MonthlyBudgetList({
             Future
           </button>
 
-          <div className='relative'>
+          <div className='relative shrink-0'>
             <button
               type='button'
-              className={`rounded px-3 py-1.5 text-sm border transition flex items-center gap-2 ${
+              className={`whitespace-nowrap rounded px-3 py-2 text-sm border transition flex items-center gap-2 ${
                 selectedMonth !== 'future' &&
                 selectedMonth !== currentMonth &&
                 !prevMonths.includes(selectedMonth)

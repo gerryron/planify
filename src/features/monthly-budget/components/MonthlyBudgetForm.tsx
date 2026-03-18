@@ -176,7 +176,7 @@ export default function MonthlyBudgetForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className='space-y-4 bg-white dark:bg-slate-800 p-4 rounded shadow'
+      className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
     >
       <div>
         <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden mb-3'>
@@ -197,7 +197,7 @@ export default function MonthlyBudgetForm({
               type='button'
               onClick={() => handleBudgetTypeChange('income')}
               className={
-                'rounded px-3 py-1.5 text-sm transition-colors duration-500 ' +
+                'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
                 (activeBudgetType === 'income'
                   ? 'text-white dark:text-slate-900'
                   : 'text-gray-700 dark:text-gray-200')
@@ -209,7 +209,7 @@ export default function MonthlyBudgetForm({
               type='button'
               onClick={() => handleBudgetTypeChange('outcome')}
               className={
-                'rounded px-3 py-1.5 text-sm transition-colors duration-500 ' +
+                'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
                 (activeBudgetType === 'outcome'
                   ? 'text-white'
                   : 'text-gray-700 dark:text-gray-200')
@@ -222,18 +222,18 @@ export default function MonthlyBudgetForm({
       </div>
 
       <div>
-        <label className='block font-medium'>Name</label>
+        <label className='block text-sm font-medium'>Name</label>
         <input
           name='name'
           value={form.name}
           onChange={handleChange}
           placeholder='e.g. Groceries, Salary'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
       <div>
-        <label className='block font-medium'>Amount</label>
+        <label className='block text-sm font-medium'>Amount</label>
         <input
           name='amount'
           type='text'
@@ -241,29 +241,29 @@ export default function MonthlyBudgetForm({
           value={formattedAmount}
           onChange={handleChange}
           placeholder='e.g. 1000000'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
       <div>
-        <label className='block font-medium'>Month</label>
+        <label className='block text-sm font-medium'>Month</label>
         <input
           name='month'
           type='month'
           value={form.month}
           onChange={handleChange}
           placeholder='Select month'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
       <div>
-        <label className='block font-medium'>Category</label>
+        <label className='block text-sm font-medium'>Category</label>
         <select
           name='category'
           value={form.category}
           onChange={handleChange}
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           disabled={loadingCategories || !!categoryError}
           required
         >
@@ -288,7 +288,7 @@ export default function MonthlyBudgetForm({
       <div>
         <button
           type='submit'
-          className='w-full px-4 py-2 bg-green-600 text-white rounded mt-2'
+          className='w-full px-4 py-2.5 bg-green-600 text-white rounded mt-2 min-h-11'
           disabled={loading}
         >
           {initial ? 'Update' : 'Add'}

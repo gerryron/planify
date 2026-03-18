@@ -103,10 +103,10 @@ export default function CategoryForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className='space-y-4 bg-white dark:bg-slate-800 p-4 rounded shadow'
+      className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
     >
       <div>
-        <label className='block font-medium'>Name</label>
+        <label className='block text-sm font-medium'>Name</label>
         <input
           name='name'
           value={form.name}
@@ -117,18 +117,18 @@ export default function CategoryForm({
             }))
           }
           placeholder='e.g. Food, Salary, Groceries'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
 
       <div>
-        <label className='block font-medium'>Type</label>
+        <label className='block text-sm font-medium'>Type</label>
         <select
           name='type'
           value={form.type}
           onChange={(e) => handleTypeChange(e.target.value as CategoryType)}
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         >
           <option value='outcome'>Outcome</option>
@@ -137,7 +137,7 @@ export default function CategoryForm({
       </div>
 
       <div>
-        <label className='block font-medium'>Parent Category</label>
+        <label className='block text-sm font-medium'>Parent Category</label>
         <select
           name='parentId'
           value={form.parentId ?? ''}
@@ -147,7 +147,7 @@ export default function CategoryForm({
               parentId: e.target.value || null,
             }))
           }
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
         >
           <option value=''>No parent (root category)</option>
           {parentOptions.map((category) => (
@@ -163,7 +163,7 @@ export default function CategoryForm({
       <div>
         <button
           type='submit'
-          className='w-full px-4 py-2 bg-green-600 text-white rounded mt-2'
+          className='w-full px-4 py-2.5 bg-green-600 text-white rounded mt-2 min-h-11'
           disabled={loading}
         >
           {initial ? 'Update' : 'Add'}
