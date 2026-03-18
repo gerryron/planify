@@ -150,28 +150,21 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       className='space-y-4 bg-white dark:bg-slate-800 p-4 rounded shadow'
     >
       <div>
-        <label className='block font-medium'>Name</label>
-        <input
-          name='name'
-          value={form.name}
-          onChange={handleChange}
-          placeholder='e.g. Cash, Bank, E-Wallet'
-          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
-        />
-      </div>
-
-      <div>
-        <label className='block font-medium mb-2'>Wallet Type</label>
-        <div className='inline-flex rounded-lg border border-gray-300 dark:border-slate-700 overflow-hidden w-full'>
+        <div className='relative inline-flex rounded-lg border border-gray-300 dark:border-slate-700 overflow-hidden w-full p-1 bg-gray-100 dark:bg-slate-900'>
+          <span
+            aria-hidden='true'
+            className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-md bg-emerald-600 shadow-sm transition-transform duration-300 ease-out ${
+              form.walletKind === 'goal' ? 'translate-x-full' : 'translate-x-0'
+            }`}
+          />
           <button
             type='button'
             onClick={() => handleKindChange('basic')}
             disabled={Boolean(initial)}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
+            className={`relative z-10 flex-1 py-2 text-sm font-medium transition-colors duration-300 ${
               form.walletKind === 'basic'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200'
+                ? 'text-white'
+                : 'text-slate-700 dark:text-slate-200'
             } ${initial ? 'cursor-not-allowed opacity-80' : ''}`}
           >
             Basic Wallet
@@ -180,10 +173,10 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
             type='button'
             onClick={() => handleKindChange('goal')}
             disabled={Boolean(initial)}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
+            className={`relative z-10 flex-1 py-2 text-sm font-medium transition-colors duration-300 ${
               form.walletKind === 'goal'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200'
+                ? 'text-white'
+                : 'text-slate-700 dark:text-slate-200'
             } ${initial ? 'cursor-not-allowed opacity-80' : ''}`}
           >
             Goal Wallet
@@ -194,6 +187,18 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
             Wallet type cannot be changed after creation.
           </p>
         )}
+      </div>
+
+      <div>
+        <label className='block font-medium'>Name</label>
+        <input
+          name='name'
+          value={form.name}
+          onChange={handleChange}
+          placeholder='e.g. Cash, Bank, E-Wallet'
+          className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          required
+        />
       </div>
 
       <div>
@@ -210,8 +215,14 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
         />
       </div>
 
-      {form.walletKind === 'goal' && (
-        <>
+      <div
+        className={`transition-all duration-300 ease-out overflow-hidden ${
+          form.walletKind === 'goal'
+            ? 'max-h-112 opacity-100 translate-y-0'
+            : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none'
+        }`}
+      >
+        <div className='space-y-4 pb-1'>
           <div>
             <label className='block font-medium'>Savings Goal</label>
             <input
@@ -222,7 +233,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
               onChange={handleChange}
               placeholder='e.g. 5000000'
               className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-              required
+              required={form.walletKind === 'goal'}
             />
           </div>
 
@@ -235,7 +246,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
                 setForm((prev) => ({ ...prev, goalDueMonth: e.target.value }))
               }
               className='w-full p-2 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-              required
+              required={form.walletKind === 'goal'}
             />
           </div>
 
@@ -251,11 +262,17 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
               </p>
             </div>
           )}
-        </>
-      )}
+        </div>
+      </div>
 
-      {form.walletKind === 'basic' && (
-        <div className='flex items-center justify-between'>
+      <div
+        className={`transition-all duration-300 ease-out overflow-hidden ${
+          form.walletKind === 'basic'
+            ? 'max-h-24 opacity-100 translate-y-0'
+            : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none'
+        }`}
+      >
+        <div className='flex items-center justify-between pb-1'>
           <span className='font-medium'>Exclude from total</span>
           <button
             type='button'
@@ -281,7 +298,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
             />
           </button>
         </div>
-      )}
+      </div>
 
       {error && <div className='text-red-500'>{error}</div>}
 

@@ -239,7 +239,7 @@ function SortableWalletItem({
       ref={setNodeRef}
       style={style}
       onClick={() => onOpenCashLog(wallet)}
-      className={`flex items-center justify-between border-b border-gray-300 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0 transition-all ${
+      className={`flex items-center justify-between border-b border-gray-300 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0 transition-all rounded-md p-1 -m-1 hover:bg-emerald-50 dark:hover:bg-slate-700/40 ${
         isDragging ? 'opacity-70 scale-[0.99] shadow-md' : ''
       }`}
       role='button'
@@ -252,10 +252,24 @@ function SortableWalletItem({
       }}
     >
       <div
-        className='text-left rounded p-1 -m-1 hover:bg-emerald-50 dark:hover:bg-slate-700/40 transition-colors flex-1'
+        className='text-left transition-colors flex-1'
         title='Open cash log for this wallet'
       >
         <div className='font-bold'>{wallet.name}</div>
+        <div
+          className={`font-mono ${
+            showNominal
+              ? wallet.balance < 0
+                ? 'text-red-600 dark:text-red-400'
+                : 'text-green-700 dark:text-green-300'
+              : 'text-gray-500 dark:text-gray-400'
+          }`}
+        >
+          {wallet.balance < 0 ? '- ' : ''}Rp{' '}
+          {showNominal
+            ? Math.abs(wallet.balance).toLocaleString('id-ID')
+            : '••••••••'}
+        </div>
         {goalSummary && (
           <div className='flex items-center gap-2 mt-1 flex-wrap'>
             <span
@@ -274,20 +288,6 @@ function SortableWalletItem({
             </span>
           </div>
         )}
-        <div
-          className={`font-mono ${
-            showNominal
-              ? wallet.balance < 0
-                ? 'text-red-600 dark:text-red-400'
-                : 'text-green-700 dark:text-green-300'
-              : 'text-gray-500 dark:text-gray-400'
-          }`}
-        >
-          {wallet.balance < 0 ? '- ' : ''}Rp{' '}
-          {showNominal
-            ? Math.abs(wallet.balance).toLocaleString('id-ID')
-            : '••••••••'}
-        </div>
         {!wallet.excludeFromTotal && (
           <div className='flex items-center gap-2 mt-1'>
             <div
@@ -308,24 +308,27 @@ function SortableWalletItem({
             </span>
           </div>
         )}
+      </div>
+
+      <div className='flex items-center gap-1'>
         {goalSummary && (
-          <div className='mt-2'>
+          <div
+            className='inline-flex items-center justify-center w-10 h-10 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 hover:bg-emerald-200 dark:hover:bg-emerald-800/60'
+            title='Track Goal'
+          >
             <button
               type='button'
               onClick={(event) => {
                 event.stopPropagation();
                 onTrackGoal(wallet);
               }}
-              className='inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 hover:bg-emerald-200 dark:hover:bg-emerald-800/60'
+              className='inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-800/60'
+              aria-label='Track goal'
             >
-              <TrackChangesIcon fontSize='inherit' />
-              Track Goal
+              <TrackChangesIcon fontSize='small' />
             </button>
           </div>
         )}
-      </div>
-
-      <div className='flex items-center gap-1'>
         <span
           onClick={(event) => event.stopPropagation()}
           className={`p-2 cursor-move text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 rounded transition-all ${
