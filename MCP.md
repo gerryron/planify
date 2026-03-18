@@ -64,10 +64,14 @@ Planify memberikan nilai utama berikut:
 - Dashboard landing page
 - Sidebar navigation
 - Dark mode toggle
+- Responsive mobile/desktop sidebar (mobile drawer + desktop collapse)
 - Monthly budget management
 - Cash log management
 - Wallet management
 - Category management
+- PWA install support (manifest + service worker)
+- Offline fallback page
+- Offline write queue and sync replay for API mutation requests
 - PostgreSQL database melalui Prisma
 - Next.js API routes
 - Unit test untuk backend route utama
@@ -98,8 +102,9 @@ Memberikan titik masuk utama ke aplikasi serta memperjelas positioning produk ke
 
 ### Status Implementasi
 
-- Sudah ada dalam bentuk landing page sederhana.
-- Belum ada KPI summary, chart, atau ringkasan finansial.
+- Sudah menampilkan ringkasan finansial bulanan dan mode summary.
+- Sudah memiliki chart untuk tren income/outcome dan komposisi pengeluaran.
+- Sudah mendukung interaksi mobile yang lebih ramah sentuhan.
 
 ### Acceptance Criteria
 
@@ -121,16 +126,45 @@ Memudahkan pengguna berpindah antar modul dan mengubah tema tampilan.
 - Menampilkan menu sekunder:
   - Wallets
   - Categories
+  - Settings
+- Menampilkan menu Swagger hanya saat environment development.
 - Menandai halaman aktif.
 - Menyediakan toggle dark mode.
 - Menyimpan preferensi dark mode di local storage.
 - Menyediakan grup menu Options yang bisa dibuka dan ditutup.
+- Menyediakan mode drawer di mobile.
+- Menyediakan mode collapse/expand di desktop.
 
 ### Acceptance Criteria
 
 - Navigasi aktif selalu ter-highlight.
 - Dark mode bertahan setelah reload halaman.
 - Menu sekunder dapat dibuka dan ditutup tanpa reload.
+- Menu Swagger tidak tampil di production.
+- Sidebar mobile dapat dibuka/tutup tanpa mengganggu konten utama.
+
+## 7.7 PWA dan Offline Sync
+
+### Tujuan
+
+Meningkatkan pengalaman mobile dengan installable web app dan ketahanan saat jaringan tidak stabil.
+
+### Kebutuhan Fungsional
+
+- Aplikasi memiliki web app manifest dan icon PWA PNG.
+- Service worker melakukan cache static asset dan halaman inti.
+- Navigasi dokumen memiliki fallback ke halaman offline.
+- Request API write saat offline dimasukkan ke antrean lokal dan direplay saat online.
+- Pengguna dapat melihat status antrean sync di halaman Settings.
+- Pengguna dapat memicu replay antrean secara manual dari Settings.
+- Menampilkan riwayat sync gagal, termasuk filter dan clear history.
+
+### Acceptance Criteria
+
+- Aplikasi dapat di-install di perangkat mobile yang mendukung PWA.
+- Halaman offline ditampilkan saat dokumen tidak bisa dimuat dari network.
+- Request write tidak hilang saat offline, melainkan masuk antrean.
+- Antrean tersinkronisasi kembali saat koneksi tersedia.
 
 ## 7.3 Monthly Budget Management
 

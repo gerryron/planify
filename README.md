@@ -2,6 +2,16 @@
 
 Planify is a personal finance application built with Next.js + Prisma + PostgreSQL.
 
+## Key Features
+
+- Monthly budget planning with reorder and carry-over support
+- Cash log tracking with wallet/category integration
+- Wallet management and transfer flow
+- Category management with parent-child structure
+- Responsive mobile-first layout and collapsible sidebar
+- PWA support (installable app, offline fallback page, service worker caching)
+- Offline write queue for API mutations with replay sync when connection recovers
+
 ## Prerequisites
 
 - Node.js 20+
@@ -55,6 +65,11 @@ The app will run on:
 - Next.js: http://localhost:3000
 - Swagger UI: http://localhost:3010
 
+Notes:
+
+- Swagger UI is intended for development workflow and is linked from sidebar only in `NODE_ENV=development`.
+- OpenAPI JSON spec is available at `GET /api/swagger`.
+
 ## Re-running Dev Seed
 
 ```bash
@@ -83,10 +98,19 @@ npm run build
 npm run start
 ```
 
+## PWA and Offline Behavior
+
+- Manifest is provided by `src/app/manifest.ts`.
+- Service worker is served from `public/sw.js` and registered in production mode.
+- Offline fallback page is available at `/offline`.
+- API write requests (`POST`, `PUT`, `PATCH`, `DELETE` to `/api/*`) are queued offline and replayed when online.
+- Queue diagnostics are available in Settings (pending count, sync now, failed sync history).
+- Manual install button is available on mobile; iOS Safari shows Add to Home Screen hint.
+
 ## Important Scripts
 
 - `npm run db:generate` generate Prisma client
 - `npm run db:migrate:deploy` apply migration
 - `npm run db:setup:local` migration + dev mock seed
 - `npm run db:setup:deploy` migration + generate for deploy server
-- `npm run dev` run Next + Swagger
+- `npm run dev` run Next + Swagger helper process for local development

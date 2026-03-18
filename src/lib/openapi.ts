@@ -2,9 +2,9 @@ export const openApiSpec = {
   openapi: '3.0.3',
   info: {
     title: 'Planify API',
-    version: '1.0.0',
+    version: '1.1.0',
     description:
-      'Dokumentasi API Planify. Semua endpoint yang ditambah/diubah wajib disinkronkan ke spesifikasi Swagger ini.',
+      'Dokumentasi API Planify. Semua endpoint yang ditambah/diubah wajib disinkronkan ke spesifikasi Swagger ini. JSON spec tersedia di /api/swagger dan UI Swagger digunakan pada workflow development.',
   },
   servers: [{ url: '/' }],
   tags: [
