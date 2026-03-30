@@ -110,6 +110,16 @@ jest.mock('@/generated/prisma/client', () => {
     PrismaClient: jest.fn().mockImplementation(() => {
       const client = {
         wallet: {
+          findFirst: jest.fn(
+            ({ where }: { where: { id?: number; userId?: string } }) => {
+              if (where.id) {
+                return Promise.resolve(
+                  wallets.find((wallet) => wallet.id === where.id) ?? null,
+                );
+              }
+              return Promise.resolve(null);
+            },
+          ),
           findUnique: jest.fn(
             ({ where }: { where: { id?: number; name?: string } }) => {
               if (where.id) {
@@ -153,6 +163,7 @@ jest.mock('@/generated/prisma/client', () => {
                 type: 'income' | 'outcome';
                 name?: string | { in: string[] };
                 parentId?: number | null;
+                OR?: Array<{ systemDefault?: boolean; userId?: string }>;
               };
             }) => {
               const found = categories.find((category) => {
@@ -195,6 +206,8 @@ jest.mock('@/generated/prisma/client', () => {
                 name: string;
                 type: 'income' | 'outcome';
                 parentId: number | null;
+                userId?: string;
+                systemDefault?: boolean;
               };
             }) => {
               const duplicate = categories.find(

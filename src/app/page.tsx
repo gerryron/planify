@@ -1,5 +1,5 @@
-import DashboardView from '@/features/dashboard/components/DashboardView';
+import AuthEntryPage from '@/features/auth/components/AuthEntryPage';
 
-export default function DashboardPage() {
-  return <DashboardView />;
+export default function EntryPage() {
+  return <AuthEntryPage mode='login' />;
 }

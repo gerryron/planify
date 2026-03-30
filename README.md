@@ -29,6 +29,10 @@ Main variable example:
 ```env
 DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/planify?schema=public"
 NODE_ENV="development"
+JWT_SECRET="change-this-to-a-long-random-secret"
+SUPERADMIN_EMAIL="superadmin@planify.local"
+SUPERADMIN_PASSWORD="change-this-superadmin-password"
+SUPERADMIN_NAME="Super Admin"
 ```
 
 For production deployment:
@@ -36,7 +40,18 @@ For production deployment:
 ```env
 DATABASE_URL="postgresql://DB_USER:DB_PASSWORD@DB_HOST:5432/planify?schema=public&sslmode=require"
 NODE_ENV="production"
+JWT_SECRET="long-random-production-secret"
+SUPERADMIN_EMAIL="admin@yourdomain.com"
+SUPERADMIN_PASSWORD="strong-production-admin-password"
+SUPERADMIN_NAME="Production Admin"
 ```
+
+Admin bootstrap notes:
+
+- On first app launch, Planify will auto-create/update one superadmin account from `SUPERADMIN_EMAIL` and `SUPERADMIN_PASSWORD`.
+- If `SUPERADMIN_PASSWORD` changes on redeploy, superadmin-owned finance data is cleared and credentials are updated automatically.
+- Any legacy user (`legacy.user@planify.local`) and other superadmin accounts are cleaned up automatically.
+- Keep the superadmin password in environment variables only.
 
 ## First-Time Local Setup
 

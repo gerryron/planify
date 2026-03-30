@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { POST, GET, PATCH, DELETE } from './route';
 import { BudgetInput } from '@/features/monthly-budget/types/budget';
 
-type Budget = BudgetInput & { id: string; sortOrder: number };
+type Budget = BudgetInput & { id: number; sortOrder: number; userId?: string };
 
 function getMonthOffset(offset: number): string {
   const now = new Date();
@@ -16,19 +16,55 @@ jest.mock('@/generated/prisma/client', () => {
   return {
     PrismaClient: jest.fn().mockImplementation(() => ({
       monthlyBudget: {
+        count: jest.fn(
+          ({
+            where,
+          }: {
+            where?: { id?: { in?: number[] }; userId?: string };
+          }) => {
+            let filtered = budgets;
+            if (where?.userId) {
+              filtered = filtered.filter(
+                (budget) => budget.userId === where.userId,
+              );
+            }
+            if (where?.id?.in) {
+              filtered = filtered.filter((budget) =>
+                where.id?.in?.includes(budget.id),
+              );
+            }
+            return Promise.resolve(filtered.length);
+          },
+        ),
         findFirst: jest.fn(
           ({
             where,
             orderBy,
           }: {
-            where?: { month?: string };
-            orderBy: { sortOrder: 'desc' | 'asc' };
+            where?: { month?: string; id?: number; userId?: string };
+            orderBy?: { sortOrder: 'desc' | 'asc' };
             select?: { sortOrder: boolean };
           }) => {
-            const filtered = where?.month
-              ? budgets.filter((budget) => budget.month === where.month)
-              : budgets;
+            let filtered = budgets;
+            if (where?.month) {
+              filtered = filtered.filter(
+                (budget) => budget.month === where.month,
+              );
+            }
+            if (where?.id) {
+              filtered = filtered.filter((budget) => budget.id === where.id);
+            }
+            if (where?.userId) {
+              filtered = filtered.filter(
+                (budget) => budget.userId === where.userId,
+              );
+            }
+
             if (filtered.length === 0) return Promise.resolve(null);
+
+            if (!orderBy) {
+              return Promise.resolve({ id: filtered[0].id });
+            }
 
             const sorted = [...filtered].sort((a, b) =>
               orderBy.sortOrder === 'desc'
@@ -39,10 +75,14 @@ jest.mock('@/generated/prisma/client', () => {
           },
         ),
         create: jest.fn(
-          ({ data }: { data: BudgetInput & { sortOrder?: number } }) => {
+          ({
+            data,
+          }: {
+            data: BudgetInput & { sortOrder?: number; userId?: string };
+          }) => {
             const budget: Budget = {
               ...data,
-              id: `${budgets.length + 1}`,
+              id: budgets.length + 1,
               sortOrder: data.sortOrder ?? budgets.length,
             };
             budgets.push(budget);
@@ -52,6 +92,7 @@ jest.mock('@/generated/prisma/client', () => {
         findMany: jest.fn(
           (args?: {
             where?: {
+              userId?: string;
               month?: string | { gt: string };
             };
             orderBy?:
@@ -63,17 +104,23 @@ jest.mock('@/generated/prisma/client', () => {
               [...list].sort((a, b) => a.sortOrder - b.sortOrder);
 
             if (!monthFilter) return Promise.resolve(sortBudgets(budgets));
+            let base = budgets;
+            if (args?.where && 'userId' in args.where && args.where.userId) {
+              base = base.filter(
+                (budget) => budget.userId === args.where?.userId,
+              );
+            }
             if (typeof monthFilter === 'string') {
               return Promise.resolve(
-                sortBudgets(budgets.filter((b) => b.month === monthFilter)),
+                sortBudgets(base.filter((b) => b.month === monthFilter)),
               );
             }
             if ('gt' in monthFilter) {
               return Promise.resolve(
-                sortBudgets(budgets.filter((b) => b.month > monthFilter.gt)),
+                sortBudgets(base.filter((b) => b.month > monthFilter.gt)),
               );
             }
-            return Promise.resolve(sortBudgets(budgets));
+            return Promise.resolve(sortBudgets(base));
           },
         ),
         update: jest.fn(
@@ -81,7 +128,7 @@ jest.mock('@/generated/prisma/client', () => {
             where,
             data,
           }: {
-            where: { id: string };
+            where: { id: number };
             data: Partial<BudgetInput> & { sortOrder?: number };
           }) => {
             const idx = budgets.findIndex((b) => b.id === where.id);
@@ -90,7 +137,7 @@ jest.mock('@/generated/prisma/client', () => {
             return Promise.resolve(budgets[idx]);
           },
         ),
-        delete: jest.fn(({ where }: { where: { id: string } }) => {
+        delete: jest.fn(({ where }: { where: { id: number } }) => {
           budgets = budgets.filter((b) => b.id !== where.id);
           return Promise.resolve();
         }),
@@ -103,8 +150,8 @@ jest.mock('@/generated/prisma/client', () => {
 });
 
 describe('Monthly Budget API', () => {
-  let id1: string;
-  let id2: string;
+  let id1: number;
+  let id2: number;
   const prevMonth = getMonthOffset(-1);
   const nextMonth = getMonthOffset(1);
 

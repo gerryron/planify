@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server';
 import { POST, GET, PATCH, DELETE } from './route';
 import { WalletsInput } from '@/features/wallets/types/wallets';
 
-type Wallet = WalletsInput & { id: number; sortOrder: number };
+type Wallet = WalletsInput & { id: number; sortOrder: number; userId?: string };
 const adjustmentLogs: Array<{
   id: number;
   date: string;
@@ -11,6 +11,7 @@ const adjustmentLogs: Array<{
   walletName: string;
   excludeFromReport: boolean;
   categoryId: number | null;
+  userId?: string;
 }> = [];
 
 jest.mock('@/generated/prisma/client', () => {
@@ -41,9 +42,32 @@ jest.mock('@/generated/prisma/client', () => {
           ),
         },
         wallet: {
-          count: jest.fn(() => Promise.resolve(wallets.length)),
+          count: jest.fn(
+            ({
+              where,
+            }: {
+              where?: { id?: { in?: number[] }; userId?: string };
+            } = {}) => {
+              let filtered = wallets;
+              if (where?.userId) {
+                filtered = filtered.filter(
+                  (wallet) => wallet.userId === where.userId,
+                );
+              }
+              if (where?.id?.in) {
+                filtered = filtered.filter((wallet) =>
+                  where.id?.in?.includes(wallet.id),
+                );
+              }
+              return Promise.resolve(filtered.length);
+            },
+          ),
           create: jest.fn(
-            ({ data }: { data: WalletsInput & { sortOrder?: number } }) => {
+            ({
+              data,
+            }: {
+              data: WalletsInput & { sortOrder?: number; userId?: string };
+            }) => {
               const wallet: Wallet = {
                 ...data,
                 id: wallets.length + 1,
@@ -55,13 +79,33 @@ jest.mock('@/generated/prisma/client', () => {
           ),
           findFirst: jest.fn(
             ({
+              where,
               orderBy,
             }: {
-              orderBy: { sortOrder: 'desc' | 'asc' };
+              where?: { id?: number; userId?: string };
+              orderBy?: { sortOrder: 'desc' | 'asc' };
               select?: { sortOrder: boolean };
             }) => {
-              if (wallets.length === 0) return Promise.resolve(null);
-              const sorted = [...wallets].sort((a, b) =>
+              let filtered = wallets;
+              if (where?.userId) {
+                filtered = filtered.filter(
+                  (wallet) => wallet.userId === where.userId,
+                );
+              }
+
+              if (where?.id !== undefined) {
+                const found =
+                  filtered.find((wallet) => wallet.id === where.id) ?? null;
+                return Promise.resolve(found);
+              }
+
+              if (filtered.length === 0) return Promise.resolve(null);
+
+              if (!orderBy) {
+                return Promise.resolve(filtered[0]);
+              }
+
+              const sorted = [...filtered].sort((a, b) =>
                 orderBy.sortOrder === 'desc'
                   ? b.sortOrder - a.sortOrder
                   : a.sortOrder - b.sortOrder,
@@ -69,13 +113,22 @@ jest.mock('@/generated/prisma/client', () => {
               return Promise.resolve({ sortOrder: sorted[0].sortOrder });
             },
           ),
-          findMany: jest.fn(() =>
-            Promise.resolve(
-              [...wallets].sort(
-                (a, b) =>
-                  a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-              ),
-            ),
+          findMany: jest.fn(
+            ({ where }: { where?: { userId?: string } } = {}) => {
+              let filtered = wallets;
+              if (where?.userId) {
+                filtered = filtered.filter(
+                  (wallet) => wallet.userId === where.userId,
+                );
+              }
+
+              return Promise.resolve(
+                [...filtered].sort(
+                  (a, b) =>
+                    a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+                ),
+              );
+            },
           ),
           findUnique: jest.fn(({ where }: { where: { id: number } }) => {
             const wallet = wallets.find((item) => item.id === where.id) ?? null;
@@ -116,6 +169,7 @@ jest.mock('@/generated/prisma/client', () => {
                 walletName: string;
                 excludeFromReport: boolean;
                 categoryId: number | null;
+                userId?: string;
               };
             }) => {
               const record = {

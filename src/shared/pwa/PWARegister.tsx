@@ -142,7 +142,7 @@ export default function PWARegister() {
       {showIosHint && (
         <div className='fixed bottom-4 left-4 right-4 z-70 md:hidden rounded-xl border border-emerald-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900'>
           <p className='text-sm text-slate-700 dark:text-slate-100'>
-            Install app di iPhone: tap Share lalu pilih Add to Home Screen.
+            Install app on iPhone: tap Share, then choose Add to Home Screen.
           </p>
           <button
             type='button'
@@ -157,7 +157,7 @@ export default function PWARegister() {
       {updateReady && (
         <div className='fixed bottom-4 right-4 z-70 max-w-sm rounded-xl border border-emerald-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900'>
           <p className='text-sm text-slate-700 dark:text-slate-100'>
-            Update aplikasi tersedia.
+            App update is available.
           </p>
           <button
             type='button'

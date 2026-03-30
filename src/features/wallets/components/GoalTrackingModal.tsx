@@ -111,7 +111,7 @@ export default function GoalTrackingModal({
         <div className='grid grid-cols-1 md:grid-cols-2 gap-4 p-5'>
           <div className='rounded-lg border border-emerald-200 dark:border-slate-700 p-4'>
             <p className='text-sm text-gray-500 dark:text-gray-400'>
-              Nominal progress
+              Progress amount
             </p>
             <SemiGauge
               value={summary.progressPercent}

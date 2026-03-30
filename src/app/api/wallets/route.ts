@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { WalletsInput } from '@/features/wallets/types/wallets';
 import { prisma } from '@/core/db/prisma';
 import { ok, badRequest, serverError } from '@/core/http/apiResponse';
+import { requireAuth } from '@/core/auth/requireAuth';
 
 function isValidDueMonth(value: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
@@ -25,6 +26,9 @@ function toId(value: unknown): number | null {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const {
       name,
@@ -53,12 +57,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const currentMonth = new Date().toISOString().slice(0, 7);
 
       const lastWallet = await tx.wallet.findFirst({
+        where: { userId: auth.user.sub },
         orderBy: { sortOrder: 'desc' },
         select: { sortOrder: true },
       });
 
       const created = await tx.wallet.create({
         data: {
+          userId: auth.user.sub,
           name: name.trim(),
           balance,
           excludeFromTotal:
@@ -76,6 +82,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const today = new Date().toISOString().slice(0, 10);
         const targetCategory = await tx.category.findFirst({
           where: {
+            OR: [{ systemDefault: true }, { userId: auth.user.sub }],
             name: balance > 0 ? 'Transfer In' : 'Transfer Out',
             type: balance > 0 ? 'income' : 'outcome',
           },
@@ -88,6 +95,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         await tx.cashLog.create({
           data: {
+            userId: auth.user.sub,
             date: today,
             description: 'Adjust Balance',
             amount: Math.abs(balance),
@@ -113,9 +121,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const wallets = await prisma.wallet.findMany({
+      where: { userId: auth.user.sub },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
     return ok(wallets);
@@ -127,6 +139,9 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const payload: Partial<WalletsInput> & {
       id?: number | string;
@@ -140,6 +155,17 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
       if (orderedIds.length === 0) {
         return badRequest('orderedIds is required');
+      }
+
+      const ownedCount = await prisma.wallet.count({
+        where: {
+          userId: auth.user.sub,
+          id: { in: orderedIds },
+        },
+      });
+
+      if (ownedCount !== orderedIds.length) {
+        return badRequest('Some wallets are not found for current user');
       }
 
       await prisma.$transaction(
@@ -160,8 +186,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     if (!numericId) return badRequest('ID is required');
 
     const wallet = await prisma.$transaction(async (tx) => {
-      const existing = await tx.wallet.findUnique({
-        where: { id: numericId },
+      const existing = await tx.wallet.findFirst({
+        where: { id: numericId, userId: auth.user.sub },
         select: {
           id: true,
           name: true,
@@ -232,6 +258,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         const adjustmentNominal = Math.abs(adjustmentAmount);
         const targetCategory = await tx.category.findFirst({
           where: {
+            OR: [{ systemDefault: true }, { userId: auth.user.sub }],
             name: adjustmentAmount > 0 ? 'Transfer In' : 'Transfer Out',
             type: adjustmentAmount > 0 ? 'income' : 'outcome',
           },
@@ -244,6 +271,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
         await tx.cashLog.create({
           data: {
+            userId: auth.user.sub,
             date: today,
             description: 'Adjust Balance',
             amount: adjustmentNominal,
@@ -291,12 +319,26 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const raw = (await req.json()) as { id?: number | string };
     const id = toId(raw.id);
     if (!id) return badRequest('ID is required');
 
-    const totalWallets = await prisma.wallet.count();
+    const owned = await prisma.wallet.findFirst({
+      where: { id, userId: auth.user.sub },
+      select: { id: true },
+    });
+
+    if (!owned) {
+      return badRequest('Wallet not found');
+    }
+
+    const totalWallets = await prisma.wallet.count({
+      where: { userId: auth.user.sub },
+    });
     if (totalWallets <= 1) {
       return badRequest('Wallet must be at least 1');
     }

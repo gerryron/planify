@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/db/prisma';
 import { badRequest, ok, serverError } from '@/core/http/apiResponse';
+import { requireAuth } from '@/core/auth/requireAuth';
 import { CategoryType } from '@/features/categories/types/category';
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const categories = await prisma.category.findMany({
+      where: {
+        OR: [{ systemDefault: true }, { userId: auth.user.sub }],
+      },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
 
@@ -20,10 +27,14 @@ export async function GET(): Promise<NextResponse> {
 async function validateParent(
   parentId: number,
   type: CategoryType,
+  userId: string,
   currentCategoryId?: number,
 ): Promise<{ valid: true } | { valid: false; message: string }> {
-  const parent = await prisma.category.findUnique({
-    where: { id: parentId },
+  const parent = await prisma.category.findFirst({
+    where: {
+      id: parentId,
+      OR: [{ userId }, { systemDefault: true }],
+    },
     select: { id: true, type: true, parentId: true },
   });
 
@@ -66,6 +77,9 @@ function toId(value: unknown): number | null {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const {
       name,
@@ -88,7 +102,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return badRequest('Parent category not found');
     }
     if (cleanParentId) {
-      const validation = await validateParent(cleanParentId, type);
+      const validation = await validateParent(
+        cleanParentId,
+        type,
+        auth.user.sub,
+      );
       if (!validation.valid) return badRequest(validation.message);
     }
 
@@ -97,6 +115,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         name: name.trim(),
         type,
         parentId: cleanParentId,
+        userId: auth.user.sub,
+        systemDefault: false,
       },
     });
 
@@ -107,6 +127,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const {
       id,
@@ -126,19 +149,23 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       return badRequest('ID is required');
     }
 
-    const existing = await prisma.category.findUnique({
-      where: { id: numericId },
-      select: { id: true, type: true, parentId: true },
+    const existing = await prisma.category.findFirst({
+      where: { id: numericId, userId: auth.user.sub },
+      select: { id: true, type: true, parentId: true, systemDefault: true },
     });
 
     if (!existing) {
       return badRequest('Category not found');
     }
 
+    if (existing.systemDefault) {
+      return badRequest('Default category cannot be modified');
+    }
+
     const nextType = type ?? existing.type;
     if (type && type !== existing.type && existing.parentId === null) {
       const childCount = await prisma.category.count({
-        where: { parentId: numericId },
+        where: { parentId: numericId, userId: auth.user.sub },
       });
       if (childCount > 0) {
         return badRequest(
@@ -166,6 +193,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       const validation = await validateParent(
         nextParentId,
         nextType,
+        auth.user.sub,
         numericId,
       );
       if (!validation.valid) return badRequest(validation.message);
@@ -193,6 +221,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const raw = (await req.json()) as { id?: number | string };
     const id = toId(raw.id);
@@ -201,8 +232,21 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       return badRequest('ID is required');
     }
 
+    const category = await prisma.category.findFirst({
+      where: { id, userId: auth.user.sub },
+      select: { id: true, systemDefault: true },
+    });
+
+    if (!category) {
+      return badRequest('Category not found');
+    }
+
+    if (category.systemDefault) {
+      return badRequest('Default category cannot be deleted');
+    }
+
     const childCount = await prisma.category.count({
-      where: { parentId: id },
+      where: { parentId: id, userId: auth.user.sub },
     });
 
     if (childCount > 0) {

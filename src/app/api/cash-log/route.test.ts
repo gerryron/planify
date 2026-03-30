@@ -4,6 +4,7 @@ import { CashLogInput } from '@/features/cash-log/types/cashLog';
 
 type CashLog = CashLogInput & {
   id: number;
+  userId?: string;
   category: {
     id: number;
     name: string;
@@ -39,24 +40,31 @@ jest.mock('@/generated/prisma/client', () => {
     PrismaClient: jest.fn().mockImplementation(() => {
       const client = {
         category: {
-          findUnique: jest.fn(({ where }: { where: { id: number } }) => {
+          findFirst: jest.fn(({ where }: { where: { id: number } }) => {
             const category =
               categories.find((item) => item.id === where.id) ?? null;
             return Promise.resolve(category);
           }),
         },
         wallet: {
-          findUnique: jest.fn(({ where }: { where: { name?: string } }) => {
-            if (where.name) {
-              const wallet =
-                wallets.find((item) => item.name === where.name) ?? null;
-              return Promise.resolve(
-                wallet ? { id: wallet.id, balance: wallet.balance } : null,
-              );
-            }
+          findUnique: jest.fn(
+            ({
+              where,
+            }: {
+              where: { userId_name?: { userId: string; name: string } };
+            }) => {
+              if (where.userId_name?.name) {
+                const { name } = where.userId_name;
+                const wallet =
+                  wallets.find((item) => item.name === name) ?? null;
+                return Promise.resolve(
+                  wallet ? { id: wallet.id, balance: wallet.balance } : null,
+                );
+              }
 
-            return Promise.resolve(null);
-          }),
+              return Promise.resolve(null);
+            },
+          ),
           update: jest.fn(
             ({
               where,
@@ -73,23 +81,26 @@ jest.mock('@/generated/prisma/client', () => {
           ),
         },
         cashLog: {
-          create: jest.fn(({ data }: { data: CashLogInput }) => {
-            const category =
-              categories.find((item) => item.id === data.categoryId) ?? null;
-            const record: CashLog = {
-              id: logs.length + 1,
-              ...data,
-              category,
-            };
-            logs.push(record);
-            return Promise.resolve(record);
-          }),
+          create: jest.fn(
+            ({ data }: { data: CashLogInput & { userId?: string } }) => {
+              const category =
+                categories.find((item) => item.id === data.categoryId) ?? null;
+              const record: CashLog = {
+                id: logs.length + 1,
+                ...data,
+                category,
+              };
+              logs.push(record);
+              return Promise.resolve(record);
+            },
+          ),
           findMany: jest.fn(
             ({
               where,
               orderBy,
             }: {
               where?: {
+                userId?: string;
                 date?:
                   | string
                   | { startsWith?: string; gt?: string; gte?: string };
@@ -100,6 +111,10 @@ jest.mock('@/generated/prisma/client', () => {
               }>;
             } = {}) => {
               let result = [...logs];
+
+              if (where?.userId) {
+                result = result.filter((log) => log.userId === where.userId);
+              }
 
               const dateFilter = where?.date;
               if (dateFilter) {
@@ -127,10 +142,17 @@ jest.mock('@/generated/prisma/client', () => {
               return Promise.resolve(result);
             },
           ),
-          findUnique: jest.fn(({ where }: { where: { id: number } }) => {
-            const found = logs.find((log) => log.id === where.id) ?? null;
-            return Promise.resolve(found);
-          }),
+          findFirst: jest.fn(
+            ({ where }: { where: { id: number; userId?: string } }) => {
+              const found =
+                logs.find(
+                  (log) =>
+                    log.id === where.id &&
+                    (!where.userId || log.userId === where.userId),
+                ) ?? null;
+              return Promise.resolve(found);
+            },
+          ),
           update: jest.fn(
             ({
               where,

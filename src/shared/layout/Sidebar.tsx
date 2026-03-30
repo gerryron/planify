@@ -1,7 +1,7 @@
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import NightlightIcon from '@mui/icons-material/Nightlight';
@@ -9,10 +9,12 @@ import MenuIcon from '@mui/icons-material/Menu';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 import PWAInstallButton from '@/shared/pwa/PWAInstallButton';
 import { getQueuedWriteCount } from '@/shared/pwa/writeQueueClient';
+import { authService, SessionUser } from '@/features/auth/services/authService';
 import { sidebarIcons } from './sidebarIcons';
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(true);
@@ -20,6 +22,7 @@ export default function Sidebar() {
   const [isDesktopOpen, setIsDesktopOpen] = useState(true);
   const [isThemeAnimating, setIsThemeAnimating] = useState(false);
   const [queueCount, setQueueCount] = useState(0);
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const themeAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -27,9 +30,13 @@ export default function Sidebar() {
   const THEME_SWITCH_ANIMATION_MS_MOBILE = 760;
 
   const mainMenus = [
-    { label: 'Home', href: '/' },
+    { label: 'Home', href: '/home' },
     { label: 'Monthly Budget', href: '/monthly-budget' },
     { label: 'Cash Log', href: '/cash-log' },
+  ] as const;
+
+  const adminOnlyMenus = [
+    { label: 'Admin Panel', href: '/admin-panel' },
   ] as const;
 
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -40,12 +47,24 @@ export default function Sidebar() {
     { label: 'Settings', href: '/settings' },
   ] as const;
 
-  const subMenus = isDevelopment
-    ? [
-        ...subMenusBase,
-        { label: 'Swagger', href: 'http://localhost:3010', external: true },
-      ]
-    : [...subMenusBase];
+  const subMenus = [
+    ...subMenusBase,
+    ...(isDevelopment
+      ? [{ label: 'Swagger', href: 'http://localhost:3010', external: true }]
+      : []),
+  ] as const;
+
+  const isSuperadmin = sessionUser?.role === 'superadmin';
+  const visibleMainMenus = isSuperadmin ? adminOnlyMenus : mainMenus;
+  const visibleSubMenus = isSuperadmin ? [] : subMenus;
+  const userDisplayName = sessionUser?.name?.trim() || 'User';
+  const userInitials =
+    userDisplayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .join('') || 'U';
 
   const syncThemeClass = (isDark: boolean) => {
     const method = isDark ? 'add' : 'remove';
@@ -66,6 +85,27 @@ export default function Sidebar() {
         setIsDesktopOpen(desktopSidebarOpen === 'true');
       }
     });
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadUser = async () => {
+      try {
+        const data = await authService.me();
+        if (!mounted) return;
+        setSessionUser(data.user);
+      } catch {
+        if (!mounted) return;
+        setSessionUser(null);
+      }
+    };
+
+    void loadUser();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -174,6 +214,11 @@ export default function Sidebar() {
 
   const closeMobileMenu = () => {
     setIsMobileOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await authService.logout();
+    router.replace('/login');
   };
 
   const closeDesktopMenu = () => {
@@ -299,6 +344,47 @@ export default function Sidebar() {
 
       <div
         className={
+          (darkMode
+            ? 'bg-slate-700/60 border-slate-600'
+            : 'bg-emerald-500/70 border-emerald-400') +
+          ' mb-4 rounded-xl border px-3 py-3'
+        }
+      >
+        <div className='flex items-center gap-3 min-w-0'>
+          <div
+            className={
+              (darkMode
+                ? 'bg-slate-200 text-slate-800'
+                : 'bg-white text-emerald-700') +
+              ' h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-sm font-bold'
+            }
+            aria-label='Profile initials'
+          >
+            {userInitials}
+          </div>
+          <div className='min-w-0'>
+            <p
+              className={
+                (darkMode ? 'text-slate-100' : 'text-white') +
+                ' truncate text-sm font-semibold'
+              }
+            >
+              {userDisplayName}
+            </p>
+            <p
+              className={
+                (darkMode ? 'text-slate-300' : 'text-emerald-50') +
+                ' truncate text-xs'
+              }
+            >
+              {isSuperadmin ? 'Superadmin' : 'Member'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={
           (darkMode ? 'bg-slate-600' : 'bg-emerald-400') + ' h-px mb-4'
         }
         aria-hidden='true'
@@ -306,7 +392,7 @@ export default function Sidebar() {
 
       <nav className='flex-1 overflow-y-auto'>
         <ul className='space-y-4'>
-          {mainMenus.map(({ label, href }) => {
+          {visibleMainMenus.map(({ label, href }) => {
             type SidebarLabel = keyof typeof sidebarIcons;
             const Icon = sidebarIcons[label as SidebarLabel];
             const isActive = pathname === href;
@@ -333,86 +419,104 @@ export default function Sidebar() {
               </li>
             );
           })}
-          <li>
-            <button
-              type='button'
-              onClick={() => setIsOptionsOpen((value) => !value)}
-              className={
-                (darkMode
-                  ? 'text-slate-400 hover:text-slate-200'
-                  : 'text-emerald-100 hover:text-white') +
-                ' w-full text-left font-medium text-sm flex items-center justify-between transition-colors px-1'
-              }
-              aria-expanded={isOptionsOpen}
-              aria-controls='options-submenu'
-            >
-              <span>Options</span>
-              <span>{isOptionsOpen ? '−' : '+'}</span>
-            </button>
-            {isOptionsOpen && (
-              <ul id='options-submenu' className='mt-2 space-y-2 pl-3'>
-                {subMenus.map(({ label, href }) => {
-                  type SidebarLabel = keyof typeof sidebarIcons;
-                  const Icon = sidebarIcons[label as SidebarLabel];
-                  const isExternal =
-                    typeof href === 'string' && href.startsWith('http');
-                  const isActive = pathname === href;
+          {visibleSubMenus.length > 0 && (
+            <li>
+              <button
+                type='button'
+                onClick={() => setIsOptionsOpen((value) => !value)}
+                className={
+                  (darkMode
+                    ? 'text-slate-400 hover:text-slate-200'
+                    : 'text-emerald-100 hover:text-white') +
+                  ' w-full text-left font-medium text-sm flex items-center justify-between transition-colors px-1'
+                }
+                aria-expanded={isOptionsOpen}
+                aria-controls='options-submenu'
+              >
+                <span>Options</span>
+                <span>{isOptionsOpen ? '−' : '+'}</span>
+              </button>
+              {isOptionsOpen && (
+                <ul id='options-submenu' className='mt-2 space-y-2 pl-3'>
+                  {visibleSubMenus.map(({ label, href }) => {
+                    type SidebarLabel = keyof typeof sidebarIcons;
+                    const Icon = sidebarIcons[label as SidebarLabel];
+                    const isExternal =
+                      typeof href === 'string' && href.startsWith('http');
+                    const isActive = pathname === href;
 
-                  return (
-                    <li key={label}>
-                      {isExternal ? (
-                        <a
-                          href={href}
-                          target='_blank'
-                          rel='noreferrer'
-                          onClick={closeMobileMenu}
-                          className={
-                            (darkMode
-                              ? 'text-slate-100 hover:text-slate-300'
-                              : 'text-emerald-50 hover:text-white') +
-                            ' font-medium flex items-center gap-2 rounded px-3 py-3 transition-colors'
-                          }
-                        >
-                          {Icon && <Icon fontSize='small' className='-ml-1' />}
-                          {label}
-                        </a>
-                      ) : (
-                        <Link
-                          href={href}
-                          onClick={closeMobileMenu}
-                          className={
-                            (darkMode
-                              ? isActive
-                                ? 'bg-slate-700 text-white font-bold'
-                                : 'text-slate-100 hover:text-slate-300'
-                              : isActive
-                                ? 'bg-emerald-500 text-white font-bold'
+                    return (
+                      <li key={label}>
+                        {isExternal ? (
+                          <a
+                            href={href}
+                            target='_blank'
+                            rel='noreferrer'
+                            onClick={closeMobileMenu}
+                            className={
+                              (darkMode
+                                ? 'text-slate-100 hover:text-slate-300'
                                 : 'text-emerald-50 hover:text-white') +
-                            ' font-medium flex items-center gap-2 rounded px-3 py-3 transition-colors'
-                          }
-                          aria-current={isActive ? 'page' : undefined}
-                        >
-                          {Icon && <Icon fontSize='small' className='-ml-1' />}
-                          {label}
-                        </Link>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </li>
+                              ' font-medium flex items-center gap-2 rounded px-3 py-3 transition-colors'
+                            }
+                          >
+                            {Icon && (
+                              <Icon fontSize='small' className='-ml-1' />
+                            )}
+                            {label}
+                          </a>
+                        ) : (
+                          <Link
+                            href={href}
+                            onClick={closeMobileMenu}
+                            className={
+                              (darkMode
+                                ? isActive
+                                  ? 'bg-slate-700 text-white font-bold'
+                                  : 'text-slate-100 hover:text-slate-300'
+                                : isActive
+                                  ? 'bg-emerald-500 text-white font-bold'
+                                  : 'text-emerald-50 hover:text-white') +
+                              ' font-medium flex items-center gap-2 rounded px-3 py-3 transition-colors'
+                            }
+                            aria-current={isActive ? 'page' : undefined}
+                          >
+                            {Icon && (
+                              <Icon fontSize='small' className='-ml-1' />
+                            )}
+                            {label}
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </li>
+          )}
         </ul>
       </nav>
 
       <div
         className={
           (darkMode ? 'text-slate-400' : 'text-emerald-100') +
-          ' mt-4 pt-3 border-t text-xs text-center ' +
+          ' mt-4 pt-3 border-t text-xs text-center space-y-3 ' +
           (darkMode ? 'border-slate-600' : 'border-emerald-400')
         }
       >
-        © {new Date().getFullYear()} Planify
+        <button
+          type='button'
+          onClick={() => void handleLogout()}
+          className={
+            (darkMode
+              ? 'border-slate-500 text-slate-100 hover:bg-slate-700'
+              : 'border-emerald-200 text-white hover:bg-emerald-500') +
+            ' w-full rounded-lg border px-3 py-2 text-sm font-medium transition-colors'
+          }
+        >
+          Logout
+        </button>
+        <br />© {new Date().getFullYear()} Planify
       </div>
     </>
   );
@@ -522,9 +626,24 @@ export default function Sidebar() {
               </button>
             </div>
 
+            <div className='mb-4 flex justify-center'>
+              <div
+                className={
+                  (darkMode
+                    ? 'bg-slate-200 text-slate-800'
+                    : 'bg-white text-emerald-700') +
+                  ' h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold'
+                }
+                title={userDisplayName}
+                aria-label={`Profile ${userDisplayName}`}
+              >
+                {userInitials}
+              </div>
+            </div>
+
             <nav className='flex-1 overflow-y-auto w-full'>
               <ul className='space-y-2'>
-                {mainMenus.map(({ label, href }) => {
+                {visibleMainMenus.map(({ label, href }) => {
                   type SidebarLabel = keyof typeof sidebarIcons;
                   const Icon = sidebarIcons[label as SidebarLabel];
                   const isActive = pathname === href;
@@ -554,64 +673,68 @@ export default function Sidebar() {
                 })}
               </ul>
 
-              <div
-                className={
-                  (darkMode ? 'bg-slate-600' : 'bg-emerald-400') +
-                  ' h-px my-3 mx-2'
-                }
-                aria-hidden='true'
-              />
+              {visibleSubMenus.length > 0 && (
+                <>
+                  <div
+                    className={
+                      (darkMode ? 'bg-slate-600' : 'bg-emerald-400') +
+                      ' h-px my-3 mx-2'
+                    }
+                    aria-hidden='true'
+                  />
 
-              <ul className='space-y-2'>
-                {subMenus.map(({ label, href }) => {
-                  type SidebarLabel = keyof typeof sidebarIcons;
-                  const Icon = sidebarIcons[label as SidebarLabel];
-                  const isExternal =
-                    typeof href === 'string' && href.startsWith('http');
-                  const isActive = pathname === href;
+                  <ul className='space-y-2'>
+                    {visibleSubMenus.map(({ label, href }) => {
+                      type SidebarLabel = keyof typeof sidebarIcons;
+                      const Icon = sidebarIcons[label as SidebarLabel];
+                      const isExternal =
+                        typeof href === 'string' && href.startsWith('http');
+                      const isActive = pathname === href;
 
-                  return (
-                    <li key={label}>
-                      {isExternal ? (
-                        <a
-                          href={href}
-                          target='_blank'
-                          rel='noreferrer'
-                          className={
-                            (darkMode
-                              ? 'text-slate-100 hover:text-slate-300'
-                              : 'text-emerald-50 hover:text-white') +
-                            ' h-10 w-10 mx-auto rounded-lg flex items-center justify-center transition-colors'
-                          }
-                          aria-label={label}
-                          title={label}
-                        >
-                          {Icon && <Icon fontSize='small' />}
-                        </a>
-                      ) : (
-                        <Link
-                          href={href}
-                          className={
-                            (darkMode
-                              ? isActive
-                                ? 'bg-slate-700 text-white'
-                                : 'text-slate-100 hover:text-slate-300'
-                              : isActive
-                                ? 'bg-emerald-500 text-white'
-                                : 'text-emerald-50 hover:text-white') +
-                            ' h-10 w-10 mx-auto rounded-lg flex items-center justify-center transition-colors'
-                          }
-                          aria-current={isActive ? 'page' : undefined}
-                          aria-label={label}
-                          title={label}
-                        >
-                          {Icon && <Icon fontSize='small' />}
-                        </Link>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+                      return (
+                        <li key={label}>
+                          {isExternal ? (
+                            <a
+                              href={href}
+                              target='_blank'
+                              rel='noreferrer'
+                              className={
+                                (darkMode
+                                  ? 'text-slate-100 hover:text-slate-300'
+                                  : 'text-emerald-50 hover:text-white') +
+                                ' h-10 w-10 mx-auto rounded-lg flex items-center justify-center transition-colors'
+                              }
+                              aria-label={label}
+                              title={label}
+                            >
+                              {Icon && <Icon fontSize='small' />}
+                            </a>
+                          ) : (
+                            <Link
+                              href={href}
+                              className={
+                                (darkMode
+                                  ? isActive
+                                    ? 'bg-slate-700 text-white'
+                                    : 'text-slate-100 hover:text-slate-300'
+                                  : isActive
+                                    ? 'bg-emerald-500 text-white'
+                                    : 'text-emerald-50 hover:text-white') +
+                                ' h-10 w-10 mx-auto rounded-lg flex items-center justify-center transition-colors'
+                              }
+                              aria-current={isActive ? 'page' : undefined}
+                              aria-label={label}
+                              title={label}
+                            >
+                              {Icon && <Icon fontSize='small' />}
+                            </Link>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
             </nav>
           </>
         )}

@@ -487,9 +487,7 @@ export default function MonthlyBudgetList({
               <button
                 type='button'
                 className='ml-1 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
-                aria-label={
-                  showNominal ? 'Sembunyikan nominal' : 'Tampilkan nominal'
-                }
+                aria-label={showNominal ? 'Hide amount' : 'Show amount'}
                 onClick={() => setShowNominal((v) => !v)}
                 tabIndex={0}
                 style={{

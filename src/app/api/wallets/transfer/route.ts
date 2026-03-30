@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/db/prisma';
 import { badRequest, ok } from '@/core/http/apiResponse';
+import { requireAuth } from '@/core/auth/requireAuth';
 
 type FeePayer = 'sender' | 'receiver';
 
@@ -42,6 +43,9 @@ function toId(value: unknown): number | null {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const payload = (await req.json()) as TransferPayload;
 
@@ -87,8 +91,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const result = await prisma.$transaction(async (tx) => {
       const [fromWallet, toWallet] = await Promise.all([
-        tx.wallet.findUnique({
-          where: { id: fromWalletId },
+        tx.wallet.findFirst({
+          where: { id: fromWalletId, userId: auth.user.sub },
           select: {
             id: true,
             name: true,
@@ -97,8 +101,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             goalAmount: true,
           },
         }),
-        tx.wallet.findUnique({
-          where: { id: toWalletId },
+        tx.wallet.findFirst({
+          where: { id: toWalletId, userId: auth.user.sub },
           select: {
             id: true,
             name: true,
@@ -144,6 +148,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const transferInCategory =
         (await tx.category.findFirst({
           where: {
+            OR: [{ systemDefault: true }, { userId: auth.user.sub }],
             type: 'income',
             name: 'Wallet Transfer In',
           },
@@ -151,6 +156,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         })) ??
         (await tx.category.findFirst({
           where: {
+            OR: [{ systemDefault: true }, { userId: auth.user.sub }],
             type: 'income',
             name: 'Transfer In',
           },
@@ -160,6 +166,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const transferOutCategory =
         (await tx.category.findFirst({
           where: {
+            OR: [{ systemDefault: true }, { userId: auth.user.sub }],
             type: 'outcome',
             name: 'Wallet Transfer Out',
           },
@@ -167,6 +174,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         })) ??
         (await tx.category.findFirst({
           where: {
+            OR: [{ systemDefault: true }, { userId: auth.user.sub }],
             type: 'outcome',
             name: 'Transfer Out',
           },
@@ -181,6 +189,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (enableFee) {
         const existingFeeCategory = await tx.category.findFirst({
           where: {
+            OR: [{ systemDefault: true }, { userId: auth.user.sub }],
             type: 'outcome',
             name: 'Transfer Fee',
           },
@@ -192,6 +201,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         } else {
           const transferParent = await tx.category.findFirst({
             where: {
+              OR: [{ systemDefault: true }, { userId: auth.user.sub }],
               type: 'outcome',
               name: 'Transfer',
               parentId: null,
@@ -205,6 +215,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
                 name: 'Transfer Fee',
                 type: 'outcome',
                 parentId: transferParent?.id ?? null,
+                userId: auth.user.sub,
+                systemDefault: false,
               },
               select: { id: true },
             });
@@ -213,6 +225,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           } catch {
             const reloadedFeeCategory = await tx.category.findFirst({
               where: {
+                OR: [{ systemDefault: true }, { userId: auth.user.sub }],
                 type: 'outcome',
                 name: 'Transfer Fee',
               },
@@ -256,6 +269,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       await tx.cashLog.create({
         data: {
+          userId: auth.user.sub,
           date,
           description: transferOutDescription,
           amount,
@@ -267,6 +281,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       await tx.cashLog.create({
         data: {
+          userId: auth.user.sub,
           date,
           description: transferInDescription,
           amount,
@@ -285,6 +300,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         await tx.cashLog.create({
           data: {
+            userId: auth.user.sub,
             date,
             description: feeDescription,
             amount: feeAmount,

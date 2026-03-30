@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/db/prisma';
 import { badRequest, notFound, ok } from '@/core/http/apiResponse';
+import { requireAuth } from '@/core/auth/requireAuth';
 import { CashLogInput } from '@/features/cash-log/types/cashLog';
 
 type CashLogRecord = CashLogInput & {
@@ -61,6 +62,9 @@ function validateCreatePayload(payload: Partial<CashLogInput>) {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const payload: Partial<CashLogInput> = await req.json();
     const validationError = validateCreatePayload(payload);
@@ -69,8 +73,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return badRequest(validationError);
     }
 
-    const category = await prisma.category.findUnique({
-      where: { id: payload.categoryId! },
+    const category = await prisma.category.findFirst({
+      where: {
+        id: payload.categoryId!,
+        OR: [{ systemDefault: true }, { userId: auth.user.sub }],
+      },
       select: { id: true, type: true },
     });
 
@@ -83,7 +90,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const record = await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findUnique({
-        where: { name: walletName },
+        where: { userId_name: { userId: auth.user.sub, name: walletName } },
         select: { id: true, balance: true },
       });
 
@@ -93,6 +100,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       const created = await tx.cashLog.create({
         data: {
+          userId: auth.user.sub,
           date: payload.date!,
           description: payload.description!.trim(),
           amount: payload.amount!,
@@ -130,6 +138,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const date = req.nextUrl.searchParams.get('date');
     const month = req.nextUrl.searchParams.get('month');
@@ -139,7 +150,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (date) {
       const logs = await prisma.cashLog.findMany({
-        where: { date },
+        where: { date, userId: auth.user.sub },
         orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
@@ -157,7 +168,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (month === 'future') {
       const logs = await prisma.cashLog.findMany({
-        where: { date: { gte: nextMonthStart } },
+        where: { userId: auth.user.sub, date: { gte: nextMonthStart } },
         orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
@@ -175,6 +186,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (month && month > currentMonth) {
       const logs = await prisma.cashLog.findMany({
+        where: { userId: auth.user.sub },
         orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
@@ -192,7 +204,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (month) {
       const logs = await prisma.cashLog.findMany({
-        where: { date: { startsWith: month } },
+        where: { userId: auth.user.sub, date: { startsWith: month } },
         orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
@@ -209,6 +221,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     const logs = await prisma.cashLog.findMany({
+      where: { userId: auth.user.sub },
       orderBy: [{ id: 'desc' }, { date: 'desc' }],
       include: {
         category: {
@@ -229,6 +242,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const rawPayload: Partial<CashLogInput> & { id?: number | string } =
       await req.json();
@@ -255,8 +271,11 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
 
     if (payload.categoryId !== undefined) {
-      const category = await prisma.category.findUnique({
-        where: { id: payload.categoryId },
+      const category = await prisma.category.findFirst({
+        where: {
+          id: payload.categoryId,
+          OR: [{ systemDefault: true }, { userId: auth.user.sub }],
+        },
         select: { id: true, type: true },
       });
 
@@ -266,8 +285,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const existing = await tx.cashLog.findUnique({
-        where: { id: logId },
+      const existing = await tx.cashLog.findFirst({
+        where: { id: logId, userId: auth.user.sub },
         select: {
           id: true,
           amount: true,
@@ -289,8 +308,11 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
       let nextCategoryType = existing.category?.type ?? null;
       if (payload.categoryId !== undefined) {
-        const nextCategory = await tx.category.findUnique({
-          where: { id: payload.categoryId },
+        const nextCategory = await tx.category.findFirst({
+          where: {
+            id: payload.categoryId,
+            OR: [{ systemDefault: true }, { userId: auth.user.sub }],
+          },
           select: { type: true },
         });
         if (!nextCategory) {
@@ -328,7 +350,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
       if (existing.walletName === nextWalletName) {
         const wallet = await tx.wallet.findUnique({
-          where: { name: nextWalletName },
+          where: {
+            userId_name: { userId: auth.user.sub, name: nextWalletName },
+          },
           select: { id: true, balance: true },
         });
         if (!wallet) {
@@ -344,11 +368,15 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         }
       } else {
         const oldWallet = await tx.wallet.findUnique({
-          where: { name: existing.walletName },
+          where: {
+            userId_name: { userId: auth.user.sub, name: existing.walletName },
+          },
           select: { id: true, balance: true },
         });
         const newWallet = await tx.wallet.findUnique({
-          where: { name: nextWalletName },
+          where: {
+            userId_name: { userId: auth.user.sub, name: nextWalletName },
+          },
           select: { id: true, balance: true },
         });
 
@@ -418,6 +446,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const raw = (await req.json()) as { id?: number | string };
     const id = toId(raw.id);
@@ -427,8 +458,8 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     }
 
     await prisma.$transaction(async (tx) => {
-      const existing = await tx.cashLog.findUnique({
-        where: { id },
+      const existing = await tx.cashLog.findFirst({
+        where: { id, userId: auth.user.sub },
         select: {
           id: true,
           amount: true,
@@ -456,7 +487,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       if (affects && existing.category?.type) {
         const delta = getWalletDelta(existing.amount, existing.category.type);
         const wallet = await tx.wallet.findUnique({
-          where: { name: existing.walletName },
+          where: {
+            userId_name: { userId: auth.user.sub, name: existing.walletName },
+          },
           select: { id: true, balance: true },
         });
 

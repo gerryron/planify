@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Planify',
     short_name: 'Planify',
     description:
-      'Aplikasi pencatatan cash flow harian dan pengelolaan budget bulanan.',
+      'A daily cash flow tracking and monthly budgeting application.',
     start_url: '/',
     scope: '/',
     display: 'standalone',

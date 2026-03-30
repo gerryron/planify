@@ -5,6 +5,7 @@ import {
 } from '@/features/monthly-budget/types/budget';
 import { prisma } from '@/core/db/prisma';
 import { ok, badRequest, serverError } from '@/core/http/apiResponse';
+import { requireAuth } from '@/core/auth/requireAuth';
 
 type MonthlyBudgetRecord = {
   id: number;
@@ -42,6 +43,9 @@ function toBudgetResponse(budget: MonthlyBudgetRecord): BudgetResponse {
 
 // Create monthly budget
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const { name, amount, month, category, type }: Partial<BudgetInput> =
       await req.json();
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const lastBudgetInMonth = await prisma.monthlyBudget.findFirst({
-      where: { month },
+      where: { month, userId: auth.user.sub },
       orderBy: { sortOrder: 'desc' },
       select: { sortOrder: true },
     });
@@ -69,6 +73,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const budget = await prisma.monthlyBudget.create({
       data: {
         ...createData,
+        userId: auth.user.sub,
         sortOrder: (lastBudgetInMonth?.sortOrder ?? -1) + 1,
       },
     });
@@ -81,6 +86,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
 // Get all monthly budgets
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const month = req.nextUrl.searchParams.get('month');
     const now = new Date();
@@ -89,20 +97,22 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     let budgets;
     if (!month) {
       budgets = await prisma.monthlyBudget.findMany({
+        where: { userId: auth.user.sub },
         orderBy: [{ month: 'asc' }, { sortOrder: 'asc' }],
       });
     } else if (month === 'future') {
       budgets = await prisma.monthlyBudget.findMany({
-        where: { month: { gt: currentMonth } },
+        where: { userId: auth.user.sub, month: { gt: currentMonth } },
         orderBy: [{ month: 'asc' }, { sortOrder: 'asc' }],
       });
     } else if (month > currentMonth) {
       budgets = await prisma.monthlyBudget.findMany({
+        where: { userId: auth.user.sub },
         orderBy: [{ month: 'asc' }, { sortOrder: 'asc' }],
       });
     } else {
       budgets = await prisma.monthlyBudget.findMany({
-        where: { month },
+        where: { month, userId: auth.user.sub },
         orderBy: { sortOrder: 'asc' },
       });
     }
@@ -121,6 +131,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
 // Update monthly budget
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const payload: Partial<BudgetInput> & {
       id?: number | string;
@@ -134,6 +147,17 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
       if (orderedIds.length === 0) {
         return badRequest('orderedIds is required');
+      }
+
+      const ownedCount = await prisma.monthlyBudget.count({
+        where: {
+          userId: auth.user.sub,
+          id: { in: orderedIds },
+        },
+      });
+
+      if (ownedCount !== orderedIds.length) {
+        return badRequest('Some budgets are not found for current user');
       }
 
       await prisma.$transaction(
@@ -161,6 +185,15 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       return badRequest('Type must be income, outcome, or carryover');
     }
 
+    const owned = await prisma.monthlyBudget.findFirst({
+      where: { id: numericId, userId: auth.user.sub },
+      select: { id: true },
+    });
+
+    if (!owned) {
+      return badRequest('Budget not found');
+    }
+
     const budget = await prisma.monthlyBudget.update({
       where: { id: numericId },
       data,
@@ -173,10 +206,23 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
 // Delete monthly budget
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const raw = (await req.json()) as { id?: number | string };
     const id = toId(raw.id);
     if (!id) return badRequest('ID is required');
+
+    const owned = await prisma.monthlyBudget.findFirst({
+      where: { id, userId: auth.user.sub },
+      select: { id: true },
+    });
+
+    if (!owned) {
+      return badRequest('Budget not found');
+    }
+
     await prisma.monthlyBudget.delete({ where: { id } });
     return ok({ success: true });
   } catch {

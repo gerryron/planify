@@ -23,6 +23,31 @@ enum WalletKind {
   goal
 }
 
+enum UserRole {
+  user
+  superadmin
+}
+
+enum UserStatus {
+  pending
+  active
+}
+
+model User {
+  id           String          @id @default(cuid())
+  name         String
+  email        String          @unique
+  passwordHash String
+  role         UserRole        @default(user)
+  status       UserStatus      @default(pending)
+  wallets      Wallet[]
+  cashLogs     CashLog[]
+  categories   Category[]
+  budgets      MonthlyBudget[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @default(now()) @updatedAt
+}
+
 model MonthlyBudget {
   id        Int    @id @default(autoincrement())
   name      String
@@ -31,42 +56,58 @@ model MonthlyBudget {
   category  String
   type      String // 'income' | 'outcome' | 'carryover'
   sortOrder Int    @default(0)
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Wallet {
-  id               Int    @id @default(autoincrement())
-  name             String @unique
-  balance          Int    @default(0)
+  id               Int        @id @default(autoincrement())
+  name             String
+  balance          Int        @default(0)
   excludeFromTotal Boolean @default(false)
   walletKind       WalletKind @default(basic)
   goalAmount       Int?
   goalStartMonth   String?
   goalDueMonth     String?
   sortOrder        Int    @default(0)
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@unique([userId, name])
 }
 
 model Category {
-  id              Int          @id @default(autoincrement())
+  id              Int        @id @default(autoincrement())
   name            String
   type            CategoryType
   parentId        Int?
-  parent          Category?    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children        Category[]   @relation("CategoryHierarchy")
+  userId          String?
+  systemDefault   Boolean    @default(false)
+  parent          Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children        Category[] @relation("CategoryHierarchy")
   cashLogs        CashLog[]
+  user            User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([parentId])
-  @@unique([name, type, parentId])
+  @@index([userId])
+  @@unique([name, type, parentId, userId])
 }
 
 model CashLog {
-  id          Int    @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   date        String
   description String
   amount      Int
   walletName  String
   categoryId  Int?
+  userId      String
   excludeFromReport Boolean @default(false)
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([categoryId])
+  @@index([userId])
 }

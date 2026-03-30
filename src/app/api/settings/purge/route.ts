@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/db/prisma';
 import { badRequest, ok } from '@/core/http/apiResponse';
+import { requireAuth } from '@/core/auth/requireAuth';
 import {
   buildSeedCategoryKey,
   seedCategoryKeys,
@@ -35,6 +36,9 @@ function buildMonthFilters(months: string[]) {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+
   try {
     const payload = (await req.json()) as PurgePayload;
 
@@ -78,11 +82,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       let userCategoryDeleted = 0;
 
       if (cashLogScope === 'all') {
-        const deleted = await tx.cashLog.deleteMany({});
+        const deleted = await tx.cashLog.deleteMany({
+          where: { userId: auth.user.sub },
+        });
         cashLogDeleted = deleted.count;
       } else if (cashLogScope === 'months') {
         const deleted = await tx.cashLog.deleteMany({
           where: {
+            userId: auth.user.sub,
             OR: buildMonthFilters(cashLogMonths).map((item) => ({
               date: item,
             })),
@@ -92,11 +99,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
 
       if (monthlyBudgetScope === 'all') {
-        const deleted = await tx.monthlyBudget.deleteMany({});
+        const deleted = await tx.monthlyBudget.deleteMany({
+          where: { userId: auth.user.sub },
+        });
         monthlyBudgetDeleted = deleted.count;
       } else if (monthlyBudgetScope === 'months') {
         const deleted = await tx.monthlyBudget.deleteMany({
           where: {
+            userId: auth.user.sub,
             OR: buildMonthFilters(monthlyBudgetMonths).map((item) => ({
               month: item,
             })),
@@ -107,6 +117,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       if (deleteWallets) {
         const wallets = await tx.wallet.findMany({
+          where: { userId: auth.user.sub },
           select: { name: true },
         });
         const walletNames = wallets.map((item) => item.name);
@@ -114,17 +125,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (walletNames.length > 0) {
           const deletedLogs = await tx.cashLog.deleteMany({
             where: {
+              userId: auth.user.sub,
               walletName: { in: walletNames },
             },
           });
           cashLogDeletedByWallet = deletedLogs.count;
         }
 
-        const deletedWallets = await tx.wallet.deleteMany({});
+        const deletedWallets = await tx.wallet.deleteMany({
+          where: { userId: auth.user.sub },
+        });
         walletDeleted = deletedWallets.count;
 
         await tx.wallet.create({
           data: {
+            userId: auth.user.sub,
             name: 'Cash',
             balance: 0,
             excludeFromTotal: false,
@@ -135,6 +150,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       if (deleteUserCategories) {
         const categories = await tx.category.findMany({
+          where: {
+            OR: [{ userId: auth.user.sub }, { systemDefault: true }],
+          },
           include: {
             parent: {
               select: { name: true },
@@ -149,7 +167,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
               category.name,
               category.parent?.name ?? null,
             );
-            return !seedCategoryKeys.has(key);
+            return (
+              category.userId === auth.user.sub && !seedCategoryKeys.has(key)
+            );
           })
           .map((category) => category.id);
 

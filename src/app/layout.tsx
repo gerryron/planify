@@ -1,13 +1,13 @@
 import './globals.css';
-import Sidebar from '@/shared/layout/Sidebar';
+import { ensureConfiguredSuperadmin } from '@/core/auth/ensureSuperadmin';
+import AppShell from '@/shared/layout/AppShell';
 import PWARegister from '@/shared/pwa/PWARegister';
 import { ThemeProvider } from '@/shared/theme/ThemeProvider';
 import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
   title: 'Planify',
-  description:
-    'Aplikasi pencatatan cash flow harian dan pengelolaan budget bulanan.',
+  description: 'A daily cash flow tracking and monthly budgeting application.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
@@ -34,22 +34,19 @@ export const viewport: Viewport = {
   themeColor: '#059669',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await ensureConfiguredSuperadmin();
+
   return (
     <html lang='en'>
       <body>
         <PWARegister />
         <ThemeProvider />
-        <div className='flex min-h-screen'>
-          <Sidebar />
-          <main className='flex-1 min-w-0 p-4 pt-20 sm:p-6 sm:pt-24 md:p-8 lg:p-10'>
-            {children}
-          </main>
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

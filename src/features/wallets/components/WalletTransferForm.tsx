@@ -127,11 +127,11 @@ export default function WalletTransferForm({
     }
 
     if (form.amount <= 0) {
-      return 'Nominal transfer harus lebih dari 0';
+      return 'Transfer amount must be greater than 0';
     }
 
     if (!fromWallet || !toWallet) {
-      return 'Wallet tidak valid';
+      return 'Invalid wallet selection';
     }
 
     const fromGoalSummary =
@@ -145,7 +145,7 @@ export default function WalletTransferForm({
         : null;
 
     if (fromGoalSummary && !fromGoalSummary.withdrawalReady) {
-      return 'Goal Wallet asal masih terkunci. Withdrawal tersedia setelah target tercapai';
+      return 'Source Goal Wallet is still locked. Withdrawal is available after target is achieved';
     }
 
     const toGoalSummary =
@@ -159,25 +159,25 @@ export default function WalletTransferForm({
         : null;
 
     if (toGoalSummary && toGoalSummary.achieved) {
-      return 'Goal Wallet tujuan sudah achieved dan tidak menerima transfer lagi';
+      return 'Destination Goal Wallet is already achieved and no longer accepts transfers';
     }
 
     if (fromWallet.balance < senderRequiredBalance) {
-      return 'Saldo wallet asal tidak mencukupi';
+      return 'Source wallet balance is insufficient';
     }
 
     if (form.enableFee) {
       if (form.feeAmount <= 0) {
-        return 'Nominal fee harus lebih dari 0';
+        return 'Fee amount must be greater than 0';
       }
 
       if (form.feePayer === 'receiver' && form.amount <= form.feeAmount) {
-        return 'Jika fee dibayar penerima, nominal transfer harus lebih besar dari fee';
+        return 'If receiver pays the fee, transfer amount must be greater than the fee';
       }
     }
 
     if (!form.date) {
-      return 'Tanggal transfer wajib diisi';
+      return 'Transfer date is required';
     }
 
     return null;
@@ -193,12 +193,12 @@ export default function WalletTransferForm({
     }
 
     const confirm = await Swal.fire({
-      title: 'Lanjutkan transfer?',
-      text: 'Pastikan nominal dan wallet tujuan sudah benar.',
+      title: 'Continue transfer?',
+      text: 'Make sure the amount and destination wallet are correct.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Transfer',
-      cancelButtonText: 'Batal',
+      cancelButtonText: 'Cancel',
     });
 
     if (!confirm.isConfirmed) return;
@@ -223,7 +223,7 @@ export default function WalletTransferForm({
 
       await Swal.fire({
         icon: 'success',
-        title: 'Transfer berhasil',
+        title: 'Transfer successful',
         timer: 1200,
         showConfirmButton: false,
       });
@@ -231,7 +231,7 @@ export default function WalletTransferForm({
       onSuccess();
       setForm(initialState);
     } catch {
-      setError('Transfer gagal. Coba lagi.');
+      setError('Transfer failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -244,7 +244,7 @@ export default function WalletTransferForm({
   return (
     <form onSubmit={handleSubmit} className='space-y-4'>
       <div>
-        <label className='block text-sm font-medium'>Wallet Asal</label>
+        <label className='block text-sm font-medium'>Source Wallet</label>
         <select
           value={form.fromWalletId}
           onChange={(e) => {
@@ -265,7 +265,7 @@ export default function WalletTransferForm({
           required
         >
           <option value={0} disabled>
-            Pilih wallet asal
+            Select source wallet
           </option>
           {wallets.map((wallet) => (
             <option key={wallet.id} value={wallet.id}>
@@ -278,7 +278,7 @@ export default function WalletTransferForm({
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Wallet Tujuan</label>
+        <label className='block text-sm font-medium'>Destination Wallet</label>
         <select
           value={form.toWalletId}
           onChange={(e) =>
@@ -288,7 +288,7 @@ export default function WalletTransferForm({
           required
         >
           <option value={0} disabled>
-            Pilih wallet tujuan
+            Select destination wallet
           </option>
           {wallets
             .filter((wallet) => wallet.id !== form.fromWalletId)
@@ -303,7 +303,7 @@ export default function WalletTransferForm({
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Nominal Transfer</label>
+        <label className='block text-sm font-medium'>Transfer Amount</label>
         <input
           type='text'
           inputMode='numeric'
@@ -313,13 +313,12 @@ export default function WalletTransferForm({
           required
         />
         <p className='text-xs text-gray-500 mt-1'>
-          Maksimal bisa ditransfer: Rp{' '}
-          {availableToTransfer.toLocaleString('id-ID')}
+          Maximum transferable: Rp {availableToTransfer.toLocaleString('id-ID')}
         </p>
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Tanggal Transfer</label>
+        <label className='block text-sm font-medium'>Transfer Date</label>
         <input
           type='date'
           value={form.date}
@@ -333,25 +332,25 @@ export default function WalletTransferForm({
 
       <div>
         <label className='block text-sm font-medium'>
-          Note Transfer (opsional)
+          Transfer Note (optional)
         </label>
         <input
           value={form.transferNote}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, transferNote: e.target.value }))
           }
-          placeholder='Contoh: Pindah dana operasional'
+          placeholder='Example: Move operating funds'
           className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
         />
       </div>
 
       <div className='flex items-center justify-between'>
-        <span className='text-sm font-medium'>Aktifkan Transfer Fee</span>
+        <span className='text-sm font-medium'>Enable Transfer Fee</span>
         <button
           type='button'
           role='switch'
           aria-checked={form.enableFee}
-          aria-label='Aktifkan transfer fee'
+          aria-label='Enable transfer fee'
           onClick={() =>
             setForm((prev) => ({
               ...prev,
@@ -376,7 +375,7 @@ export default function WalletTransferForm({
       {form.enableFee && (
         <div className='space-y-4 rounded border border-emerald-200 dark:border-slate-700 p-3'>
           <div>
-            <label className='block text-sm font-medium'>Nominal Fee</label>
+            <label className='block text-sm font-medium'>Fee Amount</label>
             <input
               type='text'
               inputMode='numeric'
@@ -388,7 +387,7 @@ export default function WalletTransferForm({
           </div>
 
           <div>
-            <label className='block text-sm font-medium'>Pembayar Fee</label>
+            <label className='block text-sm font-medium'>Fee Payer</label>
             <select
               value={form.feePayer}
               onChange={(e) =>
@@ -399,28 +398,28 @@ export default function WalletTransferForm({
               }
               className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             >
-              <option value='sender'>Wallet Pengirim</option>
-              <option value='receiver'>Wallet Penerima</option>
+              <option value='sender'>Sender Wallet</option>
+              <option value='receiver'>Receiver Wallet</option>
             </select>
           </div>
 
           <div>
             <label className='block text-sm font-medium'>
-              Note Fee (opsional)
+              Fee Note (optional)
             </label>
             <input
               value={form.feeNote}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, feeNote: e.target.value }))
               }
-              placeholder='Contoh: Biaya admin transfer'
+              placeholder='Example: Transfer admin fee'
               className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             />
           </div>
 
           {form.feePayer === 'receiver' && (
             <p className='text-xs text-gray-500'>
-              Nominal bersih yang diterima wallet tujuan: Rp{' '}
+              Net amount received by destination wallet: Rp{' '}
               {receiverNetAmount.toLocaleString('id-ID')}
             </p>
           )}
@@ -434,7 +433,7 @@ export default function WalletTransferForm({
         disabled={submitting}
         className='w-full px-4 py-2.5 bg-emerald-600 text-white rounded mt-2 min-h-11 disabled:opacity-60'
       >
-        {submitting ? 'Memproses...' : 'Transfer'}
+        {submitting ? 'Processing...' : 'Transfer'}
       </button>
     </form>
   );
