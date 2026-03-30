@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/core/db/prisma';
 import { badRequest, ok } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
@@ -90,6 +91,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      const transferGroupId = randomUUID();
+
       const [fromWallet, toWallet] = await Promise.all([
         tx.wallet.findFirst({
           where: { id: fromWalletId, userId: auth.user.sub },
@@ -270,6 +273,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await tx.cashLog.create({
         data: {
           userId: auth.user.sub,
+          transferGroupId,
           date,
           description: transferOutDescription,
           amount,
@@ -282,6 +286,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await tx.cashLog.create({
         data: {
           userId: auth.user.sub,
+          transferGroupId,
           date,
           description: transferInDescription,
           amount,
@@ -301,6 +306,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         await tx.cashLog.create({
           data: {
             userId: auth.user.sub,
+            transferGroupId,
             date,
             description: feeDescription,
             amount: feeAmount,

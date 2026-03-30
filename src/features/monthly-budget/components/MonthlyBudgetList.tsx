@@ -154,13 +154,11 @@ function buildNextBudgets(
 function SortableBudgetItem({
   budget,
   showNominal,
-  totalIncome,
   onEdit,
   onDelete,
 }: {
   budget: Budget;
   showNominal: boolean;
-  totalIncome: number;
   onEdit: (budget: Budget) => void;
   onDelete: (id: number) => void;
 }) {
@@ -177,25 +175,6 @@ function SortableBudgetItem({
     transform: CSS.Transform.toString(transform),
     transition: transition ?? 'transform 320ms cubic-bezier(0.22, 1, 0.36, 1)',
   };
-
-  let percentage = 0;
-  if (budget.type === 'income' || budget.type === 'carryover') {
-    percentage = totalIncome > 0 ? (budget.amount / totalIncome) * 100 : 0;
-  } else {
-    percentage =
-      Math.abs(totalIncome) > 0
-        ? (budget.amount / Math.abs(totalIncome)) * 100
-        : 0;
-  }
-
-  const clampedPercentage = Math.max(0, Math.min(percentage, 100));
-  const remainderPercentage = 100 - clampedPercentage;
-
-  const filledColor =
-    budget.type === 'income' || budget.type === 'carryover'
-      ? 'bg-green-500'
-      : 'bg-red-500';
-  const remainderColor = 'bg-transparent';
 
   return (
     <div
@@ -223,25 +202,6 @@ function SortableBudgetItem({
           {showNominal
             ? Math.abs(budget.amount).toLocaleString('id-ID')
             : '••••••••'}
-        </div>
-
-        <div className='flex items-center gap-2 mt-1'>
-          <div
-            className='h-2 rounded overflow-hidden flex border border-gray-300 dark:border-slate-700'
-            style={{ width: 140 }}
-          >
-            <div
-              className={filledColor}
-              style={{ width: `${clampedPercentage}%` }}
-            />
-            <div
-              className={remainderColor}
-              style={{ width: `${remainderPercentage}%` }}
-            />
-          </div>
-          <span className='text-xs text-gray-500 min-w-12 text-right'>
-            {clampedPercentage.toFixed(1)}%
-          </span>
         </div>
       </div>
 
@@ -320,14 +280,6 @@ export default function MonthlyBudgetList({
         ? sum + budget.amount
         : sum - budget.amount;
     }, 0);
-  }, [budgets]);
-
-  const totalIncome = useMemo(() => {
-    return budgets
-      .filter(
-        (budget) => budget.type === 'income' || budget.type === 'carryover',
-      )
-      .reduce((sum, budget) => sum + budget.amount, 0);
   }, [budgets]);
 
   const canCarryOver = selectedMonth !== 'future' && totalTransaction > 0;
@@ -634,7 +586,6 @@ export default function MonthlyBudgetList({
                     key={budget.id}
                     budget={budget}
                     showNominal={showNominal}
-                    totalIncome={totalIncome}
                     onEdit={onEdit}
                     onDelete={handleDelete}
                   />

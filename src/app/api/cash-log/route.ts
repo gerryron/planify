@@ -8,6 +8,174 @@ type CashLogRecord = CashLogInput & {
   id: number;
 };
 
+const TRANSFER_IN_NAMES = new Set(['Wallet Transfer In', 'Transfer In']);
+const TRANSFER_OUT_NAMES = new Set(['Wallet Transfer Out', 'Transfer Out']);
+
+type TransferCandidate = {
+  id: number;
+  date: string;
+  amount: number;
+  walletName: string;
+  transferGroupId: string | null;
+  description: string;
+  excludeFromReport: boolean;
+  category: {
+    type: 'income' | 'outcome';
+    name: string;
+  } | null;
+};
+
+function isTransferCategory(
+  type: 'income' | 'outcome' | null,
+  name: string | null,
+) {
+  if (!type || !name) return false;
+  if (type === 'income') return TRANSFER_IN_NAMES.has(name);
+  return TRANSFER_OUT_NAMES.has(name);
+}
+
+function extractCounterpartyWallet(description: string) {
+  const trimmed = description.trim();
+  if (trimmed.startsWith('Transfer to ')) {
+    return trimmed.slice('Transfer to '.length).trim() || null;
+  }
+  if (trimmed.startsWith('Transfer from ')) {
+    return trimmed.slice('Transfer from '.length).trim() || null;
+  }
+  return null;
+}
+
+function selectLinkedCandidate(
+  source: TransferCandidate,
+  candidates: TransferCandidate[],
+) {
+  if (candidates.length === 0) return null;
+
+  const preferredWallet = extractCounterpartyWallet(source.description);
+  const narrowed = preferredWallet
+    ? candidates.filter((candidate) => candidate.walletName === preferredWallet)
+    : candidates;
+
+  const list = narrowed.length > 0 ? narrowed : candidates;
+
+  return [...list].sort(
+    (a, b) => Math.abs(a.id - source.id) - Math.abs(b.id - source.id),
+  )[0];
+}
+
+async function findLinkedTransferEntry(
+  tx: {
+    cashLog: {
+      findMany: (args: {
+        where: {
+          userId: string;
+          id: { not: number };
+          date: string;
+          amount: number;
+          excludeFromReport: boolean;
+          transferGroupId?: string;
+        };
+        include: {
+          category: {
+            select: {
+              type: true;
+              name: true;
+            };
+          };
+        };
+      }) => Promise<TransferCandidate[]>;
+      findFirst: (args: {
+        where: {
+          userId: string;
+          id: { not: number };
+          transferGroupId: string;
+        };
+        include: {
+          category: {
+            select: {
+              type: true;
+              name: true;
+            };
+          };
+        };
+      }) => Promise<TransferCandidate | null>;
+    };
+  },
+  userId: string,
+  source: TransferCandidate,
+) {
+  if (
+    !source.excludeFromReport ||
+    !isTransferCategory(
+      source.category?.type ?? null,
+      source.category?.name ?? null,
+    )
+  ) {
+    return null;
+  }
+
+  const oppositeType =
+    source.category?.type === 'income' ? 'outcome' : 'income';
+
+  if (source.transferGroupId) {
+    const grouped = await tx.cashLog.findFirst({
+      where: {
+        userId,
+        id: { not: source.id },
+        transferGroupId: source.transferGroupId,
+      },
+      include: {
+        category: {
+          select: {
+            type: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (
+      grouped &&
+      grouped.category?.type === oppositeType &&
+      isTransferCategory(
+        grouped.category?.type ?? null,
+        grouped.category?.name ?? null,
+      )
+    ) {
+      return grouped;
+    }
+  }
+
+  const candidates = await tx.cashLog.findMany({
+    where: {
+      userId,
+      id: { not: source.id },
+      date: source.date,
+      amount: source.amount,
+      excludeFromReport: true,
+    },
+    include: {
+      category: {
+        select: {
+          type: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  const filtered = candidates.filter(
+    (candidate) =>
+      candidate.category?.type === oppositeType &&
+      isTransferCategory(
+        candidate.category?.type ?? null,
+        candidate.category?.name ?? null,
+      ),
+  );
+
+  return selectLinkedCandidate(source, filtered);
+}
+
 function toId(value: unknown): number | null {
   if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
     return value;
@@ -46,12 +214,11 @@ function shouldAffectWallet(
 function validateCreatePayload(payload: Partial<CashLogInput>) {
   if (
     !payload.date ||
-    !payload.description?.trim() ||
     payload.amount === undefined ||
     !payload.walletName?.trim() ||
     payload.categoryId === undefined
   ) {
-    return 'date, description, amount, walletName, and categoryId are required';
+    return 'date, amount, walletName, and categoryId are required';
   }
 
   if (!Number.isFinite(payload.amount) || Number(payload.amount) <= 0) {
@@ -102,7 +269,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         data: {
           userId: auth.user.sub,
           date: payload.date!,
-          description: payload.description!.trim(),
+          description: payload.description?.trim() ?? '',
           amount: payload.amount!,
           walletName,
           categoryId: payload.categoryId!,
@@ -289,14 +456,17 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         where: { id: logId, userId: auth.user.sub },
         select: {
           id: true,
+          date: true,
           amount: true,
           walletName: true,
+          transferGroupId: true,
           description: true,
           excludeFromReport: true,
           categoryId: true,
           category: {
             select: {
               type: true,
+              name: true,
             },
           },
         },
@@ -304,6 +474,20 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
       if (!existing) {
         throw new Error('CASH_LOG_NOT_FOUND');
+      }
+
+      const linkedTransfer = await findLinkedTransferEntry(
+        tx,
+        auth.user.sub,
+        existing as TransferCandidate,
+      );
+
+      if (linkedTransfer && payload.walletName !== undefined) {
+        throw new Error('LINKED_TRANSFER_IMMUTABLE_WALLET');
+      }
+
+      if (linkedTransfer && payload.categoryId !== undefined) {
+        throw new Error('LINKED_TRANSFER_IMMUTABLE_CATEGORY');
       }
 
       let nextCategoryType = existing.category?.type ?? null;
@@ -327,6 +511,123 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       const nextExcludeFromReport =
         payload.excludeFromReport ?? existing.excludeFromReport;
       const nextAmount = payload.amount ?? existing.amount;
+
+      if (linkedTransfer) {
+        const linkedNextDescription =
+          payload.description?.trim() ?? linkedTransfer.description;
+        const linkedNextExcludeFromReport =
+          payload.excludeFromReport ?? linkedTransfer.excludeFromReport;
+        const linkedNextAmount = payload.amount ?? linkedTransfer.amount;
+
+        const transferEntries = [
+          {
+            id: existing.id,
+            walletName: existing.walletName,
+            categoryType: existing.category?.type ?? null,
+            oldAmount: existing.amount,
+            oldDescription: existing.description,
+            oldExclude: existing.excludeFromReport,
+            newAmount: nextAmount,
+            newDescription: nextDescription,
+            newExclude: nextExcludeFromReport,
+          },
+          {
+            id: linkedTransfer.id,
+            walletName: linkedTransfer.walletName,
+            categoryType: linkedTransfer.category?.type ?? null,
+            oldAmount: linkedTransfer.amount,
+            oldDescription: linkedTransfer.description,
+            oldExclude: linkedTransfer.excludeFromReport,
+            newAmount: linkedNextAmount,
+            newDescription: linkedNextDescription,
+            newExclude: linkedNextExcludeFromReport,
+          },
+        ];
+
+        for (const entry of transferEntries) {
+          const oldAffects = shouldAffectWallet(
+            entry.categoryType,
+            entry.oldDescription,
+            entry.oldExclude,
+          );
+          const newAffects = shouldAffectWallet(
+            entry.categoryType,
+            entry.newDescription,
+            entry.newExclude,
+          );
+
+          const oldDelta =
+            oldAffects && entry.categoryType
+              ? getWalletDelta(entry.oldAmount, entry.categoryType)
+              : 0;
+          const newDelta =
+            newAffects && entry.categoryType
+              ? getWalletDelta(entry.newAmount, entry.categoryType)
+              : 0;
+
+          const balanceDelta = newDelta - oldDelta;
+          if (balanceDelta !== 0) {
+            const wallet = await tx.wallet.findUnique({
+              where: {
+                userId_name: {
+                  userId: auth.user.sub,
+                  name: entry.walletName,
+                },
+              },
+              select: { id: true, balance: true },
+            });
+
+            if (!wallet) {
+              throw new Error('WALLET_NOT_FOUND');
+            }
+
+            await tx.wallet.update({
+              where: { id: wallet.id },
+              data: { balance: wallet.balance + balanceDelta },
+            });
+          }
+        }
+
+        await tx.cashLog.update({
+          where: { id: linkedTransfer.id },
+          data: {
+            ...(payload.date !== undefined ? { date: payload.date } : {}),
+            ...(payload.description !== undefined
+              ? { description: linkedNextDescription }
+              : {}),
+            ...(payload.amount !== undefined
+              ? { amount: linkedNextAmount }
+              : {}),
+            ...(payload.excludeFromReport !== undefined
+              ? { excludeFromReport: linkedNextExcludeFromReport }
+              : {}),
+          },
+        });
+
+        return tx.cashLog.update({
+          where: { id: logId },
+          data: {
+            ...(payload.date !== undefined ? { date: payload.date } : {}),
+            ...(payload.description !== undefined
+              ? { description: nextDescription }
+              : {}),
+            ...(payload.amount !== undefined ? { amount: nextAmount } : {}),
+            ...(payload.excludeFromReport !== undefined
+              ? { excludeFromReport: nextExcludeFromReport }
+              : {}),
+          },
+          include: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                parentId: true,
+              },
+            },
+          },
+        });
+      }
 
       const oldAffects = shouldAffectWallet(
         existing.category?.type ?? null,
@@ -441,6 +742,20 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
       return badRequest('walletName is invalid');
     }
+    if (
+      error instanceof Error &&
+      error.message === 'LINKED_TRANSFER_IMMUTABLE_WALLET'
+    ) {
+      return badRequest('Linked transfer wallet cannot be edited individually');
+    }
+    if (
+      error instanceof Error &&
+      error.message === 'LINKED_TRANSFER_IMMUTABLE_CATEGORY'
+    ) {
+      return badRequest(
+        'Linked transfer category cannot be edited individually',
+      );
+    }
     return badRequest('Failed to update cash log');
   }
 }
@@ -462,13 +777,16 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         where: { id, userId: auth.user.sub },
         select: {
           id: true,
+          date: true,
           amount: true,
           walletName: true,
+          transferGroupId: true,
           description: true,
           excludeFromReport: true,
           category: {
             select: {
               type: true,
+              name: true,
             },
           },
         },
@@ -478,32 +796,45 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         throw new Error('CASH_LOG_NOT_FOUND');
       }
 
-      const affects = shouldAffectWallet(
-        existing.category?.type ?? null,
-        existing.description,
-        existing.excludeFromReport,
+      const linkedTransfer = await findLinkedTransferEntry(
+        tx,
+        auth.user.sub,
+        existing as TransferCandidate,
       );
 
-      if (affects && existing.category?.type) {
-        const delta = getWalletDelta(existing.amount, existing.category.type);
-        const wallet = await tx.wallet.findUnique({
-          where: {
-            userId_name: { userId: auth.user.sub, name: existing.walletName },
-          },
-          select: { id: true, balance: true },
-        });
+      const entries = [existing, ...(linkedTransfer ? [linkedTransfer] : [])];
 
-        if (!wallet) {
-          throw new Error('WALLET_NOT_FOUND');
+      for (const entry of entries) {
+        const affects = shouldAffectWallet(
+          entry.category?.type ?? null,
+          entry.description,
+          entry.excludeFromReport,
+        );
+
+        if (affects && entry.category?.type) {
+          const delta = getWalletDelta(entry.amount, entry.category.type);
+          const wallet = await tx.wallet.findUnique({
+            where: {
+              userId_name: { userId: auth.user.sub, name: entry.walletName },
+            },
+            select: { id: true, balance: true },
+          });
+
+          if (!wallet) {
+            throw new Error('WALLET_NOT_FOUND');
+          }
+
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: wallet.balance - delta },
+          });
         }
-
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: wallet.balance - delta },
-        });
       }
 
       await tx.cashLog.delete({ where: { id } });
+      if (linkedTransfer) {
+        await tx.cashLog.delete({ where: { id: linkedTransfer.id } });
+      }
     });
 
     return ok({ success: true });

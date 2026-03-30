@@ -32,7 +32,7 @@ export default function MonthlyBudgetForm({
   onSuccess,
 }: MonthlyBudgetFormProps) {
   const initialBudgetType: 'income' | 'outcome' =
-    initial?.type === 'outcome' ? 'outcome' : 'income';
+    initial?.type === 'income' ? 'income' : 'outcome';
 
   const [form, setForm] = useState<BudgetInput>(
     initial

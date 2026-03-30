@@ -7,7 +7,7 @@
     "dev:next": "next dev",
     "dev:swagger": "node scripts/swagger-server.mjs",
     "db:generate": "prisma generate",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:deploy": "prisma migrate deploy && prisma generate",
     "db:setup:local": "prisma migrate deploy && npm run dev:seed-mock",
     "db:setup:deploy": "prisma migrate deploy && prisma generate",
     "build": "next build",

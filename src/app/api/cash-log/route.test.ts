@@ -392,7 +392,7 @@ describe('Cash Log API', () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toBe(
-      'date, description, amount, walletName, and categoryId are required',
+      'date, amount, walletName, and categoryId are required',
     );
   });
 

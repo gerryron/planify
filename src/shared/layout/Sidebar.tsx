@@ -586,7 +586,7 @@ export default function Sidebar() {
         id='mobile-sidebar'
         className={
           containerClass +
-          ' md:hidden fixed top-0 left-0 z-50 h-screen w-72 max-w-[85vw] p-5 shadow-xl transition-transform duration-300 ' +
+          ' md:hidden fixed top-0 left-0 z-50 h-screen w-72 max-w-[85vw] px-5 pt-5 pb-8 shadow-xl transition-transform duration-300 flex flex-col overflow-y-auto ' +
           (isMobileOpen ? 'translate-x-0' : '-translate-x-full')
         }
       >

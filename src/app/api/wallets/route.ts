@@ -223,7 +223,10 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           }
         }
 
-        if (data.goalStartMonth !== undefined) {
+        if (
+          data.goalStartMonth !== undefined &&
+          data.goalStartMonth !== existing.goalStartMonth
+        ) {
           throw new Error('GOAL_START_MONTH_IMMUTABLE');
         }
       } else {

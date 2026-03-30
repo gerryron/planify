@@ -1,4 +1,7 @@
+'use client';
+
 import CloseIcon from '@mui/icons-material/Close';
+import { createPortal } from 'react-dom';
 import { Pie, PieChart, ResponsiveContainer, Cell } from 'recharts';
 import { Wallets } from '@/features/wallets/services/walletsService';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
@@ -61,10 +64,13 @@ export default function GoalTrackingModal({
   wallet,
   onClose,
 }: GoalTrackingModalProps) {
+  const canUsePortal = typeof document !== 'undefined';
+
   if (
     wallet.walletKind !== 'goal' ||
     !wallet.goalAmount ||
-    !wallet.goalDueMonth
+    !wallet.goalDueMonth ||
+    !canUsePortal
   ) {
     return null;
   }
@@ -86,9 +92,15 @@ export default function GoalTrackingModal({
       'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
   };
 
-  return (
-    <div className='fixed inset-0 z-60 bg-black/50 flex items-center justify-center p-4'>
-      <div className='w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 shadow-xl'>
+  return createPortal(
+    <div
+      className='fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4'
+      onClick={onClose}
+    >
+      <div
+        className='w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 shadow-xl'
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className='flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-slate-700'>
           <div>
             <h3 className='text-lg font-semibold'>
@@ -101,7 +113,7 @@ export default function GoalTrackingModal({
           <button
             type='button'
             onClick={onClose}
-            className='p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-700'
+            className='p-1 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white'
             aria-label='Close goal tracking modal'
           >
             <CloseIcon fontSize='small' />
@@ -187,6 +199,7 @@ export default function GoalTrackingModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

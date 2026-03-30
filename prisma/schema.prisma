@@ -104,10 +104,12 @@ model CashLog {
   walletName  String
   categoryId  Int?
   userId      String
+  transferGroupId String?
   excludeFromReport Boolean @default(false)
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([categoryId])
   @@index([userId])
+  @@index([userId, transferGroupId])
 }

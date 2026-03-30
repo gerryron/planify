@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import CategoryList from '@/features/categories/components/CategoryList';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import { Category } from '@/features/categories/types/category';
@@ -10,6 +11,7 @@ export default function CategoriesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const canUsePortal = typeof document !== 'undefined';
 
   const handleEdit = (category: Category) => {
     setEditing(category);
@@ -41,31 +43,34 @@ export default function CategoriesPage() {
         onDataLoaded={setCategories}
       />
 
-      {showForm && (
-        <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4'
-          onClick={handleCancel}
-        >
+      {canUsePortal &&
+        showForm &&
+        createPortal(
           <div
-            className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
-            onClick={(event) => event.stopPropagation()}
+            className='fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-3 sm:p-4'
+            onClick={handleCancel}
           >
-            <button
-              className='absolute top-2 right-2 text-gray-500 hover:text-gray-800 dark:hover:text-white text-2xl font-bold'
-              onClick={handleCancel}
-              aria-label='Tutup'
+            <div
+              className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
+              onClick={(event) => event.stopPropagation()}
             >
-              ×
-            </button>
-            <CategoryForm
-              key={editing ? editing.id : 'new'}
-              initial={editing}
-              categories={categories}
-              onSuccess={handleSuccess}
-            />
-          </div>
-        </div>
-      )}
+              <button
+                className='absolute top-2 right-2 text-gray-500 hover:text-gray-800 dark:text-slate-300 dark:hover:text-white text-2xl font-bold'
+                onClick={handleCancel}
+                aria-label='Close dialog'
+              >
+                ×
+              </button>
+              <CategoryForm
+                key={editing ? editing.id : 'new'}
+                initial={editing}
+                categories={categories}
+                onSuccess={handleSuccess}
+              />
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

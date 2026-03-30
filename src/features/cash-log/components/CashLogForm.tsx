@@ -196,10 +196,7 @@ export default function CashLogForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const normalizedAmount =
-      activeCategoryType === 'outcome'
-        ? -Math.abs(form.amount)
-        : Math.abs(form.amount);
+    const normalizedAmount = Math.abs(form.amount);
 
     const payload: CashLogInput = {
       ...form,
@@ -381,9 +378,8 @@ export default function CashLogForm({
           name='description'
           value={form.description}
           onChange={handleChange}
-          placeholder='e.g. Lunch, Fuel, Freelance'
+          placeholder='Optional: e.g. Lunch, Fuel, Freelance'
           className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
         />
       </div>
 
