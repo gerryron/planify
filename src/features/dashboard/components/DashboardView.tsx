@@ -86,6 +86,97 @@ type BudgetVsActualItem = {
   actual: number;
 };
 
+type CreditCardDueReminder = {
+  id: number;
+  name: string;
+  dueDate: string;
+  days: number;
+  outstanding: number;
+  severity: 'overdue' | 'due-soon' | 'upcoming';
+};
+
+type CreditCardCycleSummary = {
+  id: number;
+  name: string;
+  cycleStart: string;
+  cycleEnd: string;
+  dueDate: string;
+  spent: number;
+  paid: number;
+  netChange: number;
+  outstanding: number;
+  creditLimit: number;
+  remainingLimit: number;
+  utilization: number;
+};
+
+type CreditCardMonthMetric = {
+  month: string;
+  label: string;
+  billed: number;
+  paid: number;
+  carryover: number;
+  cycleUtilization: number;
+  paymentCoverage: number;
+  onTrack: boolean;
+};
+
+function toIsoDate(value: Date): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDateWithSafeDay(
+  year: number,
+  monthIndex: number,
+  day: number,
+): Date {
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  const safeDay = Math.max(1, Math.min(day, lastDay));
+  return new Date(year, monthIndex, safeDay);
+}
+
+function getNextDueDate(baseDate: Date, dueDay: number): Date {
+  const currentMonthDue = getDateWithSafeDay(
+    baseDate.getFullYear(),
+    baseDate.getMonth(),
+    dueDay,
+  );
+
+  if (baseDate <= currentMonthDue) {
+    return currentMonthDue;
+  }
+
+  return getDateWithSafeDay(
+    baseDate.getFullYear(),
+    baseDate.getMonth() + 1,
+    dueDay,
+  );
+}
+
+function getCycleWindow(selectedMonth: string, statementDay: number) {
+  const [yearText, monthText] = selectedMonth.split('-');
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1;
+
+  const cycleEndDate = getDateWithSafeDay(year, monthIndex, statementDay);
+  const previousStatementDate = getDateWithSafeDay(
+    year,
+    monthIndex - 1,
+    statementDay,
+  );
+  const cycleStartDate = new Date(previousStatementDate);
+  cycleStartDate.setDate(cycleStartDate.getDate() + 1);
+
+  return {
+    cycleStart: toIsoDate(cycleStartDate),
+    cycleEnd: toIsoDate(cycleEndDate),
+    cycleEndDate,
+  };
+}
+
 function buildTop5WithOther(expenseMap: Record<string, number>) {
   const ranked = Object.entries(expenseMap)
     .map(([name, amount]) => ({ name, amount }))
@@ -333,15 +424,27 @@ export default function DashboardView() {
     const monthLogs = getMonthLogs(cashLogs, selectedMonth);
     const income = calcIncome(monthLogs);
     const outcome = calcOutcome(monthLogs);
-    const walletTotal = wallets
-      .filter((wallet) => !wallet.excludeFromTotal)
+    const totalAssets = wallets
+      .filter(
+        (wallet) =>
+          !wallet.excludeFromTotal &&
+          wallet.walletKind !== 'goal' &&
+          wallet.walletKind !== 'credit_card',
+      )
       .reduce((sum, wallet) => sum + wallet.balance, 0);
+    const totalDebt = wallets
+      .filter((wallet) => wallet.walletKind === 'credit_card')
+      .reduce((sum, wallet) => sum + wallet.balance, 0);
+    const walletTotal = totalAssets - totalDebt;
 
     const snapshot = {
       month: selectedMonth,
       income,
       outcome,
       net: income - outcome,
+      totalAssets,
+      totalDebt,
+      netWorth: walletTotal,
       walletTotal,
       savedAt: new Date().toLocaleString('id-ID'),
     };
@@ -352,10 +455,16 @@ export default function DashboardView() {
   // ─── Derived data ───
   const groupedWallets = useMemo(() => {
     const included = wallets.filter(
-      (wallet) => !wallet.excludeFromTotal && wallet.walletKind !== 'goal',
+      (wallet) =>
+        !wallet.excludeFromTotal &&
+        wallet.walletKind !== 'goal' &&
+        wallet.walletKind !== 'credit_card',
     );
     const excluded = wallets.filter(
-      (wallet) => wallet.excludeFromTotal || wallet.walletKind === 'goal',
+      (wallet) =>
+        wallet.excludeFromTotal ||
+        wallet.walletKind === 'goal' ||
+        wallet.walletKind === 'credit_card',
     );
 
     return { included, excluded };
@@ -388,13 +497,37 @@ export default function DashboardView() {
   const netBalance = totalIncome - totalOutcome;
   const txCount = monthLogs.length;
 
-  const totalWalletBalance = useMemo(() => {
-    if (selectedWallet) return selectedWallet.balance;
+  const totalAssets = useMemo(() => {
+    if (selectedWallet) {
+      if (selectedWallet.walletKind === 'credit_card') return 0;
+      if (selectedWallet.walletKind === 'goal') return 0;
+      if (selectedWallet.excludeFromTotal) return 0;
+      return selectedWallet.balance;
+    }
 
     return wallets
-      .filter((w) => !w.excludeFromTotal && w.walletKind !== 'goal')
-      .reduce((s, w) => s + w.balance, 0);
+      .filter(
+        (wallet) =>
+          !wallet.excludeFromTotal &&
+          wallet.walletKind !== 'goal' &&
+          wallet.walletKind !== 'credit_card',
+      )
+      .reduce((sum, wallet) => sum + wallet.balance, 0);
   }, [selectedWallet, wallets]);
+
+  const totalDebt = useMemo(() => {
+    if (selectedWallet) {
+      return selectedWallet.walletKind === 'credit_card'
+        ? selectedWallet.balance
+        : 0;
+    }
+
+    return wallets
+      .filter((wallet) => wallet.walletKind === 'credit_card')
+      .reduce((sum, wallet) => sum + wallet.balance, 0);
+  }, [selectedWallet, wallets]);
+
+  const netWorth = totalAssets - totalDebt;
 
   // 6-month trend
   const trendMonths = useMemo(
@@ -438,6 +571,112 @@ export default function DashboardView() {
     () => monthlyTrend.reduce((sum, item) => sum + item.net, 0),
     [monthlyTrend],
   );
+
+  const creditCardMonths6 = useMemo<CreditCardMonthMetric[]>(() => {
+    const eligibleCards = wallets.filter(
+      (wallet) =>
+        wallet.walletKind === 'credit_card' &&
+        (!selectedWallet || wallet.id === selectedWallet.id) &&
+        Number.isInteger(wallet.statementDay) &&
+        Number.isInteger(wallet.dueDay) &&
+        Number(wallet.statementDay) > 0 &&
+        Number(wallet.dueDay) > 0 &&
+        Number(wallet.creditLimit) > 0,
+    );
+
+    return trendMonths.map((month) => {
+      const totals = eligibleCards.reduce(
+        (acc, wallet) => {
+          const cycleWindow = getCycleWindow(
+            month,
+            Number(wallet.statementDay),
+          );
+          const dueDate = getDateWithSafeDay(
+            cycleWindow.cycleEndDate.getFullYear(),
+            cycleWindow.cycleEndDate.getMonth() + 1,
+            Number(wallet.dueDay),
+          );
+          const dueDateIso = toIsoDate(dueDate);
+
+          const cycleLogs = cashLogs.filter(
+            (log) =>
+              log.walletName === wallet.name &&
+              !log.excludeFromReport &&
+              log.date >= cycleWindow.cycleStart &&
+              log.date <= cycleWindow.cycleEnd,
+          );
+
+          const paymentLogs = cashLogs.filter(
+            (log) =>
+              log.walletName === wallet.name &&
+              !log.excludeFromReport &&
+              log.date >= cycleWindow.cycleEnd &&
+              log.date <= dueDateIso,
+          );
+
+          const billed = cycleLogs
+            .filter((log) => log.category?.type === 'outcome')
+            .reduce((sum, log) => sum + log.amount, 0);
+          const paid = paymentLogs
+            .filter((log) => log.category?.type === 'income')
+            .reduce((sum, log) => sum + log.amount, 0);
+
+          acc.billed += billed;
+          acc.paid += paid;
+          acc.limit += Number(wallet.creditLimit);
+          return acc;
+        },
+        { billed: 0, paid: 0, limit: 0 },
+      );
+
+      const carryover = Math.max(totals.billed - totals.paid, 0);
+      const cycleUtilization =
+        totals.limit > 0
+          ? Math.min((totals.billed / totals.limit) * 100, 100)
+          : 0;
+      const paymentCoverage =
+        totals.billed > 0
+          ? Math.min((totals.paid / totals.billed) * 100, 999)
+          : 100;
+
+      return {
+        month,
+        label: shortMonthLabel(month),
+        billed: totals.billed,
+        paid: totals.paid,
+        carryover,
+        cycleUtilization,
+        paymentCoverage,
+        onTrack: totals.billed > 0 && totals.paid >= totals.billed,
+      };
+    });
+  }, [cashLogs, selectedWallet, trendMonths, wallets]);
+
+  const paymentDisciplineSummary = useMemo(() => {
+    const activeMonths = creditCardMonths6.filter(
+      (item) => item.billed > 0 || item.paid > 0,
+    );
+    const onTrackMonths = activeMonths.filter((item) => item.onTrack).length;
+    const atRiskMonths = activeMonths.filter(
+      (item) => item.carryover > 0,
+    ).length;
+    const totalBilled = activeMonths.reduce(
+      (sum, item) => sum + item.billed,
+      0,
+    );
+    const totalPaid = activeMonths.reduce((sum, item) => sum + item.paid, 0);
+    const avgCoverage =
+      totalBilled > 0 ? Math.min((totalPaid / totalBilled) * 100, 999) : 100;
+
+    return {
+      activeMonths: activeMonths.length,
+      onTrackMonths,
+      atRiskMonths,
+      avgCoverage,
+      totalBilled,
+      totalPaid,
+    };
+  }, [creditCardMonths6]);
 
   // Cumulative balance trend
   const balanceTrend = useMemo(() => {
@@ -824,6 +1063,213 @@ export default function DashboardView() {
 
   const val = (v: number) => (showNominal ? formatCurrency(v) : HIDDEN_VALUE);
 
+  const monthlySummaryCards = [
+    {
+      key: 'income',
+      icon: <TrendingUpIcon />,
+      label: 'Income',
+      value: val(totalIncome),
+      color: 'green' as const,
+    },
+    {
+      key: 'outcome',
+      icon: <TrendingDownIcon />,
+      label: 'Outcome',
+      value: val(totalOutcome),
+      color: 'red' as const,
+    },
+    {
+      key: 'net',
+      icon: <SavingsIcon />,
+      label: 'Net',
+      value: val(netBalance),
+      color: (netBalance >= 0 ? 'green' : 'red') as 'green' | 'red',
+    },
+    {
+      key: 'tx',
+      icon: <ReceiptLongIcon />,
+      label: 'Total Transactions',
+      value: txCount.toString(),
+      color: 'blue' as const,
+    },
+  ];
+
+  const overallSummaryCards = [
+    {
+      key: 'assets',
+      icon: <AccountBalanceWalletIcon />,
+      label: 'Total Assets',
+      value: val(totalAssets),
+      color: 'emerald' as const,
+    },
+    {
+      key: 'debt',
+      icon: <ReceiptLongIcon />,
+      label: 'Total Debt',
+      value: val(totalDebt),
+      color: 'red' as const,
+    },
+    {
+      key: 'networth',
+      icon: <SavingsIcon />,
+      label: 'Net Worth',
+      value: val(netWorth),
+      color: (netWorth >= 0 ? 'green' : 'red') as 'green' | 'red',
+    },
+    {
+      key: 'avg-income',
+      icon: <TrendingUpIcon />,
+      label: 'Average Income (6 Months)',
+      value: val(Math.round(avgIncome6Months)),
+      color: 'green' as const,
+    },
+    {
+      key: 'avg-outcome',
+      icon: <TrendingDownIcon />,
+      label: 'Average Outcome (6 Months)',
+      value: val(Math.round(avgOutcome6Months)),
+      color: 'red' as const,
+    },
+    {
+      key: 'net-acc',
+      icon: <SavingsIcon />,
+      label: 'Net Accumulation (6 Months)',
+      value: val(net6Months),
+      color: (net6Months >= 0 ? 'green' : 'red') as 'green' | 'red',
+    },
+  ];
+
+  const creditCardWallets = useMemo(
+    () =>
+      wallets.filter(
+        (wallet) =>
+          wallet.walletKind === 'credit_card' &&
+          (!selectedWallet || wallet.id === selectedWallet.id),
+      ),
+    [wallets, selectedWallet],
+  );
+
+  const creditCardDueReminders = useMemo<CreditCardDueReminder[]>(() => {
+    const baseDate = new Date();
+    baseDate.setHours(0, 0, 0, 0);
+
+    return creditCardWallets
+      .filter(
+        (wallet) =>
+          wallet.balance > 0 &&
+          Number.isInteger(wallet.dueDay) &&
+          Number(wallet.dueDay) > 0,
+      )
+      .map((wallet) => {
+        const dueDay = Number(wallet.dueDay);
+        const thisMonthDue = getDateWithSafeDay(
+          baseDate.getFullYear(),
+          baseDate.getMonth(),
+          dueDay,
+        );
+
+        if (baseDate > thisMonthDue) {
+          const overdueDays = Math.floor(
+            (baseDate.getTime() - thisMonthDue.getTime()) / 86_400_000,
+          );
+          return {
+            id: wallet.id,
+            name: wallet.name,
+            dueDate: toIsoDate(thisMonthDue),
+            days: -overdueDays,
+            outstanding: wallet.balance,
+            severity: 'overdue' as const,
+          };
+        }
+
+        const nextDueDate = getNextDueDate(baseDate, dueDay);
+        const daysUntilDue = Math.floor(
+          (nextDueDate.getTime() - baseDate.getTime()) / 86_400_000,
+        );
+        const severity: CreditCardDueReminder['severity'] =
+          daysUntilDue <= 5 ? 'due-soon' : 'upcoming';
+
+        return {
+          id: wallet.id,
+          name: wallet.name,
+          dueDate: toIsoDate(nextDueDate),
+          days: daysUntilDue,
+          outstanding: wallet.balance,
+          severity,
+        };
+      })
+      .sort((a, b) => a.days - b.days);
+  }, [creditCardWallets]);
+
+  const creditCardCycleSummaries = useMemo<CreditCardCycleSummary[]>(() => {
+    return creditCardWallets
+      .filter(
+        (wallet) =>
+          Number.isInteger(wallet.statementDay) &&
+          Number.isInteger(wallet.dueDay) &&
+          Number(wallet.statementDay) > 0 &&
+          Number(wallet.dueDay) > 0 &&
+          Number(wallet.creditLimit) > 0,
+      )
+      .map((wallet) => {
+        const cycleWindow = getCycleWindow(
+          selectedMonth,
+          Number(wallet.statementDay),
+        );
+        const dueDate = getDateWithSafeDay(
+          cycleWindow.cycleEndDate.getFullYear(),
+          cycleWindow.cycleEndDate.getMonth() + 1,
+          Number(wallet.dueDay),
+        );
+
+        const cycleLogs = cashLogs.filter(
+          (log) =>
+            log.walletName === wallet.name &&
+            !log.excludeFromReport &&
+            log.date >= cycleWindow.cycleStart &&
+            log.date <= cycleWindow.cycleEnd,
+        );
+
+        const paymentLogs = cashLogs.filter(
+          (log) =>
+            log.walletName === wallet.name &&
+            !log.excludeFromReport &&
+            log.date >= cycleWindow.cycleEnd &&
+            log.date <= toIsoDate(dueDate),
+        );
+
+        const spent = cycleLogs
+          .filter((log) => log.category?.type === 'outcome')
+          .reduce((sum, log) => sum + log.amount, 0);
+        const paid = paymentLogs
+          .filter((log) => log.category?.type === 'income')
+          .reduce((sum, log) => sum + log.amount, 0);
+        const netChange = spent - paid;
+        const creditLimit = Number(wallet.creditLimit);
+        const remainingLimit = Math.max(creditLimit - wallet.balance, 0);
+        const utilization =
+          creditLimit > 0
+            ? Math.min((wallet.balance / creditLimit) * 100, 100)
+            : 0;
+
+        return {
+          id: wallet.id,
+          name: wallet.name,
+          cycleStart: cycleWindow.cycleStart,
+          cycleEnd: cycleWindow.cycleEnd,
+          dueDate: toIsoDate(dueDate),
+          spent,
+          paid,
+          netChange,
+          outstanding: wallet.balance,
+          creditLimit,
+          remainingLimit,
+          utilization,
+        };
+      })
+      .sort((a, b) => b.outstanding - a.outstanding);
+  }, [cashLogs, creditCardWallets, selectedMonth]);
+
   // ─── Tooltip formatters ───
   const tooltipStyle = {
     backgroundColor: isDark ? '#1e293b' : '#fff',
@@ -999,31 +1445,125 @@ export default function DashboardView() {
             </span>
           </div>
 
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-            <SummaryCard
-              icon={<TrendingUpIcon />}
-              label='Income'
-              value={val(totalIncome)}
-              color='green'
-            />
-            <SummaryCard
-              icon={<TrendingDownIcon />}
-              label='Outcome'
-              value={val(totalOutcome)}
-              color='red'
-            />
-            <SummaryCard
-              icon={<SavingsIcon />}
-              label='Net'
-              value={val(netBalance)}
-              color={netBalance >= 0 ? 'green' : 'red'}
-            />
-            <SummaryCard
-              icon={<ReceiptLongIcon />}
-              label='Total Transactions'
-              value={txCount.toString()}
-              color='blue'
-            />
+          <div className='grid grid-cols-2 lg:grid-cols-4 gap-4'>
+            {monthlySummaryCards.map((card, index) => (
+              <div
+                key={card.key}
+                className={`min-w-0 ${
+                  monthlySummaryCards.length % 2 === 1 &&
+                  index === monthlySummaryCards.length - 1
+                    ? 'col-span-2'
+                    : ''
+                }`}
+              >
+                <SummaryCard
+                  icon={card.icon}
+                  label={card.label}
+                  value={card.value}
+                  color={card.color}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            <ChartCard title='Credit Card Due Reminder'>
+              {creditCardDueReminders.length === 0 ? (
+                <p className='text-sm text-slate-500 dark:text-slate-400'>
+                  No credit card due reminder for current data.
+                </p>
+              ) : (
+                <div className='space-y-2'>
+                  {creditCardDueReminders.map((item) => (
+                    <div
+                      key={item.id}
+                      className='flex items-center justify-between rounded border border-slate-200 dark:border-slate-700 px-3 py-2'
+                    >
+                      <div>
+                        <p className='text-sm font-semibold text-slate-800 dark:text-slate-200'>
+                          {item.name}
+                        </p>
+                        <p className='text-xs text-slate-500 dark:text-slate-400'>
+                          Due: {item.dueDate}
+                        </p>
+                      </div>
+                      <div className='text-right'>
+                        <p
+                          className={`text-xs font-semibold ${
+                            item.severity === 'overdue'
+                              ? 'text-red-600 dark:text-red-400'
+                              : item.severity === 'due-soon'
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-emerald-600 dark:text-emerald-400'
+                          }`}
+                        >
+                          {item.severity === 'overdue'
+                            ? `${Math.abs(item.days)} day(s) overdue`
+                            : `${item.days} day(s) remaining`}
+                        </p>
+                        <p className='text-xs text-slate-500 dark:text-slate-400'>
+                          Outstanding: {val(item.outstanding)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ChartCard>
+
+            <ChartCard title='Credit Card Billing Cycle (Selected Month)'>
+              {creditCardCycleSummaries.length === 0 ? (
+                <p className='text-sm text-slate-500 dark:text-slate-400'>
+                  Billing cycle data is unavailable. Add credit card wallet with
+                  statement and due day.
+                </p>
+              ) : (
+                <div className='space-y-3'>
+                  {creditCardCycleSummaries.map((item) => (
+                    <div
+                      key={item.id}
+                      className='rounded border border-slate-200 dark:border-slate-700 p-3'
+                    >
+                      <div className='mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
+                        <p className='text-sm font-semibold text-slate-800 dark:text-slate-200'>
+                          {item.name}
+                        </p>
+                        <p className='text-xs text-slate-500 dark:text-slate-400'>
+                          Utilization {item.utilization.toFixed(1)}%
+                        </p>
+                      </div>
+                      <p className='text-xs text-slate-500 dark:text-slate-400 wrap-break-word'>
+                        Cycle: {item.cycleStart} to {item.cycleEnd} - Due{' '}
+                        {item.dueDate}
+                      </p>
+                      <p className='text-xs text-slate-500 dark:text-slate-400 wrap-break-word'>
+                        Payment window: {item.cycleEnd} to {item.dueDate}
+                      </p>
+                      <div className='mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 text-xs'>
+                        <p className='text-slate-600 dark:text-slate-300 wrap-break-word'>
+                          Spent: {val(item.spent)}
+                        </p>
+                        <p className='text-slate-600 dark:text-slate-300 wrap-break-word'>
+                          Paid: {val(item.paid)}
+                        </p>
+                        <p className='text-slate-600 dark:text-slate-300 wrap-break-word'>
+                          Cycle net: {val(item.netChange)}
+                        </p>
+                        <p className='text-slate-600 dark:text-slate-300 wrap-break-word'>
+                          Outstanding: {val(item.outstanding)}
+                        </p>
+                        <p className='text-slate-600 dark:text-slate-300 wrap-break-word'>
+                          Limit: {val(item.creditLimit)}
+                        </p>
+                        <p className='text-slate-600 dark:text-slate-300 wrap-break-word'>
+                          Remaining: {val(item.remainingLimit)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ChartCard>
           </div>
 
           <div className='grid grid-cols-1 gap-6'>
@@ -1536,31 +2076,25 @@ export default function DashboardView() {
             </span>
           </div>
 
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'>
-            <SummaryCard
-              icon={<AccountBalanceWalletIcon />}
-              label='Total Wallet'
-              value={val(totalWalletBalance)}
-              color='emerald'
-            />
-            <SummaryCard
-              icon={<TrendingUpIcon />}
-              label='Average Income (6 Months)'
-              value={val(Math.round(avgIncome6Months))}
-              color='green'
-            />
-            <SummaryCard
-              icon={<TrendingDownIcon />}
-              label='Average Outcome (6 Months)'
-              value={val(Math.round(avgOutcome6Months))}
-              color='red'
-            />
-            <SummaryCard
-              icon={<SavingsIcon />}
-              label='Net Accumulation (6 Months)'
-              value={val(net6Months)}
-              color={net6Months >= 0 ? 'green' : 'red'}
-            />
+          <div className='grid grid-cols-2 lg:grid-cols-3 gap-4'>
+            {overallSummaryCards.map((card, index) => (
+              <div
+                key={card.key}
+                className={`min-w-0 ${
+                  overallSummaryCards.length % 2 === 1 &&
+                  index === overallSummaryCards.length - 1
+                    ? 'col-span-2'
+                    : ''
+                }`}
+              >
+                <SummaryCard
+                  icon={card.icon}
+                  label={card.label}
+                  value={card.value}
+                  color={card.color}
+                />
+              </div>
+            ))}
           </div>
 
           <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
@@ -1670,6 +2204,187 @@ export default function DashboardView() {
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </ChartCard>
+          </div>
+
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6'>
+            <ChartCard title='Credit Utilization Trend (6 Months)'>
+              {creditCardMonths6.every((item) => item.billed === 0) ? (
+                <p className='text-sm text-slate-500 dark:text-slate-400'>
+                  No billed credit card activity in the last 6 months.
+                </p>
+              ) : (
+                <ResponsiveContainer
+                  width='100%'
+                  height={isMobileViewport ? 200 : 240}
+                >
+                  <LineChart data={creditCardMonths6}>
+                    <CartesianGrid
+                      strokeDasharray='3 3'
+                      stroke={isDark ? '#334155' : '#e2e8f0'}
+                    />
+                    <XAxis
+                      dataKey='label'
+                      interval={isMobileViewport ? 1 : 0}
+                      tick={{
+                        fontSize: isMobileViewport ? 10 : 12,
+                        fill: isDark ? '#94a3b8' : '#64748b',
+                      }}
+                    />
+                    <YAxis
+                      tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
+                      tick={{
+                        fontSize: isMobileViewport ? 10 : 11,
+                        fill: isDark ? '#94a3b8' : '#64748b',
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(value) => `${Number(value).toFixed(1)}%`}
+                    />
+                    <ReferenceLine
+                      y={30}
+                      stroke='#10b981'
+                      strokeDasharray='4 4'
+                    />
+                    <ReferenceLine
+                      y={80}
+                      stroke='#ef4444'
+                      strokeDasharray='4 4'
+                    />
+                    <Line
+                      type='monotone'
+                      dataKey='cycleUtilization'
+                      name='Cycle Utilization'
+                      stroke='#f59e0b'
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#f59e0b' }}
+                      activeDot={strongActiveDot}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </ChartCard>
+
+            <ChartCard title='Statement vs Payment (6 Months)'>
+              {creditCardMonths6.every(
+                (item) => item.billed === 0 && item.paid === 0,
+              ) ? (
+                <p className='text-sm text-slate-500 dark:text-slate-400'>
+                  No statement or payment activity in the last 6 months.
+                </p>
+              ) : (
+                <ResponsiveContainer
+                  width='100%'
+                  height={isMobileViewport ? 200 : 240}
+                >
+                  <ComposedChart data={creditCardMonths6}>
+                    <CartesianGrid
+                      strokeDasharray='3 3'
+                      stroke={isDark ? '#334155' : '#e2e8f0'}
+                    />
+                    <XAxis
+                      dataKey='label'
+                      interval={isMobileViewport ? 1 : 0}
+                      tick={{
+                        fontSize: isMobileViewport ? 10 : 12,
+                        fill: isDark ? '#94a3b8' : '#64748b',
+                      }}
+                    />
+                    <YAxis
+                      tickFormatter={(v) =>
+                        showNominal ? formatCompact(v) : '•••'
+                      }
+                      tick={{
+                        fontSize: isMobileViewport ? 10 : 11,
+                        fill: isDark ? '#94a3b8' : '#64748b',
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={currencyFormatter}
+                      cursor={chartTooltipCursor}
+                    />
+                    {!isMobileViewport && <Legend />}
+                    <Bar
+                      dataKey='billed'
+                      name='Statement (Billed)'
+                      fill='#ef4444'
+                      radius={[4, 4, 0, 0]}
+                      activeBar={mobileActiveBarStyle}
+                    />
+                    <Bar
+                      dataKey='paid'
+                      name='Paid'
+                      fill='#10b981'
+                      radius={[4, 4, 0, 0]}
+                      activeBar={mobileActiveBarStyle}
+                    />
+                    <Line
+                      type='monotone'
+                      dataKey='carryover'
+                      name='Carryover'
+                      stroke='#f59e0b'
+                      strokeWidth={2}
+                      dot={{ r: 3, fill: '#f59e0b' }}
+                      activeDot={mediumActiveDot}
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              )}
+            </ChartCard>
+
+            <ChartCard title='Payment Discipline (6 Months)'>
+              <div className='space-y-2 sm:space-y-3'>
+                <div className='grid grid-cols-2 gap-2 sm:gap-3 text-[11px] sm:text-xs'>
+                  <div className='rounded-lg border border-slate-200 dark:border-slate-700 p-2 sm:p-2.5'>
+                    <p className='text-slate-500 dark:text-slate-400'>
+                      Active Months
+                    </p>
+                    <p className='mt-1 font-semibold text-slate-700 dark:text-slate-200'>
+                      {paymentDisciplineSummary.activeMonths}
+                    </p>
+                  </div>
+                  <div className='rounded-lg border border-slate-200 dark:border-slate-700 p-2 sm:p-2.5'>
+                    <p className='text-slate-500 dark:text-slate-400'>
+                      On-Track Months
+                    </p>
+                    <p className='mt-1 font-semibold text-emerald-600 dark:text-emerald-400'>
+                      {paymentDisciplineSummary.onTrackMonths}
+                    </p>
+                  </div>
+                  <div className='rounded-lg border border-slate-200 dark:border-slate-700 p-2 sm:p-2.5'>
+                    <p className='text-slate-500 dark:text-slate-400'>
+                      At-Risk Months
+                    </p>
+                    <p className='mt-1 font-semibold text-red-600 dark:text-red-400'>
+                      {paymentDisciplineSummary.atRiskMonths}
+                    </p>
+                  </div>
+                  <div className='rounded-lg border border-slate-200 dark:border-slate-700 p-2 sm:p-2.5'>
+                    <p className='text-slate-500 dark:text-slate-400'>
+                      Avg Coverage
+                    </p>
+                    <p className='mt-1 font-semibold text-blue-600 dark:text-blue-400'>
+                      {paymentDisciplineSummary.avgCoverage.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+                <div className='rounded-lg border border-slate-200 dark:border-slate-700 p-2.5 sm:p-3 text-[11px] sm:text-xs'>
+                  <p className='text-slate-500 dark:text-slate-400'>
+                    Total Statement (6 months)
+                  </p>
+                  <p className='mt-1 font-semibold text-slate-700 dark:text-slate-200'>
+                    {val(paymentDisciplineSummary.totalBilled)}
+                  </p>
+                  <p className='mt-2 text-slate-500 dark:text-slate-400'>
+                    Total Paid
+                  </p>
+                  <p className='mt-1 font-semibold text-emerald-600 dark:text-emerald-400'>
+                    {val(paymentDisciplineSummary.totalPaid)}
+                  </p>
+                </div>
+              </div>
             </ChartCard>
           </div>
 
@@ -1935,19 +2650,23 @@ function SummaryCard({
 
   return (
     <div
-      className={`rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm ${
+      className={`h-full min-w-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-4 shadow-sm flex flex-col justify-between ${
         highlight ? 'ring-2 ring-emerald-400/40 dark:ring-emerald-500/30' : ''
       }`}
     >
-      <div className='flex items-center gap-3 mb-2'>
-        <div className={`p-2 rounded-lg ${c.bg}`}>
+      <div className='flex items-start gap-2 sm:gap-3 min-w-0'>
+        <div className={`p-1.5 sm:p-2 rounded-lg ${c.bg}`}>
           <span className={c.icon}>{icon}</span>
         </div>
-        <span className='text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider'>
+        <span className='min-w-0 text-[10px] sm:text-xs leading-tight font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide wrap-break-word'>
           {label}
         </span>
       </div>
-      <div className={`text-lg font-bold font-mono ${c.value}`}>{value}</div>
+      <div
+        className={`mt-2 min-w-0 text-sm sm:text-lg leading-snug font-bold font-mono ${c.value} wrap-break-word`}
+      >
+        {value}
+      </div>
     </div>
   );
 }

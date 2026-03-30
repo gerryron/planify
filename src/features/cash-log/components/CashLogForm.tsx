@@ -310,6 +310,7 @@ export default function CashLogForm({
               {groupedWallets.included.map((wallet) => (
                 <option key={wallet.id} value={wallet.name}>
                   {wallet.name}
+                  {wallet.walletKind === 'credit_card' ? ' - Credit Card' : ''}
                 </option>
               ))}
             </optgroup>
@@ -319,6 +320,7 @@ export default function CashLogForm({
               {groupedWallets.excluded.map((wallet) => (
                 <option key={wallet.id} value={wallet.name}>
                   {wallet.name}
+                  {wallet.walletKind === 'credit_card' ? ' - Credit Card' : ''}
                 </option>
               ))}
             </optgroup>

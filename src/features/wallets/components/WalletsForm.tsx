@@ -20,6 +20,9 @@ const defaultForm: WalletsInput = {
   goalAmount: null,
   goalStartMonth: null,
   goalDueMonth: null,
+  creditLimit: null,
+  statementDay: null,
+  dueDay: null,
 };
 
 export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
@@ -33,6 +36,9 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
           goalAmount: initial.goalAmount,
           goalStartMonth: initial.goalStartMonth,
           goalDueMonth: initial.goalDueMonth,
+          creditLimit: initial.creditLimit,
+          statementDay: initial.statementDay,
+          dueDay: initial.dueDay,
         }
       : defaultForm,
   );
@@ -47,6 +53,11 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
     if (form.goalAmount === null) return '';
     return form.goalAmount.toLocaleString('id-ID');
   }, [form.goalAmount]);
+
+  const formattedCreditLimit = useMemo(() => {
+    if (form.creditLimit === null) return '';
+    return form.creditLimit.toLocaleString('id-ID');
+  }, [form.creditLimit]);
 
   const goalSummary = useMemo(() => {
     if (form.walletKind !== 'goal') return null;
@@ -66,6 +77,34 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
+  const showFieldInfo = async (
+    field: 'outstanding' | 'statementDay' | 'dueDay',
+  ) => {
+    if (field === 'outstanding') {
+      await Swal.fire({
+        icon: 'info',
+        title: 'Outstanding Balance',
+        text: 'The total unpaid credit card bill at the moment. This value cannot exceed the credit limit.',
+      });
+      return;
+    }
+
+    if (field === 'statementDay') {
+      await Swal.fire({
+        icon: 'info',
+        title: 'Statement Day',
+        text: 'The monthly billing statement date. Example: 20 means the statement is generated every month on the 20th.',
+      });
+      return;
+    }
+
+    await Swal.fire({
+      icon: 'info',
+      title: 'Due Day',
+      text: 'The payment due date. If the due day is earlier than the statement day (for example, 20 then 7), the due date is in the following month.',
+    });
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
@@ -79,7 +118,15 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
             ? value === ''
               ? null
               : Number(value.replace(/[^\d]/g, ''))
-            : value,
+            : name === 'creditLimit'
+              ? value === ''
+                ? null
+                : Number(value.replace(/[^\d]/g, ''))
+              : name === 'statementDay' || name === 'dueDay'
+                ? value === ''
+                  ? null
+                  : Number(value)
+                : value,
     }));
   };
 
@@ -89,10 +136,16 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
     setForm((prev) => ({
       ...prev,
       walletKind,
-      excludeFromTotal: walletKind === 'goal' ? true : prev.excludeFromTotal,
+      excludeFromTotal:
+        walletKind === 'goal' || walletKind === 'credit_card'
+          ? true
+          : prev.excludeFromTotal,
       goalAmount: walletKind === 'goal' ? prev.goalAmount : null,
       goalStartMonth: walletKind === 'goal' ? currentMonth : null,
       goalDueMonth: walletKind === 'goal' ? prev.goalDueMonth : null,
+      creditLimit: walletKind === 'credit_card' ? prev.creditLimit : null,
+      statementDay: walletKind === 'credit_card' ? prev.statementDay : null,
+      dueDay: walletKind === 'credit_card' ? prev.dueDay : null,
     }));
   };
 
@@ -137,8 +190,8 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
 
       onSuccess();
       setForm(defaultForm);
-    } catch {
-      setError('Failed to save wallet');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save wallet');
     } finally {
       setLoading(false);
     }
@@ -153,8 +206,12 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
         <div className='relative inline-flex rounded-lg border border-gray-300 dark:border-slate-700 overflow-hidden w-full p-1 bg-gray-100 dark:bg-slate-900'>
           <span
             aria-hidden='true'
-            className={`absolute top-1 bottom-1 w-[calc(50%-0.25rem)] rounded-md bg-emerald-600 shadow-sm transition-transform duration-300 ease-out ${
-              form.walletKind === 'goal' ? 'translate-x-full' : 'translate-x-0'
+            className={`absolute top-1 bottom-1 w-[calc(33.333%-0.25rem)] rounded-md bg-emerald-600 shadow-sm transition-transform duration-300 ease-out ${
+              form.walletKind === 'basic'
+                ? 'translate-x-0'
+                : form.walletKind === 'goal'
+                  ? 'translate-x-full'
+                  : 'translate-x-[200%]'
             }`}
           />
           <button
@@ -181,6 +238,18 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
           >
             Goal Wallet
           </button>
+          <button
+            type='button'
+            onClick={() => handleKindChange('credit_card')}
+            disabled={Boolean(initial)}
+            className={`relative z-10 flex-1 py-2.5 text-sm font-medium transition-colors duration-300 ${
+              form.walletKind === 'credit_card'
+                ? 'text-white'
+                : 'text-slate-700 dark:text-slate-200'
+            } ${initial ? 'cursor-not-allowed opacity-80' : ''}`}
+          >
+            Credit Card
+          </button>
         </div>
         {initial && (
           <p className='text-xs mt-1 text-gray-500 dark:text-gray-400'>
@@ -190,7 +259,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Name</label>
+        <label className='mb-1.5 block text-sm font-medium'>Name</label>
         <input
           name='name'
           value={form.name}
@@ -202,7 +271,23 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Balance</label>
+        <div className='mb-1.5 flex items-center gap-2.5'>
+          <label className='block text-sm font-medium'>
+            {form.walletKind === 'credit_card'
+              ? 'Outstanding Balance'
+              : 'Balance'}
+          </label>
+          {form.walletKind === 'credit_card' && (
+            <button
+              type='button'
+              onClick={() => showFieldInfo('outstanding')}
+              aria-label='Outstanding balance information'
+              className='inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700'
+            >
+              i
+            </button>
+          )}
+        </div>
         <input
           name='balance'
           type='text'
@@ -217,6 +302,84 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
 
       <div
         className={`transition-all duration-300 ease-out overflow-hidden ${
+          form.walletKind === 'credit_card'
+            ? 'max-h-96 opacity-100 translate-y-0'
+            : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none'
+        }`}
+      >
+        <div className='space-y-4 pb-1'>
+          <div>
+            <label className='mb-1.5 block text-sm font-medium'>
+              Credit Limit
+            </label>
+            <input
+              name='creditLimit'
+              type='text'
+              inputMode='numeric'
+              value={formattedCreditLimit}
+              onChange={handleChange}
+              placeholder='e.g. 15000000'
+              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+              required={form.walletKind === 'credit_card'}
+            />
+          </div>
+
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+            <div>
+              <div className='mb-1.5 flex items-center gap-2.5'>
+                <label className='block text-sm font-medium'>
+                  Statement Day
+                </label>
+                <button
+                  type='button'
+                  onClick={() => showFieldInfo('statementDay')}
+                  aria-label='Statement day information'
+                  className='inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700'
+                >
+                  i
+                </button>
+              </div>
+              <input
+                name='statementDay'
+                type='number'
+                min={1}
+                max={31}
+                value={form.statementDay ?? ''}
+                onChange={handleChange}
+                className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+                required={form.walletKind === 'credit_card'}
+              />
+            </div>
+
+            <div>
+              <div className='mb-1.5 flex items-center gap-2.5'>
+                <label className='block text-sm font-medium'>Due Day</label>
+                <button
+                  type='button'
+                  onClick={() => showFieldInfo('dueDay')}
+                  aria-label='Due day information'
+                  className='inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-300 text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700'
+                >
+                  i
+                </button>
+              </div>
+              <input
+                name='dueDay'
+                type='number'
+                min={1}
+                max={31}
+                value={form.dueDay ?? ''}
+                onChange={handleChange}
+                className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+                required={form.walletKind === 'credit_card'}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={`transition-all duration-300 ease-out overflow-hidden ${
           form.walletKind === 'goal'
             ? 'max-h-112 opacity-100 translate-y-0'
             : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none'
@@ -224,7 +387,9 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       >
         <div className='space-y-4 pb-1'>
           <div>
-            <label className='block text-sm font-medium'>Savings Goal</label>
+            <label className='mb-1.5 block text-sm font-medium'>
+              Savings Goal
+            </label>
             <input
               name='goalAmount'
               type='text'
@@ -238,7 +403,9 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
           </div>
 
           <div>
-            <label className='block text-sm font-medium'>Due Month</label>
+            <label className='mb-1.5 block text-sm font-medium'>
+              Due Month
+            </label>
             <input
               type='month'
               value={form.goalDueMonth ?? ''}

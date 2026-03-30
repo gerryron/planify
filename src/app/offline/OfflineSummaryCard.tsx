@@ -8,6 +8,9 @@ type DashboardOfflineSnapshot = {
   outcome: number;
   net: number;
   walletTotal: number;
+  totalAssets?: number;
+  totalDebt?: number;
+  netWorth?: number;
   savedAt: string;
 };
 
@@ -55,6 +58,10 @@ export default function OfflineSummaryCard() {
     return null;
   }
 
+  const totalAssets = snapshot.totalAssets ?? snapshot.walletTotal;
+  const totalDebt = snapshot.totalDebt ?? 0;
+  const netWorth = snapshot.netWorth ?? snapshot.walletTotal;
+
   return (
     <div className='mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-left dark:border-slate-700 dark:bg-slate-800/50'>
       <h2 className='text-sm font-semibold text-slate-800 dark:text-slate-100'>
@@ -64,7 +71,9 @@ export default function OfflineSummaryCard() {
         Snapshot bulan {snapshot.month} - tersimpan {snapshot.savedAt}
       </p>
       <ul className='mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-        <li>Total saldo wallet: {formatCurrency(snapshot.walletTotal)}</li>
+        <li>Total assets: {formatCurrency(totalAssets)}</li>
+        <li>Total debt: {formatCurrency(totalDebt)}</li>
+        <li>Net worth: {formatCurrency(netWorth)}</li>
         <li>Total income: {formatCurrency(snapshot.income)}</li>
         <li>Total outcome: {formatCurrency(snapshot.outcome)}</li>
         <li>Cashflow bersih: {formatCurrency(snapshot.net)}</li>

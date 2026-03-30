@@ -5,10 +5,11 @@ type Wallet = {
   id: number;
   name: string;
   balance: number;
-  walletKind: 'basic' | 'goal';
+  walletKind: 'basic' | 'goal' | 'credit_card';
   goalAmount: number | null;
   goalStartMonth: string | null;
   goalDueMonth: string | null;
+  creditLimit: number | null;
 };
 
 type Category = {
@@ -42,6 +43,7 @@ function resetStore() {
       goalAmount: null,
       goalStartMonth: null,
       goalDueMonth: null,
+      creditLimit: null,
     },
     {
       id: 2,
@@ -51,6 +53,7 @@ function resetStore() {
       goalAmount: null,
       goalStartMonth: null,
       goalDueMonth: null,
+      creditLimit: null,
     },
     {
       id: 3,
@@ -60,6 +63,7 @@ function resetStore() {
       goalAmount: null,
       goalStartMonth: null,
       goalDueMonth: null,
+      creditLimit: null,
     },
     {
       id: 4,
@@ -69,6 +73,7 @@ function resetStore() {
       goalAmount: 1000000,
       goalStartMonth: '2026-03',
       goalDueMonth: '2026-12',
+      creditLimit: null,
     },
     {
       id: 5,
@@ -78,6 +83,37 @@ function resetStore() {
       goalAmount: 1000000,
       goalStartMonth: '2026-03',
       goalDueMonth: '2026-08',
+      creditLimit: null,
+    },
+    {
+      id: 6,
+      name: 'BCA Card',
+      balance: 300000,
+      walletKind: 'credit_card',
+      goalAmount: null,
+      goalStartMonth: null,
+      goalDueMonth: null,
+      creditLimit: 500000,
+    },
+    {
+      id: 7,
+      name: 'Mandiri Card',
+      balance: 100000,
+      walletKind: 'credit_card',
+      goalAmount: null,
+      goalStartMonth: null,
+      goalDueMonth: null,
+      creditLimit: 300000,
+    },
+    {
+      id: 8,
+      name: 'Broken Card',
+      balance: 20000,
+      walletKind: 'credit_card',
+      goalAmount: null,
+      goalStartMonth: null,
+      goalDueMonth: null,
+      creditLimit: null,
     },
   ];
 
@@ -484,5 +520,108 @@ describe('Wallet Transfer API', () => {
     expect(transferOutLog?.amount).toBe(50000);
     expect(transferInLog?.categoryId).toBe(101);
     expect(transferInLog?.amount).toBe(50000);
+  });
+
+  it('should allow transfer from credit card and increase outstanding', async () => {
+    const req = {
+      json: async () => ({
+        fromWalletId: 6,
+        toWalletId: 2,
+        amount: 100000,
+        date: '2026-03-14',
+        enableFee: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const card = wallets.find((wallet) => wallet.id === 6);
+    const cash = wallets.find((wallet) => wallet.id === 2);
+
+    expect(card?.balance).toBe(400000);
+    expect(cash?.balance).toBe(300000);
+  });
+
+  it('should allow transfer to credit card and reduce outstanding', async () => {
+    const req = {
+      json: async () => ({
+        fromWalletId: 1,
+        toWalletId: 6,
+        amount: 120000,
+        date: '2026-03-15',
+        enableFee: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const source = wallets.find((wallet) => wallet.id === 1);
+    const card = wallets.find((wallet) => wallet.id === 6);
+
+    expect(source?.balance).toBe(880000);
+    expect(card?.balance).toBe(180000);
+  });
+
+  it('should reject transfer from credit card when it exceeds credit limit', async () => {
+    const req = {
+      json: async () => ({
+        fromWalletId: 6,
+        toWalletId: 2,
+        amount: 250000,
+        date: '2026-03-14',
+        enableFee: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+
+    const data = await res.json();
+    expect(data.error).toBe(
+      'Credit card outstanding cannot exceed credit limit',
+    );
+  });
+
+  it('should reject transfer when source credit card has no credit limit', async () => {
+    const req = {
+      json: async () => ({
+        fromWalletId: 8,
+        toWalletId: 2,
+        amount: 5000,
+        date: '2026-03-14',
+        enableFee: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+
+    const data = await res.json();
+    expect(data.error).toBe('Credit card wallet is missing credit limit');
+  });
+
+  it('should apply receiver fee correctly when destination is credit card', async () => {
+    const req = {
+      json: async () => ({
+        fromWalletId: 1,
+        toWalletId: 6,
+        amount: 100000,
+        date: '2026-03-16',
+        enableFee: true,
+        feeAmount: 5000,
+        feePayer: 'receiver',
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const source = wallets.find((wallet) => wallet.id === 1);
+    const destinationCard = wallets.find((wallet) => wallet.id === 6);
+
+    expect(source?.balance).toBe(900000);
+    expect(destinationCard?.balance).toBe(205000);
   });
 });

@@ -30,6 +30,16 @@ export type WalletTransferResponse = {
 
 const API_URL = '/api/wallets';
 
+async function buildApiError(res: Response, fallback: string): Promise<Error> {
+  try {
+    const data = (await res.json()) as { error?: string };
+    if (data?.error) return new Error(data.error);
+  } catch {
+    // Ignore JSON parse failure and use fallback message.
+  }
+  return new Error(fallback);
+}
+
 export const walletsService = {
   async getAll(): Promise<Wallets[]> {
     const res = await fetch(API_URL, { method: 'GET' });
@@ -42,7 +52,7 @@ export const walletsService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create wallet');
+    if (!res.ok) throw await buildApiError(res, 'Failed to create wallet');
     return res.json();
   },
   async update(id: number, data: Partial<WalletsInput>): Promise<Wallets> {
@@ -51,7 +61,7 @@ export const walletsService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...data }),
     });
-    if (!res.ok) throw new Error('Failed to update wallet');
+    if (!res.ok) throw await buildApiError(res, 'Failed to update wallet');
     return res.json();
   },
   async reorder(orderedIds: number[]): Promise<{ success: boolean }> {
@@ -60,7 +70,7 @@ export const walletsService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderedIds }),
     });
-    if (!res.ok) throw new Error('Failed to reorder wallets');
+    if (!res.ok) throw await buildApiError(res, 'Failed to reorder wallets');
     return res.json();
   },
   async remove(id: number): Promise<{ success: boolean }> {
@@ -69,7 +79,7 @@ export const walletsService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
     });
-    if (!res.ok) throw new Error('Failed to delete wallet');
+    if (!res.ok) throw await buildApiError(res, 'Failed to delete wallet');
     return res.json();
   },
   async transfer(data: WalletTransferInput): Promise<WalletTransferResponse> {
@@ -78,7 +88,8 @@ export const walletsService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to transfer wallet balance');
+    if (!res.ok)
+      throw await buildApiError(res, 'Failed to transfer wallet balance');
     return res.json();
   },
 };

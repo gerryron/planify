@@ -3,6 +3,7 @@ import { prisma } from '@/core/db/prisma';
 import { badRequest, notFound, ok } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
 import { CashLogInput } from '@/features/cash-log/types/cashLog';
+import { WalletKind } from '@/features/wallets/types/wallets';
 
 type CashLogRecord = CashLogInput & {
   id: number;
@@ -189,9 +190,28 @@ function toId(value: unknown): number | null {
   return null;
 }
 
-function getWalletDelta(amount: number, type: 'income' | 'outcome') {
+function getWalletDelta(
+  amount: number,
+  type: 'income' | 'outcome',
+  walletKind: WalletKind,
+) {
   const nominal = Math.abs(amount);
-  return type === 'income' ? nominal : -nominal;
+  const delta = type === 'income' ? nominal : -nominal;
+  return walletKind === 'credit_card' ? -delta : delta;
+}
+
+function assertCreditLimit(
+  nextBalance: number,
+  walletKind: WalletKind,
+  creditLimit: number | null,
+) {
+  if (walletKind !== 'credit_card') return;
+  if (typeof creditLimit !== 'number') {
+    throw new Error('CREDIT_LIMIT_NOT_SET');
+  }
+  if (nextBalance > creditLimit) {
+    throw new Error('CREDIT_LIMIT_EXCEEDED');
+  }
 }
 
 function shouldAffectWallet(
@@ -253,17 +273,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const walletName = payload.walletName!.trim();
-    const walletDelta = getWalletDelta(payload.amount!, category.type);
-
     const record = await prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.findUnique({
         where: { userId_name: { userId: auth.user.sub, name: walletName } },
-        select: { id: true, balance: true },
+        select: {
+          id: true,
+          balance: true,
+          walletKind: true,
+          creditLimit: true,
+        },
       });
 
       if (!wallet) {
         throw new Error('WALLET_NOT_FOUND');
       }
+
+      const walletDelta = getWalletDelta(
+        payload.amount!,
+        category.type,
+        wallet.walletKind,
+      );
+      const nextBalance = wallet.balance + walletDelta;
+      assertCreditLimit(nextBalance, wallet.walletKind, wallet.creditLimit);
 
       const created = await tx.cashLog.create({
         data: {
@@ -289,7 +320,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       await tx.wallet.update({
         where: { id: wallet.id },
-        data: { balance: wallet.balance + walletDelta },
+        data: { balance: nextBalance },
       });
 
       return created;
@@ -299,6 +330,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } catch (error) {
     if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
       return badRequest('walletName is invalid');
+    }
+    if (error instanceof Error && error.message === 'CREDIT_LIMIT_NOT_SET') {
+      return badRequest('Credit card wallet is missing credit limit');
+    }
+    if (error instanceof Error && error.message === 'CREDIT_LIMIT_EXCEEDED') {
+      return badRequest('Credit card outstanding cannot exceed credit limit');
     }
     return badRequest();
   }
@@ -545,6 +582,25 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         ];
 
         for (const entry of transferEntries) {
+          const wallet = await tx.wallet.findUnique({
+            where: {
+              userId_name: {
+                userId: auth.user.sub,
+                name: entry.walletName,
+              },
+            },
+            select: {
+              id: true,
+              balance: true,
+              walletKind: true,
+              creditLimit: true,
+            },
+          });
+
+          if (!wallet) {
+            throw new Error('WALLET_NOT_FOUND');
+          }
+
           const oldAffects = shouldAffectWallet(
             entry.categoryType,
             entry.oldDescription,
@@ -558,32 +614,33 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
           const oldDelta =
             oldAffects && entry.categoryType
-              ? getWalletDelta(entry.oldAmount, entry.categoryType)
+              ? getWalletDelta(
+                  entry.oldAmount,
+                  entry.categoryType,
+                  wallet.walletKind,
+                )
               : 0;
           const newDelta =
             newAffects && entry.categoryType
-              ? getWalletDelta(entry.newAmount, entry.categoryType)
+              ? getWalletDelta(
+                  entry.newAmount,
+                  entry.categoryType,
+                  wallet.walletKind,
+                )
               : 0;
 
           const balanceDelta = newDelta - oldDelta;
           if (balanceDelta !== 0) {
-            const wallet = await tx.wallet.findUnique({
-              where: {
-                userId_name: {
-                  userId: auth.user.sub,
-                  name: entry.walletName,
-                },
-              },
-              select: { id: true, balance: true },
-            });
-
-            if (!wallet) {
-              throw new Error('WALLET_NOT_FOUND');
-            }
+            const nextBalance = wallet.balance + balanceDelta;
+            assertCreditLimit(
+              nextBalance,
+              wallet.walletKind,
+              wallet.creditLimit,
+            );
 
             await tx.wallet.update({
               where: { id: wallet.id },
-              data: { balance: wallet.balance + balanceDelta },
+              data: { balance: nextBalance },
             });
           }
         }
@@ -640,51 +697,60 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         nextExcludeFromReport,
       );
 
+      const oldWallet = await tx.wallet.findUnique({
+        where: {
+          userId_name: { userId: auth.user.sub, name: existing.walletName },
+        },
+        select: {
+          id: true,
+          balance: true,
+          walletKind: true,
+          creditLimit: true,
+        },
+      });
+      const newWallet = await tx.wallet.findUnique({
+        where: {
+          userId_name: { userId: auth.user.sub, name: nextWalletName },
+        },
+        select: {
+          id: true,
+          balance: true,
+          walletKind: true,
+          creditLimit: true,
+        },
+      });
+
+      if (!oldWallet || !newWallet) {
+        throw new Error('WALLET_NOT_FOUND');
+      }
+
       const oldDelta =
         oldAffects && existing.category?.type
-          ? getWalletDelta(existing.amount, existing.category.type)
+          ? getWalletDelta(
+              existing.amount,
+              existing.category.type,
+              oldWallet.walletKind,
+            )
           : 0;
       const nextDelta =
         nextAffects && nextCategoryType
-          ? getWalletDelta(nextAmount, nextCategoryType)
+          ? getWalletDelta(nextAmount, nextCategoryType, newWallet.walletKind)
           : 0;
 
       if (existing.walletName === nextWalletName) {
-        const wallet = await tx.wallet.findUnique({
-          where: {
-            userId_name: { userId: auth.user.sub, name: nextWalletName },
-          },
-          select: { id: true, balance: true },
-        });
-        if (!wallet) {
-          throw new Error('WALLET_NOT_FOUND');
-        }
+        const wallet = newWallet;
 
         const balanceDelta = nextDelta - oldDelta;
         if (balanceDelta !== 0) {
+          const nextBalance = wallet.balance + balanceDelta;
+          assertCreditLimit(nextBalance, wallet.walletKind, wallet.creditLimit);
+
           await tx.wallet.update({
             where: { id: wallet.id },
-            data: { balance: wallet.balance + balanceDelta },
+            data: { balance: nextBalance },
           });
         }
       } else {
-        const oldWallet = await tx.wallet.findUnique({
-          where: {
-            userId_name: { userId: auth.user.sub, name: existing.walletName },
-          },
-          select: { id: true, balance: true },
-        });
-        const newWallet = await tx.wallet.findUnique({
-          where: {
-            userId_name: { userId: auth.user.sub, name: nextWalletName },
-          },
-          select: { id: true, balance: true },
-        });
-
-        if (!oldWallet || !newWallet) {
-          throw new Error('WALLET_NOT_FOUND');
-        }
-
         if (oldDelta !== 0) {
           await tx.wallet.update({
             where: { id: oldWallet.id },
@@ -693,9 +759,16 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         }
 
         if (nextDelta !== 0) {
+          const nextBalance = newWallet.balance + nextDelta;
+          assertCreditLimit(
+            nextBalance,
+            newWallet.walletKind,
+            newWallet.creditLimit,
+          );
+
           await tx.wallet.update({
             where: { id: newWallet.id },
-            data: { balance: newWallet.balance + nextDelta },
+            data: { balance: nextBalance },
           });
         }
       }
@@ -741,6 +814,12 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     }
     if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
       return badRequest('walletName is invalid');
+    }
+    if (error instanceof Error && error.message === 'CREDIT_LIMIT_NOT_SET') {
+      return badRequest('Credit card wallet is missing credit limit');
+    }
+    if (error instanceof Error && error.message === 'CREDIT_LIMIT_EXCEEDED') {
+      return badRequest('Credit card outstanding cannot exceed credit limit');
     }
     if (
       error instanceof Error &&
@@ -812,21 +891,34 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         );
 
         if (affects && entry.category?.type) {
-          const delta = getWalletDelta(entry.amount, entry.category.type);
           const wallet = await tx.wallet.findUnique({
             where: {
               userId_name: { userId: auth.user.sub, name: entry.walletName },
             },
-            select: { id: true, balance: true },
+            select: {
+              id: true,
+              balance: true,
+              walletKind: true,
+              creditLimit: true,
+            },
           });
 
           if (!wallet) {
             throw new Error('WALLET_NOT_FOUND');
           }
 
+          const delta = getWalletDelta(
+            entry.amount,
+            entry.category.type,
+            wallet.walletKind,
+          );
+
+          const nextBalance = wallet.balance - delta;
+          assertCreditLimit(nextBalance, wallet.walletKind, wallet.creditLimit);
+
           await tx.wallet.update({
             where: { id: wallet.id },
-            data: { balance: wallet.balance - delta },
+            data: { balance: nextBalance },
           });
         }
       }
@@ -844,6 +936,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     }
     if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
       return badRequest('walletName is invalid');
+    }
+    if (error instanceof Error && error.message === 'CREDIT_LIMIT_NOT_SET') {
+      return badRequest('Credit card wallet is missing credit limit');
+    }
+    if (error instanceof Error && error.message === 'CREDIT_LIMIT_EXCEEDED') {
+      return badRequest('Credit card outstanding cannot exceed credit limit');
     }
     return badRequest('Failed to delete cash log');
   }

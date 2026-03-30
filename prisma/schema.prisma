@@ -21,6 +21,7 @@ enum CategoryType {
 enum WalletKind {
   basic
   goal
+  credit_card
 }
 
 enum UserRole {
@@ -71,6 +72,9 @@ model Wallet {
   goalAmount       Int?
   goalStartMonth   String?
   goalDueMonth     String?
+  creditLimit      Int?
+  statementDay     Int?
+  dueDay           Int?
   sortOrder        Int    @default(0)
   userId           String
   user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)

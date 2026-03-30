@@ -9,7 +9,11 @@ function isValidDueMonth(value: string): boolean {
 }
 
 function isWalletKind(value: unknown): value is WalletsInput['walletKind'] {
-  return value === 'basic' || value === 'goal';
+  return value === 'basic' || value === 'goal' || value === 'credit_card';
+}
+
+function isValidDayOfMonth(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= 31;
 }
 
 function toId(value: unknown): number | null {
@@ -38,6 +42,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       goalAmount,
       goalStartMonth,
       goalDueMonth,
+      creditLimit,
+      statementDay,
+      dueDay,
     }: Partial<WalletsInput> = await req.json();
 
     if (!name?.trim() || balance === undefined || !isWalletKind(walletKind)) {
@@ -45,12 +52,68 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     if (walletKind === 'goal') {
-      if (!Number.isInteger(goalAmount) || goalAmount <= 0) {
+      if (
+        typeof goalAmount !== 'number' ||
+        !Number.isInteger(goalAmount) ||
+        goalAmount <= 0
+      ) {
         return badRequest('Savings Goal must be greater than 0');
       }
       if (!goalDueMonth || !isValidDueMonth(goalDueMonth)) {
         return badRequest('Due Month must be in YYYY-MM format');
       }
+      if (
+        creditLimit !== undefined ||
+        statementDay !== undefined ||
+        dueDay !== undefined
+      ) {
+        return badRequest('Credit card fields are not allowed for Goal Wallet');
+      }
+    } else if (
+      (goalAmount !== undefined && goalAmount !== null) ||
+      (goalStartMonth !== undefined && goalStartMonth !== null) ||
+      (goalDueMonth !== undefined && goalDueMonth !== null)
+    ) {
+      return badRequest('Goal fields are only allowed for Goal Wallet');
+    }
+
+    if (walletKind === 'credit_card') {
+      if (
+        typeof creditLimit !== 'number' ||
+        !Number.isInteger(creditLimit) ||
+        creditLimit <= 0
+      ) {
+        return badRequest('Credit limit must be greater than 0');
+      }
+      if (
+        typeof statementDay !== 'number' ||
+        !Number.isInteger(statementDay) ||
+        !isValidDayOfMonth(statementDay)
+      ) {
+        return badRequest('Statement day must be between 1 and 31');
+      }
+      if (
+        typeof dueDay !== 'number' ||
+        !Number.isInteger(dueDay) ||
+        !isValidDayOfMonth(dueDay)
+      ) {
+        return badRequest('Due day must be between 1 and 31');
+      }
+      if (
+        typeof balance === 'number' &&
+        typeof creditLimit === 'number' &&
+        balance > creditLimit
+      ) {
+        return badRequest('Outstanding balance cannot exceed credit limit');
+      }
+    } else if (
+      (creditLimit !== undefined && creditLimit !== null) ||
+      (statementDay !== undefined && statementDay !== null) ||
+      (dueDay !== undefined && dueDay !== null)
+    ) {
+      return badRequest(
+        'Credit card fields are only allowed for Credit Card Wallet',
+      );
     }
 
     const wallet = await prisma.$transaction(async (tx) => {
@@ -68,12 +131,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           name: name.trim(),
           balance,
           excludeFromTotal:
-            walletKind === 'goal' ? true : (excludeFromTotal ?? false),
+            walletKind === 'goal' || walletKind === 'credit_card'
+              ? true
+              : (excludeFromTotal ?? false),
           walletKind,
           goalAmount: walletKind === 'goal' ? goalAmount : null,
           goalStartMonth:
             walletKind === 'goal' ? (goalStartMonth ?? currentMonth) : null,
           goalDueMonth: walletKind === 'goal' ? goalDueMonth : null,
+          creditLimit: walletKind === 'credit_card' ? creditLimit : null,
+          statementDay: walletKind === 'credit_card' ? statementDay : null,
+          dueDay: walletKind === 'credit_card' ? dueDay : null,
           sortOrder: (lastWallet?.sortOrder ?? -1) + 1,
         },
       });
@@ -196,6 +264,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           goalAmount: true,
           goalStartMonth: true,
           goalDueMonth: true,
+          creditLimit: true,
+          statementDay: true,
+          dueDay: true,
         },
       });
 
@@ -212,7 +283,11 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
       if (existing.walletKind === 'goal') {
         if (data.goalAmount !== undefined) {
-          if (!Number.isInteger(data.goalAmount) || data.goalAmount <= 0) {
+          if (
+            typeof data.goalAmount !== 'number' ||
+            !Number.isInteger(data.goalAmount) ||
+            data.goalAmount <= 0
+          ) {
             throw new Error('GOAL_AMOUNT_INVALID');
           }
         }
@@ -239,12 +314,67 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         }
       }
 
+      if (existing.walletKind === 'credit_card') {
+        const nextCreditLimit =
+          data.creditLimit !== undefined
+            ? data.creditLimit
+            : existing.creditLimit;
+        const nextStatementDay =
+          data.statementDay !== undefined
+            ? data.statementDay
+            : existing.statementDay;
+        const nextDueDay =
+          data.dueDay !== undefined ? data.dueDay : existing.dueDay;
+        const nextBalance =
+          data.balance !== undefined ? data.balance : existing.balance;
+
+        if (
+          typeof nextCreditLimit !== 'number' ||
+          !Number.isInteger(nextCreditLimit) ||
+          nextCreditLimit <= 0
+        ) {
+          throw new Error('CREDIT_LIMIT_INVALID');
+        }
+
+        if (
+          typeof nextStatementDay !== 'number' ||
+          !Number.isInteger(nextStatementDay) ||
+          !isValidDayOfMonth(nextStatementDay)
+        ) {
+          throw new Error('STATEMENT_DAY_INVALID');
+        }
+
+        if (
+          typeof nextDueDay !== 'number' ||
+          !Number.isInteger(nextDueDay) ||
+          !isValidDayOfMonth(nextDueDay)
+        ) {
+          throw new Error('DUE_DAY_INVALID');
+        }
+
+        if (
+          typeof nextCreditLimit === 'number' &&
+          typeof nextBalance === 'number' &&
+          nextBalance > nextCreditLimit
+        ) {
+          throw new Error('CREDIT_LIMIT_EXCEEDED');
+        }
+      } else if (
+        (data.creditLimit !== undefined && data.creditLimit !== null) ||
+        (data.statementDay !== undefined && data.statementDay !== null) ||
+        (data.dueDay !== undefined && data.dueDay !== null)
+      ) {
+        throw new Error('CREDIT_CARD_FIELDS_NOT_ALLOWED');
+      }
+
       const updateData: Partial<WalletsInput> = { ...data };
       delete updateData.walletKind;
 
       if (existing.walletKind === 'goal') {
         updateData.excludeFromTotal = true;
         updateData.goalStartMonth = existing.goalStartMonth;
+      } else if (existing.walletKind === 'credit_card') {
+        updateData.excludeFromTotal = true;
       }
 
       const updated = await tx.wallet.update({
@@ -310,6 +440,26 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       error.message === 'GOAL_START_MONTH_IMMUTABLE'
     ) {
       return badRequest('Goal start month cannot be changed');
+    }
+    if (error instanceof Error && error.message === 'CREDIT_LIMIT_INVALID') {
+      return badRequest('Credit limit must be greater than 0');
+    }
+    if (error instanceof Error && error.message === 'STATEMENT_DAY_INVALID') {
+      return badRequest('Statement day must be between 1 and 31');
+    }
+    if (error instanceof Error && error.message === 'DUE_DAY_INVALID') {
+      return badRequest('Due day must be between 1 and 31');
+    }
+    if (error instanceof Error && error.message === 'CREDIT_LIMIT_EXCEEDED') {
+      return badRequest('Outstanding balance cannot exceed credit limit');
+    }
+    if (
+      error instanceof Error &&
+      error.message === 'CREDIT_CARD_FIELDS_NOT_ALLOWED'
+    ) {
+      return badRequest(
+        'Credit card fields are only allowed for Credit Card Wallet',
+      );
     }
     if (
       error instanceof Error &&

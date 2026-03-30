@@ -161,6 +161,9 @@ function buildNextWallets(
   if (fromIndex < 0) return null;
 
   const sourceWallet = wallets[fromIndex];
+  if (sourceWallet.walletKind === 'credit_card' && targetIncludeFromTotal) {
+    return null;
+  }
   const withoutMoved = wallets.filter((wallet) => wallet.id !== fromId);
 
   let insertIndex = withoutMoved.length;
@@ -244,6 +247,26 @@ function SortableWalletItem({
           goalDueMonth: wallet.goalDueMonth,
         })
       : null;
+  const creditLimit = wallet.creditLimit ?? 0;
+  const outstandingAmount = Math.max(wallet.balance, 0);
+  const creditUtilization =
+    wallet.walletKind === 'credit_card' && creditLimit > 0
+      ? (outstandingAmount / creditLimit) * 100
+      : 0;
+  const clampedCreditUtilization = Math.max(
+    0,
+    Math.min(creditUtilization, 100),
+  );
+  const remainingLimit =
+    wallet.walletKind === 'credit_card' && creditLimit > 0
+      ? Math.max(creditLimit - outstandingAmount, 0)
+      : 0;
+  const utilizationToneClass =
+    creditUtilization >= 90
+      ? 'text-red-600 dark:text-red-400'
+      : creditUtilization >= 70
+        ? 'text-amber-600 dark:text-amber-400'
+        : 'text-emerald-600 dark:text-emerald-400';
 
   const statusTone: Record<string, string> = {
     'on-track':
@@ -255,12 +278,19 @@ function SortableWalletItem({
       'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
   };
 
+  const walletKindBadge =
+    wallet.walletKind === 'goal'
+      ? 'Goal'
+      : wallet.walletKind === 'credit_card'
+        ? 'Credit Card'
+        : null;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       onClick={() => onOpenCashLog(wallet)}
-      className={`flex items-center justify-between border-b border-gray-300 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0 transition-all rounded-md p-1 -m-1 hover:bg-emerald-50 dark:hover:bg-slate-700/40 ${
+      className={`flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700/80 px-3 py-3 transition-all hover:bg-emerald-50 dark:hover:bg-slate-700/40 ${
         isDragging ? 'opacity-70 scale-[0.99] shadow-md' : ''
       }`}
       role='button'
@@ -276,21 +306,65 @@ function SortableWalletItem({
         className='text-left transition-colors flex-1'
         title='Open cash log for this wallet'
       >
-        <div className='font-bold'>{wallet.name}</div>
+        <div className='flex items-center gap-2'>
+          <div className='font-bold'>{wallet.name}</div>
+          {walletKindBadge && (
+            <span className='px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'>
+              {walletKindBadge}
+            </span>
+          )}
+        </div>
         <div
           className={`font-mono ${
             showNominal
-              ? wallet.balance < 0
+              ? wallet.walletKind === 'credit_card' || wallet.balance < 0
                 ? 'text-red-600 dark:text-red-400'
                 : 'text-green-700 dark:text-green-300'
               : 'text-gray-500 dark:text-gray-400'
           }`}
         >
-          {wallet.balance < 0 ? '- ' : ''}Rp{' '}
+          {wallet.walletKind === 'credit_card'
+            ? 'Outstanding: '
+            : wallet.balance < 0
+              ? '- '
+              : ''}
+          Rp{' '}
           {showNominal
             ? Math.abs(wallet.balance).toLocaleString('id-ID')
             : '••••••••'}
         </div>
+        {wallet.walletKind === 'credit_card' && (
+          <div className='mt-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 p-2 space-y-1.5'>
+            <div className='flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400'>
+              <span>Utilization</span>
+              <span className={`font-semibold ${utilizationToneClass}`}>
+                {showNominal ? `${creditUtilization.toFixed(1)}%` : '•••'}
+              </span>
+            </div>
+            <div className='h-1.5 rounded overflow-hidden border border-gray-300 dark:border-slate-700'>
+              <div
+                className='h-full bg-red-500'
+                style={{ width: `${clampedCreditUtilization}%` }}
+              />
+            </div>
+            <div className='grid grid-cols-2 gap-2 text-[11px] text-slate-500 dark:text-slate-400'>
+              <span className='truncate'>
+                O/L:{' '}
+                {creditLimit > 0
+                  ? showNominal
+                    ? `${outstandingAmount.toLocaleString('id-ID')} / ${creditLimit.toLocaleString('id-ID')}`
+                    : '•••• / ••••'
+                  : 'Limit not set'}
+              </span>
+              <span className='truncate text-right'>
+                Remaining:{' '}
+                {showNominal
+                  ? remainingLimit.toLocaleString('id-ID')
+                  : '••••••'}
+              </span>
+            </div>
+          </div>
+        )}
         {goalSummary && (
           <div className='flex items-center gap-2 mt-1 flex-wrap'>
             <span
@@ -725,7 +799,7 @@ export default function WalletsList({
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
-            <div className='space-y-4'>
+            <div className='space-y-5'>
               <div
                 ref={setIncludeDropRef}
                 className={`rounded-md p-2 border transition-all ${
@@ -737,7 +811,7 @@ export default function WalletsList({
                 <div className='text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2'>
                   Include from total
                 </div>
-                <div className='space-y-4'>
+                <div className='space-y-5'>
                   {includeWallets.length === 0 ? (
                     <div className='text-sm text-gray-500 min-h-12 flex items-center rounded border border-dashed border-gray-300 dark:border-slate-600 px-3'>
                       No included wallet.
@@ -779,7 +853,7 @@ export default function WalletsList({
                 <div className='text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2'>
                   Exclude from total
                 </div>
-                <div className='space-y-4'>
+                <div className='space-y-5'>
                   {excludeWallets.length === 0 ? (
                     <div className='text-sm text-gray-500 min-h-12 flex items-center rounded border border-dashed border-gray-300 dark:border-slate-600 px-3'>
                       No excluded wallet.

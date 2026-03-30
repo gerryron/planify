@@ -14,9 +14,41 @@ type CashLog = CashLogInput & {
 };
 
 const wallets = [
-  { id: 1, name: 'Cash', balance: 100000 },
-  { id: 2, name: 'BCA', balance: 2000000 },
-  { id: 3, name: 'OVO', balance: 300000 },
+  {
+    id: 1,
+    name: 'Cash',
+    balance: 100000,
+    walletKind: 'basic' as const,
+    creditLimit: null,
+  },
+  {
+    id: 2,
+    name: 'BCA',
+    balance: 2000000,
+    walletKind: 'basic' as const,
+    creditLimit: null,
+  },
+  {
+    id: 3,
+    name: 'OVO',
+    balance: 300000,
+    walletKind: 'basic' as const,
+    creditLimit: null,
+  },
+  {
+    id: 4,
+    name: 'BCA Card',
+    balance: 250000,
+    walletKind: 'credit_card' as const,
+    creditLimit: 500000,
+  },
+  {
+    id: 5,
+    name: 'Broken Card',
+    balance: 100000,
+    walletKind: 'credit_card' as const,
+    creditLimit: null,
+  },
 ];
 
 jest.mock('@/generated/prisma/client', () => {
@@ -58,7 +90,14 @@ jest.mock('@/generated/prisma/client', () => {
                 const wallet =
                   wallets.find((item) => item.name === name) ?? null;
                 return Promise.resolve(
-                  wallet ? { id: wallet.id, balance: wallet.balance } : null,
+                  wallet
+                    ? {
+                        id: wallet.id,
+                        balance: wallet.balance,
+                        walletKind: wallet.walletKind,
+                        creditLimit: wallet.creditLimit,
+                      }
+                    : null,
                 );
               }
 
@@ -535,5 +574,188 @@ describe('Cash Log API', () => {
 
     const ovoAfterDelete = wallets.find((wallet) => wallet.name === 'OVO');
     expect(ovoAfterDelete?.balance).toBe(260000);
+  });
+
+  it('should increase credit card outstanding for outcome cash log', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-03-10',
+        description: 'Online shopping',
+        amount: 100000,
+        walletName: 'BCA Card',
+        categoryId: 102,
+        excludeFromReport: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const cardWallet = wallets.find((wallet) => wallet.name === 'BCA Card');
+    expect(cardWallet?.balance).toBe(350000);
+  });
+
+  it('should reduce credit card outstanding for income cash log', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-03-11',
+        description: 'Card payment',
+        amount: 50000,
+        walletName: 'BCA Card',
+        categoryId: 101,
+        excludeFromReport: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const cardWallet = wallets.find((wallet) => wallet.name === 'BCA Card');
+    expect(cardWallet?.balance).toBe(300000);
+  });
+
+  it('should reject credit card outcome that exceeds credit limit', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-03-12',
+        description: 'Expensive purchase',
+        amount: 250000,
+        walletName: 'BCA Card',
+        categoryId: 102,
+        excludeFromReport: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe(
+      'Credit card outstanding cannot exceed credit limit',
+    );
+  });
+
+  it('should reject cash log on credit card with missing credit limit', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-03-12',
+        description: 'Broken card transaction',
+        amount: 10000,
+        walletName: 'Broken Card',
+        categoryId: 102,
+        excludeFromReport: false,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Credit card wallet is missing credit limit');
+  });
+
+  it('should apply credit card delta correctly when patch changes category', async () => {
+    const cardBefore = wallets.find((wallet) => wallet.name === 'BCA Card')!;
+    const baseline = cardBefore.balance;
+
+    const createReq = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-03-13',
+        description: 'Category switch card',
+        amount: 40000,
+        walletName: 'BCA Card',
+        categoryId: 102,
+        excludeFromReport: false,
+      }),
+    } as unknown as NextRequest;
+
+    const createRes = await POST(createReq);
+    expect(createRes.status).toBe(201);
+    const created: CashLog = await createRes.json();
+
+    const patchReq = {
+      method: 'PATCH',
+      json: async () => ({
+        id: created.id,
+        categoryId: 101,
+      }),
+    } as unknown as NextRequest;
+
+    const patchRes = await PATCH(patchReq);
+    expect(patchRes.status).toBe(200);
+
+    const cardAfter = wallets.find((wallet) => wallet.name === 'BCA Card')!;
+    expect(cardAfter.balance).toBe(baseline - 40000);
+  });
+
+  it('should reject credit card patch that exceeds limit', async () => {
+    const createReq = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-03-14',
+        description: 'Patch overlimit seed',
+        amount: 10000,
+        walletName: 'BCA Card',
+        categoryId: 102,
+        excludeFromReport: false,
+      }),
+    } as unknown as NextRequest;
+
+    const createRes = await POST(createReq);
+    expect(createRes.status).toBe(201);
+    const created: CashLog = await createRes.json();
+
+    const patchReq = {
+      method: 'PATCH',
+      json: async () => ({
+        id: created.id,
+        amount: 300000,
+      }),
+    } as unknown as NextRequest;
+
+    const patchRes = await PATCH(patchReq);
+    expect(patchRes.status).toBe(400);
+    const data = await patchRes.json();
+    expect(data.error).toBe(
+      'Credit card outstanding cannot exceed credit limit',
+    );
+  });
+
+  it('should rollback credit card outstanding when deleting payment log', async () => {
+    const baseline = wallets.find(
+      (wallet) => wallet.name === 'BCA Card',
+    )!.balance;
+    const createReq = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-03-15',
+        description: 'Payment rollback check',
+        amount: 20000,
+        walletName: 'BCA Card',
+        categoryId: 101,
+        excludeFromReport: false,
+      }),
+    } as unknown as NextRequest;
+
+    const createRes = await POST(createReq);
+    expect(createRes.status).toBe(201);
+    const created: CashLog = await createRes.json();
+
+    const afterCreate = wallets.find((wallet) => wallet.name === 'BCA Card')!;
+    expect(afterCreate.balance).toBe(baseline - 20000);
+
+    const deleteReq = {
+      method: 'DELETE',
+      json: async () => ({ id: created.id }),
+    } as unknown as NextRequest;
+
+    const deleteRes = await DELETE(deleteReq);
+    expect(deleteRes.status).toBe(200);
+
+    const afterDelete = wallets.find((wallet) => wallet.name === 'BCA Card')!;
+    expect(afterDelete.balance).toBe(baseline);
   });
 });

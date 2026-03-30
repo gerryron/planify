@@ -1,4 +1,4 @@
-export type WalletKind = 'basic' | 'goal';
+export type WalletKind = 'basic' | 'goal' | 'credit_card';
 
 export interface WalletsInput {
   name: string;
@@ -8,4 +8,7 @@ export interface WalletsInput {
   goalAmount: number | null;
   goalStartMonth: string | null;
   goalDueMonth: string | null;
+  creditLimit: number | null;
+  statementDay: number | null;
+  dueDay: number | null;
 }

@@ -96,6 +96,12 @@ export default function WalletTransferForm({
 
   const availableToTransfer = useMemo(() => {
     if (!fromWallet) return 0;
+    if (fromWallet.walletKind === 'credit_card') {
+      const limit = fromWallet.creditLimit ?? 0;
+      const reservedFee =
+        form.enableFee && form.feePayer === 'sender' ? form.feeAmount : 0;
+      return Math.max(limit - fromWallet.balance - reservedFee, 0);
+    }
     if (form.enableFee && form.feePayer === 'sender') {
       return Math.max(fromWallet.balance - form.feeAmount, 0);
     }
@@ -162,8 +168,21 @@ export default function WalletTransferForm({
       return 'Destination Goal Wallet is already achieved and no longer accepts transfers';
     }
 
-    if (fromWallet.balance < senderRequiredBalance) {
+    if (
+      fromWallet.walletKind !== 'credit_card' &&
+      fromWallet.balance < senderRequiredBalance
+    ) {
       return 'Source wallet balance is insufficient';
+    }
+
+    if (fromWallet.walletKind === 'credit_card') {
+      if (!fromWallet.creditLimit || fromWallet.creditLimit <= 0) {
+        return 'Source credit card has no credit limit configured';
+      }
+      const remainingLimit = fromWallet.creditLimit - fromWallet.balance;
+      if (senderRequiredBalance > remainingLimit) {
+        return 'Transfer exceeds source credit card remaining limit';
+      }
     }
 
     if (form.enableFee) {
@@ -270,8 +289,12 @@ export default function WalletTransferForm({
           {wallets.map((wallet) => (
             <option key={wallet.id} value={wallet.id}>
               {wallet.name}
-              {wallet.walletKind === 'goal' ? ' - Goal' : ''} (Rp{' '}
-              {wallet.balance.toLocaleString('id-ID')})
+              {wallet.walletKind === 'goal'
+                ? ' - Goal'
+                : wallet.walletKind === 'credit_card'
+                  ? ' - Credit Card'
+                  : ''}{' '}
+              (Rp {wallet.balance.toLocaleString('id-ID')})
             </option>
           ))}
         </select>
@@ -295,8 +318,12 @@ export default function WalletTransferForm({
             .map((wallet) => (
               <option key={wallet.id} value={wallet.id}>
                 {wallet.name}
-                {wallet.walletKind === 'goal' ? ' - Goal' : ''} (Rp{' '}
-                {wallet.balance.toLocaleString('id-ID')})
+                {wallet.walletKind === 'goal'
+                  ? ' - Goal'
+                  : wallet.walletKind === 'credit_card'
+                    ? ' - Credit Card'
+                    : ''}{' '}
+                (Rp {wallet.balance.toLocaleString('id-ID')})
               </option>
             ))}
         </select>
@@ -313,7 +340,9 @@ export default function WalletTransferForm({
           required
         />
         <p className='text-xs text-gray-500 mt-1'>
-          Maximum transferable: Rp {availableToTransfer.toLocaleString('id-ID')}
+          {fromWallet?.walletKind === 'credit_card'
+            ? `Remaining credit limit: Rp ${availableToTransfer.toLocaleString('id-ID')}`
+            : `Maximum transferable: Rp ${availableToTransfer.toLocaleString('id-ID')}`}
         </p>
       </div>
 

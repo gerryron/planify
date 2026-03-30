@@ -1,8 +1,21 @@
 import type { NextRequest } from 'next/server';
 import { POST, GET, PATCH, DELETE } from './route';
-import { WalletsInput } from '@/features/wallets/types/wallets';
 
-type Wallet = WalletsInput & { id: number; sortOrder: number; userId?: string };
+type Wallet = {
+  id: number;
+  sortOrder: number;
+  userId?: string;
+  name: string;
+  balance: number;
+  excludeFromTotal: boolean;
+  walletKind: 'basic' | 'goal' | 'credit_card';
+  goalAmount?: number | null;
+  goalStartMonth?: string | null;
+  goalDueMonth?: string | null;
+  creditLimit?: number | null;
+  statementDay?: number | null;
+  dueDay?: number | null;
+};
 const adjustmentLogs: Array<{
   id: number;
   date: string;
@@ -66,7 +79,10 @@ jest.mock('@/generated/prisma/client', () => {
             ({
               data,
             }: {
-              data: WalletsInput & { sortOrder?: number; userId?: string };
+              data: Omit<Wallet, 'id' | 'sortOrder'> & {
+                sortOrder?: number;
+                userId?: string;
+              };
             }) => {
               const wallet: Wallet = {
                 ...data,
@@ -144,7 +160,9 @@ jest.mock('@/generated/prisma/client', () => {
               data,
             }: {
               where: { id: number };
-              data: Partial<WalletsInput> & { sortOrder?: number };
+              data: Partial<Omit<Wallet, 'id' | 'sortOrder'>> & {
+                sortOrder?: number;
+              };
             }) => {
               const idx = wallets.findIndex((w) => w.id === where.id);
               if (idx === -1) throw new Error('Not found');
@@ -199,35 +217,28 @@ jest.mock('@/generated/prisma/client', () => {
 describe('Wallet API', () => {
   let id1: number;
   let id2: number;
+  let creditCardId: number;
 
   it('should create wallet data', async () => {
     const beforeCount = adjustmentLogs.length;
     const req1 = {
       method: 'POST',
-      json: async () =>
-        ({
-          name: 'BCA',
-          balance: 1200000,
-          excludeFromTotal: false,
-          walletKind: 'basic',
-          goalAmount: null,
-          goalStartMonth: null,
-          goalDueMonth: null,
-        }) as WalletsInput,
+      json: async () => ({
+        name: 'BCA',
+        balance: 1200000,
+        excludeFromTotal: false,
+        walletKind: 'basic',
+      }),
     } as unknown as NextRequest;
 
     const req2 = {
       method: 'POST',
-      json: async () =>
-        ({
-          name: 'OVO',
-          balance: 500000,
-          excludeFromTotal: true,
-          walletKind: 'basic',
-          goalAmount: null,
-          goalStartMonth: null,
-          goalDueMonth: null,
-        }) as WalletsInput,
+      json: async () => ({
+        name: 'OVO',
+        balance: 500000,
+        excludeFromTotal: true,
+        walletKind: 'basic',
+      }),
     } as unknown as NextRequest;
 
     const res1 = await POST(req1);
@@ -293,8 +304,6 @@ describe('Wallet API', () => {
         name: 'BCA Updated',
         balance: 1500000,
         excludeFromTotal: true,
-        goalAmount: null,
-        goalDueMonth: null,
       }),
     } as unknown as NextRequest;
 
@@ -355,6 +364,107 @@ describe('Wallet API', () => {
     expect(data.goalDueMonth).toBe('2027-03');
   });
 
+  it('should create credit card wallet and force excludeFromTotal', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        name: 'BCA Card',
+        balance: 750000,
+        excludeFromTotal: false,
+        walletKind: 'credit_card',
+        creditLimit: 5000000,
+        statementDay: 20,
+        dueDay: 5,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const data = await res.json();
+    expect(data.walletKind).toBe('credit_card');
+    expect(data.excludeFromTotal).toBe(true);
+    expect(data.creditLimit).toBe(5000000);
+    expect(data.statementDay).toBe(20);
+    expect(data.dueDay).toBe(5);
+    creditCardId = data.id;
+  });
+
+  it('should reject basic wallet when goal fields are provided', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        name: 'Invalid Basic Wallet',
+        balance: 100000,
+        excludeFromTotal: false,
+        walletKind: 'basic',
+        goalAmount: 500000,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Goal fields are only allowed for Goal Wallet');
+  });
+
+  it('should reject credit card wallet when due day is invalid', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        name: 'Invalid Day Card',
+        balance: 100000,
+        excludeFromTotal: true,
+        walletKind: 'credit_card',
+        creditLimit: 5000000,
+        statementDay: 20,
+        dueDay: 0,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Due day must be between 1 and 31');
+  });
+
+  it('should reject credit card wallet when outstanding exceeds credit limit', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        name: 'Overlimit Card',
+        balance: 6000000,
+        excludeFromTotal: true,
+        walletKind: 'credit_card',
+        creditLimit: 5000000,
+        statementDay: 20,
+        dueDay: 5,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Outstanding balance cannot exceed credit limit');
+  });
+
+  it('should reject credit card wallet when mandatory credit card fields are missing', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        name: 'Invalid Card',
+        balance: 100000,
+        excludeFromTotal: true,
+        walletKind: 'credit_card',
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Credit limit must be greater than 0');
+  });
+
   it('should reject walletKind change after wallet is created', async () => {
     const req = {
       method: 'PATCH',
@@ -370,6 +480,38 @@ describe('Wallet API', () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toBe('Wallet type cannot be changed once created');
+  });
+
+  it('should update credit card wallet metadata', async () => {
+    const req = {
+      method: 'PATCH',
+      json: async () => ({
+        id: creditCardId,
+        statementDay: 22,
+        dueDay: 7,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.statementDay).toBe(22);
+    expect(data.dueDay).toBe(7);
+  });
+
+  it('should reject credit card update when balance exceeds updated limit', async () => {
+    const req = {
+      method: 'PATCH',
+      json: async () => ({
+        id: creditCardId,
+        creditLimit: 500000,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe('Outstanding balance cannot exceed credit limit');
   });
 
   it('should create Transfer Out adjustment when balance decreases', async () => {

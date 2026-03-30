@@ -443,6 +443,20 @@ export const openApiSpec = {
                     goalDueMonth: '2027-03',
                   },
                 },
+                createCreditCard: {
+                  value: {
+                    name: 'BCA Everyday Card',
+                    balance: 750000,
+                    excludeFromTotal: true,
+                    walletKind: 'credit_card',
+                    goalAmount: null,
+                    goalStartMonth: null,
+                    goalDueMonth: null,
+                    creditLimit: 15000000,
+                    statementDay: 20,
+                    dueDay: 5,
+                  },
+                },
               },
             },
           },
@@ -950,7 +964,10 @@ export const openApiSpec = {
           name: { type: 'string' },
           balance: { type: 'integer' },
           excludeFromTotal: { type: 'boolean' },
-          walletKind: { type: 'string', enum: ['basic', 'goal'] },
+          walletKind: {
+            type: 'string',
+            enum: ['basic', 'goal', 'credit_card'],
+          },
           goalAmount: { type: 'integer', nullable: true },
           goalStartMonth: {
             type: 'string',
@@ -958,6 +975,14 @@ export const openApiSpec = {
             example: '2026-03',
           },
           goalDueMonth: { type: 'string', nullable: true, example: '2027-03' },
+          creditLimit: { type: 'integer', nullable: true },
+          statementDay: {
+            type: 'integer',
+            nullable: true,
+            minimum: 1,
+            maximum: 31,
+          },
+          dueDay: { type: 'integer', nullable: true, minimum: 1, maximum: 31 },
         },
       },
       Wallet: {
@@ -981,7 +1006,10 @@ export const openApiSpec = {
           name: { type: 'string' },
           balance: { type: 'integer' },
           excludeFromTotal: { type: 'boolean' },
-          walletKind: { type: 'string', enum: ['basic', 'goal'] },
+          walletKind: {
+            type: 'string',
+            enum: ['basic', 'goal', 'credit_card'],
+          },
           goalAmount: { type: 'integer', nullable: true },
           goalStartMonth: {
             type: 'string',
@@ -989,6 +1017,14 @@ export const openApiSpec = {
             example: '2026-03',
           },
           goalDueMonth: { type: 'string', nullable: true, example: '2027-03' },
+          creditLimit: { type: 'integer', nullable: true },
+          statementDay: {
+            type: 'integer',
+            nullable: true,
+            minimum: 1,
+            maximum: 31,
+          },
+          dueDay: { type: 'integer', nullable: true, minimum: 1, maximum: 31 },
         },
       },
       ReorderWalletInput: {
