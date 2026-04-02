@@ -638,7 +638,6 @@ planify/
 +- prisma/
 |  +- schema.prisma
 |  +- migrations/
-|  +- mock/
 +- public/
 +- package.json
 +- tsconfig.json
@@ -669,8 +668,6 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/planify?schema=publi
 ```bash
 npm run dev
 npm run test
-npm run dev:seed-mock
-npm run dev:clear-mock
 ```
 
 ## 20. Dokumentasi dan Governance

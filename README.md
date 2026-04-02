@@ -69,7 +69,7 @@ npm install
 
 2. Make sure the `planify` database already exists in local PostgreSQL.
 
-3. Run migration and development mock seed:
+3. Run migration and Prisma generate:
 
 ```bash
 npm run db:setup:local
@@ -90,13 +90,6 @@ Notes:
 
 - Swagger UI is intended for development workflow and is linked from sidebar only in `NODE_ENV=development`.
 - OpenAPI JSON spec is available at `GET /api/swagger`.
-
-## Re-running Dev Seed
-
-```bash
-npm run dev:clear-mock
-npm run dev:seed-mock
-```
 
 ## Build and Run in Production
 
@@ -132,7 +125,7 @@ npm run start
 
 - `npm run db:generate` generate Prisma client
 - `npm run db:migrate:deploy` apply migration
-- `npm run db:setup:local` migration + dev mock seed
+- `npm run db:setup:local` migration + prisma generate
 - `npm run db:setup:deploy` migration + generate for deploy server
 - `npm run dev` run Next + Swagger helper process for local development
 - `npm test` run all tests
@@ -165,8 +158,7 @@ src/
 └── lib/                  # OpenAPI spec
 prisma/
 ├── schema.prisma         # Database schema
-├── migrations/           # SQL migrations
-└── mock/                 # Development seed/clear scripts
+└── migrations/           # SQL migrations
 ```
 
 ## Testing
