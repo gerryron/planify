@@ -249,7 +249,10 @@ function SortableWalletItem({
         })
       : null;
   const creditLimit = wallet.creditLimit ?? 0;
-  const outstandingAmount = Math.max(wallet.balance, 0);
+  const outstandingAmount =
+    wallet.walletKind === 'credit_card'
+      ? Math.abs(wallet.balance)
+      : Math.max(wallet.balance, 0);
   const creditUtilization =
     wallet.walletKind === 'credit_card' && creditLimit > 0
       ? (outstandingAmount / creditLimit) * 100
