@@ -4,13 +4,19 @@ Planify is a personal finance application built with Next.js + Prisma + PostgreS
 
 ## Key Features
 
-- Monthly budget planning with reorder and carry-over support
-- Cash log tracking with wallet/category integration
-- Wallet management and transfer flow
-- Category management with parent-child structure
-- Responsive mobile-first layout and collapsible sidebar
-- PWA support (installable app, offline fallback page, service worker caching)
-- Offline write queue for API mutations with replay sync when connection recovers
+- **Monthly Budget** — planning with reorder and carry-over support
+- **Cash Log** — daily transaction tracking with wallet/category integration
+- **Wallets** — three wallet types (Basic, Goal, Credit Card) with drag-and-drop reordering
+  - **Basic Wallet** — simple balance tracking with include/exclude from total
+  - **Goal Wallet** — savings target with timeline tracking, status (on-track / at-risk / overdue / achieved), and withdrawal lock until goal is met
+  - **Credit Card** — outstanding balance tracking with credit limit, utilization bar, statement day, and due day
+  - **Transfer** — inter-wallet transfer with optional fee (sender/receiver pays), goal wallet lock enforcement, and credit limit validation
+- **Categories** — hierarchical parent-child structure with system defaults and user-scoped entries
+- **Dashboard** — financial summary overview
+- **Settings** — data purge and offline queue diagnostics
+- **Responsive Layout** — mobile-first design with collapsible sidebar
+- **PWA** — installable app, offline fallback page, service worker caching
+- **Offline Queue** — API write mutations queued offline and replayed on reconnect
 
 ## Prerequisites
 
@@ -129,3 +135,51 @@ npm run start
 - `npm run db:setup:local` migration + dev mock seed
 - `npm run db:setup:deploy` migration + generate for deploy server
 - `npm run dev` run Next + Swagger helper process for local development
+- `npm test` run all tests
+- `npm test -- --coverage` run tests with coverage report
+
+## Project Structure
+
+```
+src/
+├── app/                  # Next.js App Router pages and API routes
+│   ├── api/              # REST API endpoints
+│   │   ├── cash-log/     # Cash log CRUD
+│   │   ├── wallets/      # Wallet CRUD + transfer
+│   │   ├── categories/   # Category CRUD
+│   │   ├── monthly-budget/ # Budget CRUD
+│   │   └── ...
+│   └── ...               # Page components
+├── core/                 # Shared infrastructure
+│   ├── auth/             # JWT session, password hashing, middleware
+│   ├── db/               # Prisma client singleton
+│   └── http/             # API response helpers
+├── features/             # Feature modules (components, services, types, utils)
+│   ├── wallets/
+│   ├── cash-log/
+│   ├── categories/
+│   ├── monthly-budget/
+│   ├── dashboard/
+│   └── ...
+├── shared/               # Cross-feature UI (layout, theme, PWA)
+└── lib/                  # OpenAPI spec
+prisma/
+├── schema.prisma         # Database schema
+├── migrations/           # SQL migrations
+└── mock/                 # Development seed/clear scripts
+```
+
+## Testing
+
+Tests use Jest with ts-jest. Test files are co-located with their source files (e.g., `route.test.ts` next to `route.ts`).
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npx jest src/features/wallets/utils/goalProgress.test.ts
+
+# Run with coverage
+npm test -- --coverage
+```
