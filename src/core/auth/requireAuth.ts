@@ -10,7 +10,7 @@ type RequireAuthOptions = {
 export function requireAuth(req: NextRequest, options?: RequireAuthOptions) {
   if (process.env.NODE_ENV === 'test') {
     const testUser = {
-      sub: 'test-user',
+      sub: 1,
       email: 'test.user@planify.local',
       role: 'user' as const,
       status: 'active' as const,

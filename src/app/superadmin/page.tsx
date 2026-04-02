@@ -18,8 +18,8 @@ function UserTable({
   users: ManagedUser[];
   actionLabel?: string;
   actionButtonClass?: string;
-  processingId: string | null;
-  onAction?: (id: string) => Promise<void>;
+  processingId: number | null;
+  onAction?: (id: number) => Promise<void>;
 }) {
   const showAction = Boolean(actionLabel && onAction);
 
@@ -127,8 +127,8 @@ export default function SuperadminPage() {
   const [pendingUsers, setPendingUsers] = useState<ManagedUser[]>([]);
   const [activeUsers, setActiveUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [approvingId, setApprovingId] = useState<string | null>(null);
-  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [deactivatingId, setDeactivatingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = async () => {
@@ -152,7 +152,7 @@ export default function SuperadminPage() {
     void run();
   }, []);
 
-  const onApprove = async (userId: string) => {
+  const onApprove = async (userId: number) => {
     try {
       setApprovingId(userId);
       await superadminService.approve(userId);
@@ -164,7 +164,7 @@ export default function SuperadminPage() {
     }
   };
 
-  const onDeactivate = async (userId: string) => {
+  const onDeactivate = async (userId: number) => {
     try {
       setDeactivatingId(userId);
       await superadminService.deactivate(userId);

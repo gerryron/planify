@@ -46,17 +46,18 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const formattedBalance = useMemo(() => {
-    return form.balance.toLocaleString('id-ID');
+    if (!form.balance) return '';
+    return `Rp ${form.balance.toLocaleString('id-ID')}`;
   }, [form.balance]);
 
   const formattedGoalAmount = useMemo(() => {
-    if (form.goalAmount === null) return '';
-    return form.goalAmount.toLocaleString('id-ID');
+    if (!form.goalAmount) return '';
+    return `Rp ${form.goalAmount.toLocaleString('id-ID')}`;
   }, [form.goalAmount]);
 
   const formattedCreditLimit = useMemo(() => {
-    if (form.creditLimit === null) return '';
-    return form.creditLimit.toLocaleString('id-ID');
+    if (!form.creditLimit) return '';
+    return `Rp ${form.creditLimit.toLocaleString('id-ID')}`;
   }, [form.creditLimit]);
 
   const goalSummary = useMemo(() => {

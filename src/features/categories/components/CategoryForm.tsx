@@ -106,6 +106,45 @@ export default function CategoryForm({
       className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
     >
       <div>
+        <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden'>
+          <span
+            className={
+              'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +
+              (form.type === 'income' ? 'bg-emerald-500 ' : 'bg-red-500 ') +
+              (form.type === 'income' ? 'translate-x-0' : 'translate-x-full')
+            }
+            aria-hidden='true'
+          />
+          <div className='relative z-10 grid grid-cols-2'>
+            <button
+              type='button'
+              onClick={() => handleTypeChange('income')}
+              className={
+                'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
+                (form.type === 'income'
+                  ? 'text-white dark:text-slate-900'
+                  : 'text-gray-700 dark:text-gray-200')
+              }
+            >
+              Income
+            </button>
+            <button
+              type='button'
+              onClick={() => handleTypeChange('outcome')}
+              className={
+                'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
+                (form.type === 'outcome'
+                  ? 'text-white'
+                  : 'text-gray-700 dark:text-gray-200')
+              }
+            >
+              Outcome
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
         <label className='block text-sm font-medium'>Name</label>
         <input
           name='name'
@@ -123,20 +162,6 @@ export default function CategoryForm({
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Type</label>
-        <select
-          name='type'
-          value={form.type}
-          onChange={(e) => handleTypeChange(e.target.value as CategoryType)}
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
-        >
-          <option value='outcome'>Outcome</option>
-          <option value='income'>Income</option>
-        </select>
-      </div>
-
-      <div>
         <label className='block text-sm font-medium'>Parent Category</label>
         <select
           name='parentId'
@@ -144,7 +169,7 @@ export default function CategoryForm({
           onChange={(e) =>
             setForm((prev) => ({
               ...prev,
-              parentId: e.target.value || null,
+              parentId: e.target.value === '' ? null : Number(e.target.value),
             }))
           }
           className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'

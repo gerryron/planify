@@ -5,7 +5,7 @@ import { UserRole, UserStatus } from '@/generated/prisma/enums';
 export const AUTH_COOKIE_NAME = 'planify_auth_token';
 
 export type AuthTokenPayload = {
-  sub: string;
+  sub: number;
   email: string;
   role: UserRole;
   status: UserStatus;

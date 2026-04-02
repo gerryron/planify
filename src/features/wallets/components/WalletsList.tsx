@@ -10,6 +10,7 @@ import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import TrackChangesIcon from '@mui/icons-material/TrackChanges';
 import Swal from 'sweetalert2';
+import { cashLogService } from '@/features/cash-log/services/cashLogService';
 import {
   walletsService,
   Wallets,
@@ -216,7 +217,7 @@ function SortableWalletItem({
   onOpenCashLog: (wallet: Wallets) => void;
   onEdit: (wallet: Wallets) => void;
   onTransfer: (wallet: Wallets) => void;
-  onDelete: (id: number) => void;
+  onDelete: (wallet: Wallets) => void;
   onTrackGoal: (wallet: Wallets) => void;
   canDelete: boolean;
 }) {
@@ -434,7 +435,7 @@ function SortableWalletItem({
         <MenuActions
           onEdit={() => onEdit(wallet)}
           onTransfer={() => onTransfer(wallet)}
-          onDelete={() => onDelete(wallet.id)}
+          onDelete={() => onDelete(wallet)}
           canDelete={canDelete}
           transferLabel={
             goalSummary?.withdrawalReady ? 'Withdrawal' : 'Transfer'
@@ -536,24 +537,42 @@ export default function WalletsList({
     return closestCenter(args);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (wallet: Wallets) => {
+    let transactionCount = 0;
+    try {
+      const logs = await cashLogService.getAll();
+      transactionCount = logs.filter(
+        (item) => item.walletName === wallet.name,
+      ).length;
+    } catch {
+      transactionCount = 0;
+    }
+
     const result = await Swal.fire({
       title: 'Delete wallet?',
-      text: 'Deleted wallet cannot be restored.',
+      html: [
+        'This action cannot be undone.',
+        `<br/>Cash log transactions to delete: <b>${transactionCount}</b>.`,
+      ].join(' '),
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Yes, delete',
+      confirmButtonText: 'Delete wallet',
       cancelButtonText: 'Cancel',
     });
 
     if (!result.isConfirmed) return;
 
     try {
-      await walletsService.remove(id);
-      setWallets((prev) => prev.filter((wallet) => wallet.id !== id));
+      const deleted = await walletsService.remove(wallet.id);
+      const deletedCount = deleted.deletedCashLogCount ?? transactionCount;
+
+      setWallets((prev) => prev.filter((item) => item.id !== wallet.id));
       await Swal.fire({
         title: 'Success',
-        text: 'Wallet deleted successfully.',
+        html: [
+          'Wallet deleted successfully.',
+          `<br/>Deleted cash log transactions: <b>${deletedCount}</b>.`,
+        ].join(' '),
         icon: 'success',
         timer: 1400,
         showConfirmButton: false,

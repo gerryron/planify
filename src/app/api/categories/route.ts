@@ -27,7 +27,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 async function validateParent(
   parentId: number,
   type: CategoryType,
-  userId: string,
+  userId: number,
   currentCategoryId?: number,
 ): Promise<{ valid: true } | { valid: false; message: string }> {
   const parent = await prisma.category.findFirst({

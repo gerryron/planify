@@ -4,7 +4,7 @@ import { POST, GET, PATCH, DELETE } from './route';
 type Wallet = {
   id: number;
   sortOrder: number;
-  userId?: string;
+  userId?: number;
   name: string;
   balance: number;
   excludeFromTotal: boolean;
@@ -21,10 +21,11 @@ const adjustmentLogs: Array<{
   date: string;
   description: string;
   amount: number;
+  walletId?: number;
   walletName: string;
   excludeFromReport: boolean;
   categoryId: number | null;
-  userId?: string;
+  userId?: number;
 }> = [];
 
 jest.mock('@/generated/prisma/client', () => {
@@ -59,7 +60,7 @@ jest.mock('@/generated/prisma/client', () => {
             ({
               where,
             }: {
-              where?: { id?: { in?: number[] }; userId?: string };
+              where?: { id?: { in?: number[] }; userId?: number };
             } = {}) => {
               let filtered = wallets;
               if (where?.userId) {
@@ -81,7 +82,7 @@ jest.mock('@/generated/prisma/client', () => {
             }: {
               data: Omit<Wallet, 'id' | 'sortOrder'> & {
                 sortOrder?: number;
-                userId?: string;
+                userId?: number;
               };
             }) => {
               const wallet: Wallet = {
@@ -98,7 +99,7 @@ jest.mock('@/generated/prisma/client', () => {
               where,
               orderBy,
             }: {
-              where?: { id?: number; userId?: string };
+              where?: { id?: number; userId?: number };
               orderBy?: { sortOrder: 'desc' | 'asc' };
               select?: { sortOrder: boolean };
             }) => {
@@ -130,7 +131,7 @@ jest.mock('@/generated/prisma/client', () => {
             },
           ),
           findMany: jest.fn(
-            ({ where }: { where?: { userId?: string } } = {}) => {
+            ({ where }: { where?: { userId?: number } } = {}) => {
               let filtered = wallets;
               if (where?.userId) {
                 filtered = filtered.filter(
@@ -184,10 +185,11 @@ jest.mock('@/generated/prisma/client', () => {
                 date: string;
                 description: string;
                 amount: number;
+                walletId?: number;
                 walletName: string;
                 excludeFromReport: boolean;
                 categoryId: number | null;
-                userId?: string;
+                userId?: number;
               };
             }) => {
               const record = {
@@ -196,6 +198,68 @@ jest.mock('@/generated/prisma/client', () => {
               };
               adjustmentLogs.push(record);
               return Promise.resolve(record);
+            },
+          ),
+          updateMany: jest.fn(
+            ({
+              where,
+              data,
+            }: {
+              where?: {
+                userId?: number;
+                walletName?: string;
+                walletId?: number;
+              };
+              data?: { walletName?: string };
+            }) => {
+              let count = 0;
+
+              for (const log of adjustmentLogs) {
+                const matchesUser =
+                  !where?.userId || log.userId === where.userId;
+                const matchesWallet =
+                  !where?.walletName || log.walletName === where.walletName;
+                const matchesWalletId =
+                  where?.walletId === undefined ||
+                  log.walletId === where.walletId;
+
+                if (matchesUser && matchesWallet && matchesWalletId) {
+                  if (data?.walletName !== undefined) {
+                    log.walletName = data.walletName;
+                  }
+                  count += 1;
+                }
+              }
+
+              return Promise.resolve({ count });
+            },
+          ),
+          deleteMany: jest.fn(
+            ({
+              where,
+            }: {
+              where?: {
+                userId?: number;
+                walletName?: string;
+                walletId?: number;
+              };
+            } = {}) => {
+              const before = adjustmentLogs.length;
+              for (let i = adjustmentLogs.length - 1; i >= 0; i -= 1) {
+                const matchesUser =
+                  !where?.userId || adjustmentLogs[i].userId === where.userId;
+                const matchesWallet =
+                  !where?.walletName ||
+                  adjustmentLogs[i].walletName === where.walletName;
+                const matchesWalletId =
+                  where?.walletId === undefined ||
+                  adjustmentLogs[i].walletId === where.walletId;
+                if (matchesUser && matchesWallet && matchesWalletId) {
+                  adjustmentLogs.splice(i, 1);
+                }
+              }
+
+              return Promise.resolve({ count: before - adjustmentLogs.length });
             },
           ),
         },
@@ -297,6 +361,7 @@ describe('Wallet API', () => {
   });
 
   it('should update wallet data', async () => {
+    const beforeCount = adjustmentLogs.length;
     const req = {
       method: 'PATCH',
       json: async () => ({
@@ -315,6 +380,11 @@ describe('Wallet API', () => {
     expect(data.name).toBe('BCA Updated');
     expect(data.balance).toBe(1500000);
     expect(data.excludeFromTotal).toBe(true);
+    expect(adjustmentLogs.length).toBe(beforeCount + 1);
+    expect(adjustmentLogs.some((log) => log.walletName === 'BCA')).toBe(false);
+    expect(adjustmentLogs.some((log) => log.walletName === 'BCA Updated')).toBe(
+      true,
+    );
   });
 
   it('should create adjustment cash log when balance changes', async () => {
@@ -586,6 +656,10 @@ describe('Wallet API', () => {
   });
 
   it('should delete wallet data', async () => {
+    const expectedLogs = adjustmentLogs.filter(
+      (log) => log.walletName === 'OVO',
+    ).length;
+
     const req = {
       method: 'DELETE',
       json: async () => ({ id: id2 }),
@@ -596,6 +670,8 @@ describe('Wallet API', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
+    expect(data.deletedCashLogCount).toBe(expectedLogs);
+    expect(adjustmentLogs.some((log) => log.walletName === 'OVO')).toBe(false);
 
     const getRes = await GET();
     const wallets: Wallet[] = await getRes.json();

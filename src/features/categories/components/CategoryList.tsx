@@ -132,7 +132,7 @@ export default function CategoryList({
     fetchCategories();
   }, [refreshKey, onDataLoaded]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: 'Delete category?',
       text: 'Deleted category cannot be restored.',
@@ -169,7 +169,7 @@ export default function CategoryList({
     const sortByName = (items: CategoryTreeNode[]) =>
       [...items].sort((a, b) => a.name.localeCompare(b.name));
 
-    const byId = new Map<string, Category>();
+    const byId = new Map<number, Category>();
     categories.forEach((category) => byId.set(category.id, category));
 
     const rootByType: Record<'income' | 'outcome', CategoryTreeNode[]> = {
@@ -182,7 +182,7 @@ export default function CategoryList({
       rootByType[category.type].push({ ...category, children: [] });
     });
 
-    const rootNodeById = new Map<string, CategoryTreeNode>();
+    const rootNodeById = new Map<number, CategoryTreeNode>();
     rootByType.income.forEach((node) => rootNodeById.set(node.id, node));
     rootByType.outcome.forEach((node) => rootNodeById.set(node.id, node));
 

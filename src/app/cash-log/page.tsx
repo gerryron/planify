@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import CashLogList from '../../features/cash-log/components/CashLogList';
 import CashLogForm from '../../features/cash-log/components/CashLogForm';
 import { CashLog } from '../../features/cash-log/services/cashLogService';
 
-export default function CashLogPage() {
+function CashLogPageContent() {
   const searchParams = useSearchParams();
   const rawWalletId = searchParams.get('walletId');
   const initialWalletId = rawWalletId ? Number(rawWalletId) : null;
@@ -56,7 +56,7 @@ export default function CashLogPage() {
         showForm &&
         createPortal(
           <div
-            className='fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-3 sm:p-4'
+            className='fixed inset-0 z-80 flex items-center justify-center bg-black/70 p-3 sm:p-4'
             onClick={handleCancel}
           >
             <div
@@ -82,5 +82,13 @@ export default function CashLogPage() {
           document.body,
         )}
     </div>
+  );
+}
+
+export default function CashLogPage() {
+  return (
+    <Suspense fallback={null}>
+      <CashLogPageContent />
+    </Suspense>
   );
 }

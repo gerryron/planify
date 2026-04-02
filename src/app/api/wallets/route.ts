@@ -183,6 +183,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         await tx.cashLog.create({
           data: {
             userId: auth.user.sub,
+            walletId: created.id,
             date: today,
             description: 'Adjust Balance',
             amount: Math.abs(balance),
@@ -401,6 +402,18 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         data: updateData,
       });
 
+      if (updated.name !== existing.name) {
+        await tx.cashLog.updateMany({
+          where: {
+            userId: auth.user.sub,
+            walletName: existing.name,
+          },
+          data: {
+            walletName: updated.name,
+          },
+        });
+      }
+
       if (
         updateData.balance !== undefined &&
         updateData.balance !== existing.balance
@@ -431,6 +444,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         await tx.cashLog.create({
           data: {
             userId: auth.user.sub,
+            walletId: updated.id,
             date: today,
             description: 'Adjust Balance',
             amount: adjustmentNominal,
@@ -508,7 +522,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
     const owned = await prisma.wallet.findFirst({
       where: { id, userId: auth.user.sub },
-      select: { id: true },
+      select: { id: true, name: true },
     });
 
     if (!owned) {
@@ -522,9 +536,19 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       return badRequest('Wallet must be at least 1');
     }
 
-    await prisma.wallet.delete({ where: { id } });
+    const deletedCashLogCount = await prisma.$transaction(async (tx) => {
+      const deletedLogs = await tx.cashLog.deleteMany({
+        where: {
+          userId: auth.user.sub,
+          walletId: owned.id,
+        },
+      });
 
-    return ok({ success: true });
+      await tx.wallet.delete({ where: { id } });
+      return deletedLogs.count;
+    });
+
+    return ok({ success: true, deletedCashLogCount });
   } catch {
     return badRequest('Failed to delete wallet');
   }

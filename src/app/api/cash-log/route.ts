@@ -69,7 +69,7 @@ async function findLinkedTransferEntry(
     cashLog: {
       findMany: (args: {
         where: {
-          userId: string;
+          userId: number;
           id: { not: number };
           date: string;
           amount: number;
@@ -87,7 +87,7 @@ async function findLinkedTransferEntry(
       }) => Promise<TransferCandidate[]>;
       findFirst: (args: {
         where: {
-          userId: string;
+          userId: number;
           id: { not: number };
           transferGroupId: string;
         };
@@ -102,7 +102,7 @@ async function findLinkedTransferEntry(
       }) => Promise<TransferCandidate | null>;
     };
   },
-  userId: string,
+  userId: number,
   source: TransferCandidate,
 ) {
   if (
@@ -290,6 +290,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const created = await tx.cashLog.create({
         data: {
           userId: auth.user.sub,
+          walletId: wallet.id,
           date: payload.date!,
           description: payload.description?.trim() ?? '',
           amount: payload.amount!,
@@ -486,6 +487,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           id: true,
           date: true,
           amount: true,
+          walletId: true,
           walletName: true,
           transferGroupId: true,
           description: true,
@@ -772,6 +774,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
             ? { description: payload.description.trim() }
             : {}),
           ...(payload.amount !== undefined ? { amount: payload.amount } : {}),
+          walletId: newWallet.id,
           ...(payload.walletName !== undefined
             ? { walletName: payload.walletName.trim() }
             : {}),

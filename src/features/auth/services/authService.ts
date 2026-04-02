@@ -1,5 +1,5 @@
 export type SessionUser = {
-  id: string;
+  id: number;
   name: string;
   email: string;
   role: 'user' | 'superadmin';

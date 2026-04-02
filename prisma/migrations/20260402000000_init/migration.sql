@@ -15,7 +15,7 @@ CREATE TYPE "UserStatus" AS ENUM ('pending', 'active');
 
 -- CreateTable
 CREATE TABLE "User" (
-    "id" TEXT NOT NULL,
+    "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE "MonthlyBudget" (
     "type" TEXT NOT NULL,
     "isDone" BOOLEAN NOT NULL DEFAULT false,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "userId" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
 
     CONSTRAINT "MonthlyBudget_pkey" PRIMARY KEY ("id")
 );
@@ -56,7 +56,7 @@ CREATE TABLE "Wallet" (
     "statementDay" INTEGER,
     "dueDay" INTEGER,
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "userId" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
 
     CONSTRAINT "Wallet_pkey" PRIMARY KEY ("id")
 );
@@ -67,7 +67,7 @@ CREATE TABLE "Category" (
     "name" TEXT NOT NULL,
     "type" "CategoryType" NOT NULL,
     "parentId" INTEGER,
-    "userId" TEXT,
+    "userId" INTEGER,
     "systemDefault" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Category_pkey" PRIMARY KEY ("id")
@@ -80,8 +80,9 @@ CREATE TABLE "CashLog" (
     "description" TEXT NOT NULL,
     "amount" INTEGER NOT NULL,
     "walletName" TEXT NOT NULL,
+    "walletId" INTEGER NOT NULL,
     "categoryId" INTEGER,
-    "userId" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
     "transferGroupId" TEXT,
     "excludeFromReport" BOOLEAN NOT NULL DEFAULT false,
 
@@ -110,6 +111,9 @@ CREATE INDEX "Category_userId_idx" ON "Category"("userId");
 CREATE UNIQUE INDEX "Category_name_type_parentId_userId_key" ON "Category"("name", "type", "parentId", "userId");
 
 -- CreateIndex
+CREATE INDEX "CashLog_walletId_idx" ON "CashLog"("walletId");
+
+-- CreateIndex
 CREATE INDEX "CashLog_categoryId_idx" ON "CashLog"("categoryId");
 
 -- CreateIndex
@@ -129,6 +133,9 @@ ALTER TABLE "Category" ADD CONSTRAINT "Category_parentId_fkey" FOREIGN KEY ("par
 
 -- AddForeignKey
 ALTER TABLE "Category" ADD CONSTRAINT "Category_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CashLog" ADD CONSTRAINT "CashLog_walletId_fkey" FOREIGN KEY ("walletId") REFERENCES "Wallet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CashLog" ADD CONSTRAINT "CashLog_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -204,25 +211,90 @@ VALUES
   ('Wallet Transfer Out', 'outcome', 'Transfer')
 )
 INSERT INTO "Category" ("name", "type", "parentId", "userId", "systemDefault")
-SELECT
-  s.name,
-  s.type::"CategoryType",
-  p.id,
-  NULL,
-  true
+SELECT s.name, s.type::"CategoryType", NULL, NULL, true
 FROM seed s
-LEFT JOIN "Category" p
+WHERE s.parent_name IS NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM "Category" c
+    WHERE c."name" = s.name AND c."type" = s.type::"CategoryType" AND c."parentId" IS NULL AND c."userId" IS NULL AND c."systemDefault" = true
+  );
+
+WITH seed(name, type, parent_name) AS (
+VALUES
+  ('Salary', 'income', NULL),
+  ('Business', 'income', NULL),
+  ('Investment', 'income', NULL),
+  ('Transfer', 'income', NULL),
+  ('Gift', 'income', NULL),
+  ('Other Income', 'income', NULL),
+  ('Bills and Utilities', 'outcome', NULL),
+  ('Food', 'outcome', NULL),
+  ('Transport', 'outcome', NULL),
+  ('Health', 'outcome', NULL),
+  ('Education', 'outcome', NULL),
+  ('Lifestyle', 'outcome', NULL),
+  ('Gift & Donations', 'outcome', NULL),
+  ('Investment', 'outcome', NULL),
+  ('Transfer', 'outcome', NULL),
+  ('Main Salary', 'income', 'Salary'),
+  ('Overtime', 'income', 'Salary'),
+  ('Performance Bonus', 'income', 'Salary'),
+  ('Holiday Allowance', 'income', 'Salary'),
+  ('Consulting', 'income', 'Business'),
+  ('Service Revenue', 'income', 'Business'),
+  ('Selling', 'income', 'Business'),
+  ('Dividend', 'income', 'Investment'),
+  ('Interest', 'income', 'Investment'),
+  ('Capital Gain', 'income', 'Investment'),
+  ('Transfer In', 'income', 'Transfer'),
+  ('Wallet Transfer In', 'income', 'Transfer'),
+  ('Birthday Gift', 'income', 'Gift'),
+  ('Family Gift', 'income', 'Gift'),
+  ('Cashback', 'income', 'Other Income'),
+  ('Refund', 'income', 'Other Income'),
+  ('Miscellaneous Income', 'income', 'Other Income'),
+  ('Gas Bills', 'outcome', 'Bills and Utilities'),
+  ('House Bills', 'outcome', 'Bills and Utilities'),
+  ('Phone Bills', 'outcome', 'Bills and Utilities'),
+  ('Rentals', 'outcome', 'Bills and Utilities'),
+  ('Water Bills', 'outcome', 'Bills and Utilities'),
+  ('Groceries', 'outcome', 'Food'),
+  ('Dining Out', 'outcome', 'Food'),
+  ('Snacks & Coffee', 'outcome', 'Food'),
+  ('Fuel', 'outcome', 'Transport'),
+  ('Public Transport', 'outcome', 'Transport'),
+  ('Parking', 'outcome', 'Transport'),
+  ('Insurance', 'outcome', 'Health'),
+  ('Medicine', 'outcome', 'Health'),
+  ('Sports', 'outcome', 'Health'),
+  ('Courses', 'outcome', 'Education'),
+  ('Books', 'outcome', 'Education'),
+  ('Tuition Fee', 'outcome', 'Education'),
+  ('Shopping', 'outcome', 'Lifestyle'),
+  ('Entertainment', 'outcome', 'Lifestyle'),
+  ('Movies', 'outcome', 'Lifestyle'),
+  ('Games', 'outcome', 'Lifestyle'),
+  ('Family Gift', 'outcome', 'Gift & Donations'),
+  ('Friends Gift', 'outcome', 'Gift & Donations'),
+  ('Charity', 'outcome', 'Gift & Donations'),
+  ('Stock Purchase', 'outcome', 'Investment'),
+  ('Mutual Fund Purchase', 'outcome', 'Investment'),
+  ('Crypto Purchase', 'outcome', 'Investment'),
+  ('Tax', 'outcome', 'Investment'),
+  ('Transfer Out', 'outcome', 'Transfer'),
+  ('Wallet Transfer Out', 'outcome', 'Transfer')
+)
+INSERT INTO "Category" ("name", "type", "parentId", "userId", "systemDefault")
+SELECT s.name, s.type::"CategoryType", p.id, NULL, true
+FROM seed s
+JOIN "Category" p
   ON p."name" = s.parent_name
  AND p."type" = s.type::"CategoryType"
  AND p."parentId" IS NULL
  AND p."userId" IS NULL
  AND p."systemDefault" = true
-WHERE NOT EXISTS (
-  SELECT 1
-  FROM "Category" c
-  WHERE c."name" = s.name
-    AND c."type" = s.type::"CategoryType"
-    AND c."parentId" IS NOT DISTINCT FROM p.id
-    AND c."userId" IS NULL
-    AND c."systemDefault" = true
-);
+WHERE s.parent_name IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM "Category" c
+    WHERE c."name" = s.name AND c."type" = s.type::"CategoryType" AND c."parentId" = p.id AND c."userId" IS NULL AND c."systemDefault" = true
+  );

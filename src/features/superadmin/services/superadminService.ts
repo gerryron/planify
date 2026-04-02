@@ -1,5 +1,5 @@
 export type ManagedUser = {
-  id: string;
+  id: number;
   name: string;
   email: string;
   status: 'pending' | 'active';
@@ -26,7 +26,7 @@ export const superadminService = {
     };
   },
 
-  async approve(userId: string) {
+  async approve(userId: number) {
     const res = await fetch('/api/superadmin/users/approve', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -40,7 +40,7 @@ export const superadminService = {
     return (await res.json()) as { success: true };
   },
 
-  async deactivate(userId: string) {
+  async deactivate(userId: number) {
     const res = await fetch('/api/superadmin/users/deactivate', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

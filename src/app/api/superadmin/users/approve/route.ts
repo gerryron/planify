@@ -4,8 +4,21 @@ import { badRequest, ok, serverError } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
 
 type ApprovePayload = {
-  userId?: string;
+  userId?: number | string;
 };
+
+function toId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
 
 export async function PATCH(req: NextRequest) {
   const auth = requireAuth(req, { requireSuperadmin: true });
@@ -13,7 +26,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const payload = (await req.json()) as ApprovePayload;
-    const userId = payload.userId?.trim();
+    const userId = toId(payload.userId);
 
     if (!userId) {
       return badRequest('userId is required');

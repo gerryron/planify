@@ -35,7 +35,7 @@ enum UserStatus {
 }
 
 model User {
-  id           String          @id @default(cuid())
+  id           Int             @id @default(autoincrement())
   name         String
   email        String          @unique
   passwordHash String
@@ -58,7 +58,7 @@ model MonthlyBudget {
   type      String  // 'income' | 'outcome' | 'carryover'
   isDone    Boolean @default(false)
   sortOrder Int     @default(0)
-  userId    String
+  userId    Int
   user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -77,8 +77,9 @@ model Wallet {
   statementDay     Int?
   dueDay           Int?
   sortOrder        Int    @default(0)
-  userId           String
+  userId           Int
   user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cashLogs         CashLog[]
 
   @@index([userId])
   @@unique([userId, name])
@@ -89,7 +90,7 @@ model Category {
   name            String
   type            CategoryType
   parentId        Int?
-  userId          String?
+  userId          Int?
   systemDefault   Boolean    @default(false)
   parent          Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children        Category[] @relation("CategoryHierarchy")
@@ -107,13 +108,16 @@ model CashLog {
   description String
   amount      Int
   walletName  String
+  walletId    Int
   categoryId  Int?
-  userId      String
+  userId      Int
   transferGroupId String?
   excludeFromReport Boolean @default(false)
+  wallet      Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
   category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([walletId])
   @@index([categoryId])
   @@index([userId])
   @@index([userId, transferGroupId])

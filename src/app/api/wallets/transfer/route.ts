@@ -330,6 +330,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await tx.cashLog.create({
         data: {
           userId: auth.user.sub,
+          walletId: fromWallet.id,
           transferGroupId,
           date,
           description: transferOutDescription,
@@ -343,6 +344,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await tx.cashLog.create({
         data: {
           userId: auth.user.sub,
+          walletId: toWallet.id,
           transferGroupId,
           date,
           description: transferInDescription,
@@ -363,6 +365,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         await tx.cashLog.create({
           data: {
             userId: auth.user.sub,
+            walletId: feeWallet.id,
             transferGroupId,
             date,
             description: feeDescription,

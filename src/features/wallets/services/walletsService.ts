@@ -73,7 +73,10 @@ export const walletsService = {
     if (!res.ok) throw await buildApiError(res, 'Failed to reorder wallets');
     return res.json();
   },
-  async remove(id: number): Promise<{ success: boolean }> {
+  async remove(id: number): Promise<{
+    success: boolean;
+    deletedCashLogCount?: number;
+  }> {
     const res = await fetch(API_URL, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

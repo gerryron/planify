@@ -17,7 +17,7 @@ function getConfiguredSuperadmin() {
   return { email, password, name };
 }
 
-async function resetSuperadminOwnedData(userId: string) {
+async function resetSuperadminOwnedData(userId: number) {
   await prisma.$transaction(async (tx) => {
     await tx.cashLog.deleteMany({ where: { userId } });
     await tx.monthlyBudget.deleteMany({ where: { userId } });
@@ -41,9 +41,9 @@ export function ensureConfiguredSuperadmin(): Promise<void> {
       return;
     }
 
-    let superadminId: string;
+    let superadminId: number;
 
-    const existing = await prisma.user.findUnique({
+    const existingByEmail = await prisma.user.findUnique({
       where: { email: config.email },
       select: {
         id: true,
@@ -51,6 +51,12 @@ export function ensureConfiguredSuperadmin(): Promise<void> {
         passwordHash: true,
       },
     });
+
+    let existing = existingByEmail;
+    if (existing && !Number.isInteger(existing.id)) {
+      await prisma.user.delete({ where: { email: config.email } });
+      existing = null;
+    }
 
     if (existing) {
       const isPasswordMatch = await verifyPassword(

@@ -405,8 +405,7 @@ export default function SettingsDataResetPanel() {
           `User categories deleted: <b>${result.summary.userCategoryDeleted}</b>`,
         ].join('<br/>'),
       });
-
-      router.push('/');
+      router.refresh();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to purge data';
