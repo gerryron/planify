@@ -15,6 +15,7 @@ import {
   Wallets,
 } from '@/features/wallets/services/walletsService';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
+import { goalStatusTone } from '@/features/wallets/utils/goalStatusTone';
 import {
   CollisionDetection,
   closestCenter,
@@ -268,16 +269,6 @@ function SortableWalletItem({
         ? 'text-amber-600 dark:text-amber-400'
         : 'text-emerald-600 dark:text-emerald-400';
 
-  const statusTone: Record<string, string> = {
-    'on-track':
-      'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
-    'at-risk':
-      'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-    overdue: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
-    achieved:
-      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
-  };
-
   const walletKindBadge =
     wallet.walletKind === 'goal'
       ? 'Goal'
@@ -368,7 +359,7 @@ function SortableWalletItem({
         {goalSummary && (
           <div className='flex items-center gap-2 mt-1 flex-wrap'>
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusTone[goalSummary.status]}`}
+              className={`px-2 py-0.5 rounded-full text-xs font-semibold ${goalStatusTone[goalSummary.status]}`}
             >
               {goalSummary.status.toUpperCase()}
             </span>

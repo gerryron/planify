@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Pie, PieChart, ResponsiveContainer, Cell } from 'recharts';
 import { Wallets } from '@/features/wallets/services/walletsService';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
+import { goalStatusTone } from '@/features/wallets/utils/goalStatusTone';
 
 type GoalTrackingModalProps = {
   wallet: Wallets;
@@ -82,19 +83,9 @@ export default function GoalTrackingModal({
     goalDueMonth: wallet.goalDueMonth,
   });
 
-  const statusTone: Record<string, string> = {
-    'on-track':
-      'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
-    'at-risk':
-      'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-    overdue: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200',
-    achieved:
-      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
-  };
-
   return createPortal(
     <div
-      className='fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4'
+      className='fixed inset-0 z-80 bg-black/70 flex items-center justify-center p-4'
       onClick={onClose}
     >
       <div
@@ -160,7 +151,7 @@ export default function GoalTrackingModal({
         <div className='px-5 pb-5 space-y-3'>
           <div className='flex items-center flex-wrap gap-2'>
             <span
-              className={`px-2 py-1 rounded-full text-xs font-semibold ${statusTone[summary.status]}`}
+              className={`px-2 py-1 rounded-full text-xs font-semibold ${goalStatusTone[summary.status]}`}
             >
               {summary.status.toUpperCase()}
             </span>
