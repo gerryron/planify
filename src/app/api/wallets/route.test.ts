@@ -365,6 +365,7 @@ describe('Wallet API', () => {
   });
 
   it('should create credit card wallet and force excludeFromTotal', async () => {
+    const beforeCount = adjustmentLogs.length;
     const req = {
       method: 'POST',
       json: async () => ({
@@ -387,7 +388,35 @@ describe('Wallet API', () => {
     expect(data.creditLimit).toBe(5000000);
     expect(data.statementDay).toBe(20);
     expect(data.dueDay).toBe(5);
+    const createdLog = adjustmentLogs[adjustmentLogs.length - 1];
+    expect(adjustmentLogs.length).toBe(beforeCount + 1);
+    expect(createdLog.walletName).toBe('BCA Card');
+    expect(createdLog.amount).toBe(750000);
+    expect(createdLog.categoryId).toBe(102);
     creditCardId = data.id;
+  });
+
+  it('should create Transfer Out adjustment when credit card outstanding increases', async () => {
+    const beforeCount = adjustmentLogs.length;
+    const req = {
+      method: 'PATCH',
+      json: async () => ({
+        id: creditCardId,
+        balance: 850000,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.balance).toBe(850000);
+
+    const createdLog = adjustmentLogs[adjustmentLogs.length - 1];
+    expect(adjustmentLogs.length).toBe(beforeCount + 1);
+    expect(createdLog.description).toBe('Adjust Balance');
+    expect(createdLog.amount).toBe(100000);
+    expect(createdLog.categoryId).toBe(102);
   });
 
   it('should reject basic wallet when goal fields are provided', async () => {

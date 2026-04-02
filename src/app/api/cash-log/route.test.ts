@@ -553,6 +553,63 @@ describe('Cash Log API', () => {
     expect(ovoAfterPatch?.balance).toBe(270000);
   });
 
+  it('should update wallet balance delta when editing adjust balance amount', async () => {
+    const gopayWallet = {
+      id: 6,
+      name: 'GoPay',
+      balance: 23205,
+      walletKind: 'basic' as const,
+      creditLimit: null,
+    };
+    wallets.push(gopayWallet);
+
+    const createReq = {
+      method: 'POST',
+      json: async () => ({
+        date: '2026-03-01',
+        description: 'Adjust Balance',
+        amount: 160805,
+        walletName: 'GoPay',
+        categoryId: 101,
+        excludeFromReport: true,
+      }),
+    } as unknown as NextRequest;
+
+    const createRes = await POST(createReq);
+    expect(createRes.status).toBe(201);
+    const created: CashLog = await createRes.json();
+
+    const afterCreate = wallets.find((wallet) => wallet.name === 'GoPay');
+    expect(afterCreate?.balance).toBe(184010);
+
+    const patchReq = {
+      method: 'PATCH',
+      json: async () => ({
+        id: created.id,
+        amount: 170805,
+      }),
+    } as unknown as NextRequest;
+
+    const patchRes = await PATCH(patchReq);
+    expect(patchRes.status).toBe(200);
+
+    const afterPatch = wallets.find((wallet) => wallet.name === 'GoPay');
+    expect(afterPatch?.balance).toBe(194010);
+
+    const deleteReq = {
+      method: 'DELETE',
+      json: async () => ({ id: created.id }),
+    } as unknown as NextRequest;
+
+    const deleteRes = await DELETE(deleteReq);
+    expect(deleteRes.status).toBe(200);
+
+    wallets.splice(
+      wallets.findIndex((wallet) => wallet.name === 'GoPay'),
+      1,
+    );
+  });
+
   it('should rollback wallet balance when deleting edited entry', async () => {
     const getReq = new NextRequest('http://localhost/api/cash-log');
     const getRes = await GET(getReq);

@@ -3,6 +3,7 @@ import { WalletsInput } from '@/features/wallets/types/wallets';
 import { prisma } from '@/core/db/prisma';
 import { ok, badRequest, serverError } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
+import { WalletKind } from '@/features/wallets/types/wallets';
 
 function isValidDueMonth(value: string): boolean {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
@@ -27,6 +28,17 @@ function toId(value: unknown): number | null {
     }
   }
   return null;
+}
+
+function getAdjustmentCategoryType(
+  balanceDelta: number,
+  walletKind: WalletKind,
+): 'income' | 'outcome' {
+  if (walletKind === 'credit_card') {
+    return balanceDelta > 0 ? 'outcome' : 'income';
+  }
+
+  return balanceDelta > 0 ? 'income' : 'outcome';
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -148,11 +160,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       if (balance !== 0) {
         const today = new Date().toISOString().slice(0, 10);
+        const adjustmentCategoryType = getAdjustmentCategoryType(
+          balance,
+          created.walletKind,
+        );
         const targetCategory = await tx.category.findFirst({
           where: {
             OR: [{ systemDefault: true }, { userId: auth.user.sub }],
-            name: balance > 0 ? 'Transfer In' : 'Transfer Out',
-            type: balance > 0 ? 'income' : 'outcome',
+            name:
+              adjustmentCategoryType === 'income'
+                ? 'Transfer In'
+                : 'Transfer Out',
+            type: adjustmentCategoryType,
           },
           select: { id: true },
         });
@@ -389,11 +408,18 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         const today = new Date().toISOString().slice(0, 10);
         const adjustmentAmount = updateData.balance - existing.balance;
         const adjustmentNominal = Math.abs(adjustmentAmount);
+        const adjustmentCategoryType = getAdjustmentCategoryType(
+          adjustmentAmount,
+          existing.walletKind,
+        );
         const targetCategory = await tx.category.findFirst({
           where: {
             OR: [{ systemDefault: true }, { userId: auth.user.sub }],
-            name: adjustmentAmount > 0 ? 'Transfer In' : 'Transfer Out',
-            type: adjustmentAmount > 0 ? 'income' : 'outcome',
+            name:
+              adjustmentCategoryType === 'income'
+                ? 'Transfer In'
+                : 'Transfer Out',
+            type: adjustmentCategoryType,
           },
           select: { id: true },
         });

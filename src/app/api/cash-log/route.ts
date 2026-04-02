@@ -216,19 +216,10 @@ function assertCreditLimit(
 
 function shouldAffectWallet(
   categoryType: 'income' | 'outcome' | null,
-  description: string,
-  excludeFromReport: boolean,
+  _description: string,
+  _excludeFromReport: boolean,
 ) {
-  if (!categoryType) return false;
-  const normalizedDescription = description.trim().toLowerCase();
-  if (
-    excludeFromReport &&
-    (normalizedDescription === 'adjustment balance' ||
-      normalizedDescription === 'adjust balance')
-  ) {
-    return false;
-  }
-  return true;
+  return Boolean(categoryType);
 }
 
 function validateCreatePayload(payload: Partial<CashLogInput>) {
