@@ -10,6 +10,8 @@
     "db:migrate:deploy": "prisma migrate deploy && prisma generate",
     "db:setup:local": "prisma migrate deploy && npm run dev:seed-mock",
     "db:setup:deploy": "prisma migrate deploy && prisma generate",
+    "db:reconcile:wallet-balances": "node scripts/reconcile-wallet-balances.mjs",
+    "db:reconcile:wallet-balances:apply": "node scripts/reconcile-wallet-balances.mjs --apply",
     "build": "next build",
     "start": "next start",
     "swagger:dev": "npm run dev:swagger",
