@@ -2,7 +2,12 @@ import { NextRequest } from 'next/server';
 import { POST, GET, PATCH, DELETE } from './route';
 import { BudgetInput } from '@/features/monthly-budget/types/budget';
 
-type Budget = BudgetInput & { id: number; sortOrder: number; userId?: string };
+type Budget = BudgetInput & {
+  id: number;
+  isDone: boolean;
+  sortOrder: number;
+  userId?: string;
+};
 
 function getMonthOffset(offset: number): string {
   const now = new Date();
@@ -83,6 +88,7 @@ jest.mock('@/generated/prisma/client', () => {
             const budget: Budget = {
               ...data,
               id: budgets.length + 1,
+              isDone: false,
               sortOrder: data.sortOrder ?? budgets.length,
             };
             budgets.push(budget);
@@ -129,7 +135,10 @@ jest.mock('@/generated/prisma/client', () => {
             data,
           }: {
             where: { id: number };
-            data: Partial<BudgetInput> & { sortOrder?: number };
+            data: Partial<BudgetInput> & {
+              sortOrder?: number;
+              isDone?: boolean;
+            };
           }) => {
             const idx = budgets.findIndex((b) => b.id === where.id);
             if (idx === -1) throw new Error('Not found');
@@ -195,6 +204,8 @@ describe('Monthly Budget API', () => {
     expect(data2.name).toBe('Test Monthly Budget 2');
     expect(data1.type).toBe('outcome');
     expect(data2.type).toBe('income');
+    expect(data1.isDone).toBe(false);
+    expect(data2.isDone).toBe(false);
     id1 = data1.id;
     id2 = data2.id;
   });
@@ -314,5 +325,48 @@ describe('Monthly Budget API', () => {
     const getRes = await GET(getReq);
     const budgets: Budget[] = await getRes.json();
     expect(budgets.find((b) => b.id === id2)).toBeUndefined();
+  });
+
+  it('should create budget with isDone defaulting to false', async () => {
+    const req = {
+      method: 'POST',
+      json: async () =>
+        ({
+          name: 'Check isDone Default',
+          amount: 100000,
+          month: prevMonth,
+          category: 'Food',
+          type: 'outcome',
+        }) as BudgetInput,
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    expect(data.isDone).toBe(false);
+  });
+
+  it('should toggle isDone via PATCH', async () => {
+    const req = {
+      method: 'PATCH',
+      json: async () => ({ id: id1, isDone: true }),
+    } as unknown as NextRequest;
+
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.id).toBe(id1);
+    expect(data.isDone).toBe(true);
+
+    // Toggle back
+    const req2 = {
+      method: 'PATCH',
+      json: async () => ({ id: id1, isDone: false }),
+    } as unknown as NextRequest;
+
+    const res2 = await PATCH(req2);
+    expect(res2.status).toBe(200);
+    const data2 = await res2.json();
+    expect(data2.isDone).toBe(false);
   });
 });

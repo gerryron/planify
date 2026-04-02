@@ -2024,10 +2024,19 @@ export default function DashboardView() {
                     {monthBudgets.map((b) => (
                       <tr
                         key={b.id}
-                        className='border-b border-slate-100 dark:border-slate-700/50 last:border-b-0'
+                        className={`border-b border-slate-100 dark:border-slate-700/50 last:border-b-0 ${b.isDone ? 'opacity-60' : ''}`}
                       >
-                        <td className='py-2 pr-2 text-slate-800 dark:text-slate-200'>
-                          {b.name}
+                        <td className='py-2 pr-2'>
+                          <span
+                            className={`text-slate-800 dark:text-slate-200 ${b.isDone ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}
+                          >
+                            {b.name}
+                          </span>
+                          {b.isDone && (
+                            <span className='ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'>
+                              ✓ Done
+                            </span>
+                          )}
                         </td>
                         <td className='py-2 pr-2'>
                           <span
@@ -2042,9 +2051,11 @@ export default function DashboardView() {
                         </td>
                         <td
                           className={`py-2 text-right font-mono ${
-                            b.type === 'income' || b.type === 'carryover'
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-red-600 dark:text-red-400'
+                            b.isDone
+                              ? 'line-through text-slate-400 dark:text-slate-500'
+                              : b.type === 'income' || b.type === 'carryover'
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-red-600 dark:text-red-400'
                           }`}
                         >
                           {val(b.amount)}

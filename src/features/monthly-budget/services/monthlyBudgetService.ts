@@ -50,4 +50,13 @@ export const monthlyBudgetService = {
     if (!res.ok) throw new Error('Failed to delete budget');
     return res.json();
   },
+  async toggleDone(id: number, isDone: boolean): Promise<Budget> {
+    const res = await fetch(API_URL, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, isDone }),
+    });
+    if (!res.ok) throw new Error('Failed to toggle budget status');
+    return res.json();
+  },
 };

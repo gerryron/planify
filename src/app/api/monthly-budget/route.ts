@@ -14,6 +14,7 @@ type MonthlyBudgetRecord = {
   month: string;
   category: string;
   type: string;
+  isDone: boolean;
   sortOrder: number;
 };
 
@@ -38,6 +39,7 @@ function toBudgetResponse(budget: MonthlyBudgetRecord): BudgetResponse {
     month: budget.month,
     category: budget.category,
     type: budget.type as BudgetInput['type'],
+    isDone: budget.isDone,
   };
 }
 
@@ -137,6 +139,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const payload: Partial<BudgetInput> & {
       id?: number | string;
+      isDone?: boolean;
       orderedIds?: Array<number | string>;
     } = await req.json();
 
@@ -172,7 +175,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       return ok({ success: true });
     }
 
-    const { id, ...data } = payload;
+    const { id, isDone, ...data } = payload;
     const numericId = toId(id);
 
     if (!numericId) return badRequest('ID is required');
@@ -194,9 +197,14 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       return badRequest('Budget not found');
     }
 
+    const updateData: Record<string, unknown> = { ...data };
+    if (typeof isDone === 'boolean') {
+      updateData.isDone = isDone;
+    }
+
     const budget = await prisma.monthlyBudget.update({
       where: { id: numericId },
-      data,
+      data: updateData,
     });
     return ok(toBudgetResponse(budget as MonthlyBudgetRecord));
   } catch {

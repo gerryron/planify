@@ -8,4 +8,5 @@ export type BudgetInput = {
 
 export type BudgetResponse = BudgetInput & {
   id: number;
+  isDone: boolean;
 };

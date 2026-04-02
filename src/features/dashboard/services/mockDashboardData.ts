@@ -58,6 +58,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Salary',
     type: 'income',
+    isDone: false,
   },
   {
     id: 2,
@@ -66,6 +67,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Freelance',
     type: 'income',
+    isDone: false,
   },
   {
     id: 3,
@@ -74,6 +76,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Rent',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 4,
@@ -82,6 +85,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Groceries',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 5,
@@ -90,6 +94,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Transport',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 6,
@@ -98,6 +103,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Entertainment',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 7,
@@ -106,6 +112,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Savings',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 8,
@@ -114,6 +121,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Shopping',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 9,
@@ -122,6 +130,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-10',
     category: 'Health',
     type: 'outcome',
+    isDone: false,
   },
 
   // Nov 2025
@@ -132,6 +141,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-11',
     category: 'Salary',
     type: 'income',
+    isDone: false,
   },
   {
     id: 11,
@@ -140,6 +150,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-11',
     category: 'Freelance',
     type: 'income',
+    isDone: false,
   },
   {
     id: 12,
@@ -148,6 +159,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-11',
     category: 'Rent',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 13,
@@ -156,6 +168,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-11',
     category: 'Groceries',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 14,
@@ -164,6 +177,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-11',
     category: 'Transport',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 15,
@@ -172,6 +186,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-11',
     category: 'Entertainment',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 16,
@@ -180,6 +195,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-11',
     category: 'Savings',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 17,
@@ -188,6 +204,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-11',
     category: 'Education',
     type: 'outcome',
+    isDone: false,
   },
 
   // Dec 2025
@@ -198,6 +215,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Salary',
     type: 'income',
+    isDone: false,
   },
   {
     id: 19,
@@ -206,6 +224,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Freelance',
     type: 'income',
+    isDone: false,
   },
   {
     id: 20,
@@ -214,6 +233,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Salary',
     type: 'income',
+    isDone: false,
   },
   {
     id: 21,
@@ -222,6 +242,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Rent',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 22,
@@ -230,6 +251,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Groceries',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 23,
@@ -238,6 +260,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Transport',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 24,
@@ -246,6 +269,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Entertainment',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 25,
@@ -254,6 +278,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Savings',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 26,
@@ -262,6 +287,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2025-12',
     category: 'Shopping',
     type: 'outcome',
+    isDone: false,
   },
 
   // Jan 2026
@@ -272,6 +298,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-01',
     category: 'Salary',
     type: 'income',
+    isDone: false,
   },
   {
     id: 28,
@@ -280,6 +307,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-01',
     category: 'Freelance',
     type: 'income',
+    isDone: false,
   },
   {
     id: 29,
@@ -288,6 +316,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-01',
     category: 'Rent',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 30,
@@ -296,6 +325,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-01',
     category: 'Groceries',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 31,
@@ -304,6 +334,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-01',
     category: 'Transport',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 32,
@@ -312,6 +343,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-01',
     category: 'Entertainment',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 33,
@@ -320,6 +352,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-01',
     category: 'Savings',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 34,
@@ -328,6 +361,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-01',
     category: 'Health',
     type: 'outcome',
+    isDone: false,
   },
 
   // Feb 2026
@@ -338,6 +372,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-02',
     category: 'Salary',
     type: 'income',
+    isDone: false,
   },
   {
     id: 36,
@@ -346,6 +381,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-02',
     category: 'Freelance',
     type: 'income',
+    isDone: false,
   },
   {
     id: 37,
@@ -354,6 +390,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-02',
     category: 'Rent',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 38,
@@ -362,6 +399,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-02',
     category: 'Groceries',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 39,
@@ -370,6 +408,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-02',
     category: 'Transport',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 40,
@@ -378,6 +417,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-02',
     category: 'Entertainment',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 41,
@@ -386,6 +426,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-02',
     category: 'Savings',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 42,
@@ -394,6 +435,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-02',
     category: 'Education',
     type: 'outcome',
+    isDone: false,
   },
 
   // Mar 2026 (current month)
@@ -404,6 +446,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Salary',
     type: 'income',
+    isDone: false,
   },
   {
     id: 44,
@@ -412,6 +455,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Freelance',
     type: 'income',
+    isDone: false,
   },
   {
     id: 45,
@@ -420,6 +464,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Investment Return',
     type: 'income',
+    isDone: false,
   },
   {
     id: 46,
@@ -428,6 +473,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Rent',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 47,
@@ -436,6 +482,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Groceries',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 48,
@@ -444,6 +491,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Transport',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 49,
@@ -452,6 +500,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Entertainment',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 50,
@@ -460,6 +509,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Savings',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 51,
@@ -468,6 +518,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Shopping',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 52,
@@ -476,6 +527,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Health',
     type: 'outcome',
+    isDone: false,
   },
   {
     id: 53,
@@ -484,6 +536,7 @@ export const mockBudgets: DashboardBudget[] = [
     month: '2026-03',
     category: 'Education',
     type: 'outcome',
+    isDone: false,
   },
 ];
 

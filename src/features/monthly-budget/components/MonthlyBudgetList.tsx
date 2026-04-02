@@ -156,11 +156,13 @@ function SortableBudgetItem({
   showNominal,
   onEdit,
   onDelete,
+  onToggleDone,
 }: {
   budget: Budget;
   showNominal: boolean;
   onEdit: (budget: Budget) => void;
   onDelete: (id: number) => void;
+  onToggleDone: (budget: Budget) => void;
 }) {
   const {
     attributes,
@@ -182,20 +184,40 @@ function SortableBudgetItem({
       style={style}
       className={`flex items-center justify-between border-b border-gray-300 dark:border-slate-700 pb-3 last:border-b-0 last:pb-0 transition-all ${
         isDragging ? 'opacity-70 scale-[0.99] shadow-md' : ''
-      }`}
+      } ${budget.isDone ? 'opacity-60' : ''}`}
     >
-      <div>
-        <div className='font-bold'>{budget.name}</div>
-        <div className='text-sm text-gray-500'>
+      <div
+        className='flex-1 cursor-pointer select-none'
+        onClick={() => onToggleDone(budget)}
+        role='button'
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onToggleDone(budget);
+          }
+        }}
+        title={budget.isDone ? 'Mark as not done' : 'Mark as done'}
+      >
+        <div
+          className={`font-bold ${budget.isDone ? 'line-through text-gray-400 dark:text-gray-500' : ''}`}
+        >
+          {budget.name}
+        </div>
+        <div
+          className={`text-sm ${budget.isDone ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-500'}`}
+        >
           {budget.month} | {budget.category}
         </div>
         <div
           className={`font-mono ${
-            showNominal
-              ? budget.type === 'outcome'
-                ? 'text-red-600 dark:text-red-400'
-                : 'text-green-700 dark:text-green-300'
-              : 'text-gray-500 dark:text-gray-400'
+            budget.isDone
+              ? 'line-through text-gray-400 dark:text-gray-500'
+              : showNominal
+                ? budget.type === 'outcome'
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-green-700 dark:text-green-300'
+                : 'text-gray-500 dark:text-gray-400'
           }`}
         >
           Rp{' '}
@@ -377,6 +399,22 @@ export default function MonthlyBudgetList({
         text: 'Failed to delete budget.',
         icon: 'error',
       });
+    }
+  };
+
+  const handleToggleDone = async (budget: Budget) => {
+    const nextDone = !budget.isDone;
+    setBudgets((prev) =>
+      prev.map((b) => (b.id === budget.id ? { ...b, isDone: nextDone } : b)),
+    );
+    try {
+      await monthlyBudgetService.toggleDone(budget.id, nextDone);
+    } catch {
+      setBudgets((prev) =>
+        prev.map((b) =>
+          b.id === budget.id ? { ...b, isDone: budget.isDone } : b,
+        ),
+      );
     }
   };
 
@@ -588,6 +626,7 @@ export default function MonthlyBudgetList({
                     showNominal={showNominal}
                     onEdit={onEdit}
                     onDelete={handleDelete}
+                    onToggleDone={handleToggleDone}
                   />
                 ))}
               </div>

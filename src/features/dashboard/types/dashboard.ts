@@ -12,6 +12,7 @@ export interface DashboardBudget {
   month: string;
   category: string;
   type: 'income' | 'outcome' | 'carryover';
+  isDone: boolean;
 }
 
 export interface DashboardCashLog {

@@ -50,15 +50,16 @@ model User {
 }
 
 model MonthlyBudget {
-  id        Int    @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   name      String
   amount    Int
   month     String
   category  String
-  type      String // 'income' | 'outcome' | 'carryover'
-  sortOrder Int    @default(0)
+  type      String  // 'income' | 'outcome' | 'carryover'
+  isDone    Boolean @default(false)
+  sortOrder Int     @default(0)
   userId    String
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
