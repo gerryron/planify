@@ -75,9 +75,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return badRequest('Due Month must be in YYYY-MM format');
       }
       if (
-        creditLimit !== undefined ||
-        statementDay !== undefined ||
-        dueDay !== undefined
+        (creditLimit !== undefined && creditLimit !== null) ||
+        (statementDay !== undefined && statementDay !== null) ||
+        (dueDay !== undefined && dueDay !== null)
       ) {
         return badRequest('Credit card fields are not allowed for Goal Wallet');
       }

@@ -434,6 +434,31 @@ describe('Wallet API', () => {
     expect(data.goalDueMonth).toBe('2027-03');
   });
 
+  it('should allow goal wallet when credit card fields are null', async () => {
+    const req = {
+      method: 'POST',
+      json: async () => ({
+        name: 'Vacation Fund',
+        balance: 200000,
+        excludeFromTotal: false,
+        walletKind: 'goal',
+        goalAmount: 3000000,
+        goalDueMonth: '2026-12',
+        creditLimit: null,
+        statementDay: null,
+        dueDay: null,
+      }),
+    } as unknown as NextRequest;
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    const data = await res.json();
+    expect(data.walletKind).toBe('goal');
+    expect(data.goalAmount).toBe(3000000);
+    expect(data.goalDueMonth).toBe('2026-12');
+  });
+
   it('should create credit card wallet and force excludeFromTotal', async () => {
     const beforeCount = adjustmentLogs.length;
     const req = {
