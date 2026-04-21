@@ -30,6 +30,10 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function formatRupiahInput(value: number): string {
+  return `Rp ${value.toLocaleString('id-ID')}`;
+}
+
 const initialState: TransferFormState = {
   fromWalletId: 0,
   toWalletId: 0,
@@ -334,7 +338,7 @@ export default function WalletTransferForm({
         <input
           type='text'
           inputMode='numeric'
-          value={form.amount.toLocaleString('id-ID')}
+          value={formatRupiahInput(form.amount)}
           onChange={(e) => handleNumberChange('amount', e.target.value)}
           className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
@@ -408,7 +412,7 @@ export default function WalletTransferForm({
             <input
               type='text'
               inputMode='numeric'
-              value={form.feeAmount.toLocaleString('id-ID')}
+              value={formatRupiahInput(form.feeAmount)}
               onChange={(e) => handleNumberChange('feeAmount', e.target.value)}
               className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
               required

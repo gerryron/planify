@@ -171,7 +171,6 @@ export default function CashLogForm({
   };
 
   const formattedAmount = useMemo(() => {
-    if (!form.amount) return '';
     return `Rp ${Math.abs(form.amount).toLocaleString('id-ID')}`;
   }, [form.amount]);
 

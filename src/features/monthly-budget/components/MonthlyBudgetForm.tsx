@@ -55,7 +55,6 @@ export default function MonthlyBudgetForm({
   const [error, setError] = useState<string | null>(null);
 
   const formattedAmount = useMemo(() => {
-    if (!form.amount) return '';
     return `Rp ${Math.abs(form.amount).toLocaleString('id-ID')}`;
   }, [form.amount]);
 
