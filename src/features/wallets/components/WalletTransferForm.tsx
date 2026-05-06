@@ -93,6 +93,23 @@ export default function WalletTransferForm({
     [wallets, form.toWalletId],
   );
 
+  const groupedWallets = useMemo(() => {
+    const included = wallets.filter((wallet) => !wallet.excludeFromTotal);
+    const excluded = wallets.filter((wallet) => wallet.excludeFromTotal);
+    return { included, excluded };
+  }, [wallets]);
+
+  const destinationWallets = useMemo(() => {
+    return {
+      included: groupedWallets.included.filter(
+        (wallet) => wallet.id !== form.fromWalletId,
+      ),
+      excluded: groupedWallets.excluded.filter(
+        (wallet) => wallet.id !== form.fromWalletId,
+      ),
+    };
+  }, [groupedWallets, form.fromWalletId]);
+
   const senderRequiredBalance = useMemo(() => {
     if (!form.enableFee || form.feePayer !== 'sender') return form.amount;
     return form.amount + form.feeAmount;
@@ -290,17 +307,34 @@ export default function WalletTransferForm({
           <option value={0} disabled>
             Select source wallet
           </option>
-          {wallets.map((wallet) => (
-            <option key={wallet.id} value={wallet.id}>
-              {wallet.name}
-              {wallet.walletKind === 'goal'
-                ? ' - Goal'
-                : wallet.walletKind === 'credit_card'
-                  ? ' - Credit Card'
-                  : ''}{' '}
-              (Rp {wallet.balance.toLocaleString('id-ID')})
-            </option>
-          ))}
+          {groupedWallets.included.length > 0 && (
+            <optgroup label='Included from total'>
+              {groupedWallets.included.map((wallet) => (
+                <option key={wallet.id} value={wallet.id}>
+                  {wallet.name}
+                  {wallet.walletKind === 'goal'
+                    ? ' - Goal'
+                    : wallet.walletKind === 'credit_card'
+                      ? ' - Credit Card'
+                      : ''}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {groupedWallets.excluded.length > 0 && (
+            <optgroup label='Excluded from total'>
+              {groupedWallets.excluded.map((wallet) => (
+                <option key={wallet.id} value={wallet.id}>
+                  {wallet.name}
+                  {wallet.walletKind === 'goal'
+                    ? ' - Goal'
+                    : wallet.walletKind === 'credit_card'
+                      ? ' - Credit Card'
+                      : ''}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
 
@@ -317,19 +351,34 @@ export default function WalletTransferForm({
           <option value={0} disabled>
             Select destination wallet
           </option>
-          {wallets
-            .filter((wallet) => wallet.id !== form.fromWalletId)
-            .map((wallet) => (
-              <option key={wallet.id} value={wallet.id}>
-                {wallet.name}
-                {wallet.walletKind === 'goal'
-                  ? ' - Goal'
-                  : wallet.walletKind === 'credit_card'
-                    ? ' - Credit Card'
-                    : ''}{' '}
-                (Rp {wallet.balance.toLocaleString('id-ID')})
-              </option>
-            ))}
+          {destinationWallets.included.length > 0 && (
+            <optgroup label='Included from total'>
+              {destinationWallets.included.map((wallet) => (
+                <option key={wallet.id} value={wallet.id}>
+                  {wallet.name}
+                  {wallet.walletKind === 'goal'
+                    ? ' - Goal'
+                    : wallet.walletKind === 'credit_card'
+                      ? ' - Credit Card'
+                      : ''}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {destinationWallets.excluded.length > 0 && (
+            <optgroup label='Excluded from total'>
+              {destinationWallets.excluded.map((wallet) => (
+                <option key={wallet.id} value={wallet.id}>
+                  {wallet.name}
+                  {wallet.walletKind === 'goal'
+                    ? ' - Goal'
+                    : wallet.walletKind === 'credit_card'
+                      ? ' - Credit Card'
+                      : ''}
+                </option>
+              ))}
+            </optgroup>
+          )}
         </select>
       </div>
 

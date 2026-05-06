@@ -512,11 +512,21 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         existing as TransferCandidate,
       );
 
-      if (linkedTransfer && payload.walletName !== undefined) {
+      const nextWalletNameCandidate = payload.walletName?.trim();
+
+      if (
+        linkedTransfer &&
+        payload.walletName !== undefined &&
+        nextWalletNameCandidate !== existing.walletName
+      ) {
         throw new Error('LINKED_TRANSFER_IMMUTABLE_WALLET');
       }
 
-      if (linkedTransfer && payload.categoryId !== undefined) {
+      if (
+        linkedTransfer &&
+        payload.categoryId !== undefined &&
+        payload.categoryId !== existing.categoryId
+      ) {
         throw new Error('LINKED_TRANSFER_IMMUTABLE_CATEGORY');
       }
 
@@ -535,7 +545,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         nextCategoryType = nextCategory.type;
       }
 
-      const nextWalletName = payload.walletName?.trim() ?? existing.walletName;
+      const nextWalletName = nextWalletNameCandidate ?? existing.walletName;
       const nextDescription =
         payload.description?.trim() ?? existing.description;
       const nextExcludeFromReport =

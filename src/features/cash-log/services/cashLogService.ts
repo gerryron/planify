@@ -7,6 +7,16 @@ export type CashLog = CashLogResponse;
 
 const API_URL = '/api/cash-log';
 
+async function buildApiError(res: Response, fallback: string): Promise<Error> {
+  try {
+    const data = (await res.json()) as { error?: string };
+    if (data?.error) return new Error(data.error);
+  } catch {
+    // Ignore JSON parse failure and use fallback message.
+  }
+  return new Error(fallback);
+}
+
 export const cashLogService = {
   async getAll(month?: string): Promise<CashLog[]> {
     const query = month ? `?month=${encodeURIComponent(month)}` : '';
@@ -21,7 +31,7 @@ export const cashLogService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create cash log');
+    if (!res.ok) throw await buildApiError(res, 'Failed to create cash log');
     return res.json();
   },
 
@@ -31,7 +41,7 @@ export const cashLogService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...data }),
     });
-    if (!res.ok) throw new Error('Failed to update cash log');
+    if (!res.ok) throw await buildApiError(res, 'Failed to update cash log');
     return res.json();
   },
 
@@ -41,7 +51,7 @@ export const cashLogService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
     });
-    if (!res.ok) throw new Error('Failed to delete cash log');
+    if (!res.ok) throw await buildApiError(res, 'Failed to delete cash log');
     return res.json();
   },
 };

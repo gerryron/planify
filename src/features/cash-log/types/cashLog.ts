@@ -16,5 +16,6 @@ export type CashLogCategory = {
 
 export type CashLogResponse = CashLogInput & {
   id: number;
+  transferGroupId?: string | null;
   category: CashLogCategory | null;
 };

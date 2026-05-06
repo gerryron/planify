@@ -59,6 +59,7 @@ export default function CashLogForm({
   const [activeCategoryType, setActiveCategoryType] = useState<
     'income' | 'outcome'
   >(initialCategoryType);
+  const isLinkedTransferEntry = Boolean(initial?.transferGroupId);
 
   useEffect(() => {
     const fetchWallets = async () => {
@@ -203,6 +204,20 @@ export default function CashLogForm({
     };
 
     const isUpdate = initial && initial.id;
+
+    if (isUpdate && isLinkedTransferEntry) {
+      const relationConfirm = await Swal.fire({
+        title: 'Transaksi transfer terhubung',
+        text: 'Perubahan pada transaksi ini akan otomatis disinkronkan ke transaksi transfer pasangannya.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonText: 'Lanjutkan',
+        cancelButtonText: 'Batal',
+      });
+
+      if (!relationConfirm.isConfirmed) return;
+    }
+
     const confirmResult = await Swal.fire({
       title: isUpdate ? 'Update this transaction?' : 'Add this transaction?',
       text: isUpdate
@@ -240,8 +255,8 @@ export default function CashLogForm({
 
       onSuccess();
       setForm(defaultForm);
-    } catch {
-      setError('Failed to save cash log');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save cash log');
     } finally {
       setLoading(false);
     }
