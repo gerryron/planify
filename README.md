@@ -31,23 +31,37 @@ App lokal:
 - Next.js: http://localhost:3000
 - Swagger UI helper: http://localhost:3010
 
-## Dokumentasi Lengkap
+## Dokumentasi
 
-Detail teknis tersedia di folder [docs](docs):
+Planify menggunakan **Spec-Driven Development** dengan [GitHub Spec-Kit](https://github.com/github/spec-kit).
 
-- [docs/product-requirements.md](docs/product-requirements.md)
-- [docs/setup-and-environment.md](docs/setup-and-environment.md)
-- [docs/architecture.md](docs/architecture.md)
-- [docs/database-schema.md](docs/database-schema.md)
-- [docs/auth-and-access-control.md](docs/auth-and-access-control.md)
-- [docs/api-reference.md](docs/api-reference.md)
-- [docs/features-monthly-budget.md](docs/features-monthly-budget.md)
-- [docs/features-cash-log.md](docs/features-cash-log.md)
-- [docs/features-wallets-and-transfer.md](docs/features-wallets-and-transfer.md)
-- [docs/features-categories.md](docs/features-categories.md)
-- [docs/pwa-and-offline.md](docs/pwa-and-offline.md)
-- [docs/testing.md](docs/testing.md)
-- [docs/operations.md](docs/operations.md)
+### 📋 Roadmap & Development → `specs/`
+
+Spesifikasi fitur, rencana implementasi, dan task tracking. Lihat [specs/](specs/) untuk daftar fitur yang sedang atau akan dikerjakan.
+
+Saat ini aktif:
+- [001-refactor-maintainability](specs/001-refactor-maintainability/) — Refaktor struktural untuk meningkatkan maintainability
+
+### 📚 Technical Reference → `docs/`
+
+Dokumentasi teknis statis (arsitektur, API, database, setup):
+
+| Category | Documents |
+|----------|-----------|
+| Core | [Product Requirements](docs/product-requirements.md) · [Architecture](docs/architecture.md) · [Setup & Environment](docs/setup-and-environment.md) |
+| Backend | [API Reference](docs/api-reference.md) · [Database Schema](docs/database-schema.md) · [Auth & Access](docs/auth-and-access-control.md) |
+| Features | [Monthly Budget](docs/features-monthly-budget.md) · [Cash Log](docs/features-cash-log.md) · [Wallets & Transfer](docs/features-wallets-and-transfer.md) · [Categories](docs/features-categories.md) |
+| Platform | [PWA & Offline](docs/pwa-and-offline.md) · [Testing](docs/testing.md) · [Operations](docs/operations.md) |
+
+### 🤖 AI-Assisted Development
+
+Projek ini menggunakan Claude Code dengan Spec-Kit. Workflow standar:
+
+```
+/speckit.specify → /speckit.plan → /speckit.tasks → /speckit.implement
+```
+
+Prinsip pengembangan ada di [.specify/memory/constitution.md](.specify/memory/constitution.md).
 
 ## Fitur Utama
 
@@ -61,18 +75,23 @@ Detail teknis tersedia di folder [docs](docs):
 
 ## Perintah Penting
 
-- `npm run dev`: jalankan Next + Swagger helper.
-- `npm run db:setup:local`: migrate + generate untuk lokal.
-- `npm run db:setup:deploy`: migrate + generate untuk deploy.
-- `npm run build`: build production.
-- `npm run start`: jalankan build production.
-- `npm test`: jalankan semua test.
-- `npm test -- --coverage`: jalankan test + coverage.
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Jalankan Next + Swagger helper |
+| `npm run db:setup:local` | Migrate + generate untuk lokal |
+| `npm run db:setup:deploy` | Migrate + generate untuk deploy |
+| `npm run build` | Build production |
+| `npm run start` | Jalankan build production |
+| `npm test` | Jalankan semua test |
+| `npm test -- --coverage` | Test + coverage report |
 
 ## Stack
 
-- Next.js App Router
-- Prisma ORM
+- Next.js App Router (v16)
+- Prisma ORM (v7)
 - PostgreSQL
-- React + TypeScript
+- React 19 + TypeScript 5 (strict)
+- Tailwind CSS 4 + MUI icons
 - Jest (ts-jest)
+- Recharts + @dnd-kit
+- GitHub Spec-Kit (spec-driven development)
