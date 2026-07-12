@@ -1,3 +1,4 @@
+import { apiClient } from '@/core/http/apiClient';
 import {
   BudgetInput,
   BudgetResponse,
@@ -5,58 +6,29 @@ import {
 
 export type Budget = BudgetResponse;
 
-const API_URL = '/api/monthly-budget';
-
 export const monthlyBudgetService = {
   async getAll(month?: string): Promise<Budget[]> {
     const query = month ? `?month=${encodeURIComponent(month)}` : '';
-    const res = await fetch(`${API_URL}${query}`, { method: 'GET' });
-    if (!res.ok) throw new Error('Failed to fetch budgets');
-    return res.json();
+    return apiClient.get(`/api/monthly-budget${query}`);
   },
+
   async create(data: BudgetInput): Promise<Budget> {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw new Error('Failed to create budget');
-    return res.json();
+    return apiClient.post('/api/monthly-budget', data);
   },
+
   async update(id: number, data: Partial<BudgetInput>): Promise<Budget> {
-    const res = await fetch(API_URL, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...data }),
-    });
-    if (!res.ok) throw new Error('Failed to update budget');
-    return res.json();
+    return apiClient.patch('/api/monthly-budget', { id, ...data });
   },
+
   async reorder(orderedIds: number[]): Promise<{ success: boolean }> {
-    const res = await fetch(API_URL, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderedIds }),
-    });
-    if (!res.ok) throw new Error('Failed to reorder budgets');
-    return res.json();
+    return apiClient.patch('/api/monthly-budget', { orderedIds });
   },
+
   async remove(id: number): Promise<{ success: boolean }> {
-    const res = await fetch(API_URL, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-    if (!res.ok) throw new Error('Failed to delete budget');
-    return res.json();
+    return apiClient.delete('/api/monthly-budget', { id });
   },
+
   async toggleDone(id: number, isDone: boolean): Promise<Budget> {
-    const res = await fetch(API_URL, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, isDone }),
-    });
-    if (!res.ok) throw new Error('Failed to toggle budget status');
-    return res.json();
+    return apiClient.patch('/api/monthly-budget', { id, isDone });
   },
 };

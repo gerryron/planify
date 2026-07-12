@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/db/prisma';
-import { badRequest, notFound, ok } from '@/core/http/apiResponse';
+import { badRequest, ok } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
 import { CashLogInput } from '@/features/cash-log/types/cashLog';
 import { WalletKind } from '@/features/wallets/types/wallets';
+import {
+  AppError,
+  NotFoundError,
+  ValidationError,
+  handleApiError,
+} from '@/core/http/apiErrors';
 
 type CashLogRecord = CashLogInput & {
   id: number;
@@ -207,10 +213,10 @@ function assertCreditLimit(
 ) {
   if (walletKind !== 'credit_card') return;
   if (typeof creditLimit !== 'number') {
-    throw new Error('CREDIT_LIMIT_NOT_SET');
+    throw new ValidationError('CASH_LOG_VALIDATION', 'Credit card wallet is missing credit limit');
   }
   if (nextBalance > creditLimit) {
-    throw new Error('CREDIT_LIMIT_EXCEEDED');
+    throw new ValidationError('CASH_LOG_VALIDATION', 'Credit card outstanding cannot exceed credit limit');
   }
 }
 
@@ -276,7 +282,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
 
       if (!wallet) {
-        throw new Error('WALLET_NOT_FOUND');
+        throw new AppError('WALLET_NOT_FOUND', 'walletName is invalid', 400);
       }
 
       const walletDelta = getWalletDelta(
@@ -320,16 +326,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return ok(record as CashLogRecord, 201);
   } catch (error) {
-    if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
-      return badRequest('walletName is invalid');
-    }
-    if (error instanceof Error && error.message === 'CREDIT_LIMIT_NOT_SET') {
-      return badRequest('Credit card wallet is missing credit limit');
-    }
-    if (error instanceof Error && error.message === 'CREDIT_LIMIT_EXCEEDED') {
-      return badRequest('Credit card outstanding cannot exceed credit limit');
-    }
-    return badRequest();
+    return handleApiError(error);
   }
 }
 
@@ -503,7 +500,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       });
 
       if (!existing) {
-        throw new Error('CASH_LOG_NOT_FOUND');
+        throw new NotFoundError('CASH_LOG_NOT_FOUND', 'Cash log');
       }
 
       const linkedTransfer = await findLinkedTransferEntry(
@@ -519,7 +516,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         payload.walletName !== undefined &&
         nextWalletNameCandidate !== existing.walletName
       ) {
-        throw new Error('LINKED_TRANSFER_IMMUTABLE_WALLET');
+        throw new ValidationError('CASH_LOG_VALIDATION', 'Linked transfer wallet cannot be edited individually');
       }
 
       if (
@@ -527,7 +524,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         payload.categoryId !== undefined &&
         payload.categoryId !== existing.categoryId
       ) {
-        throw new Error('LINKED_TRANSFER_IMMUTABLE_CATEGORY');
+        throw new ValidationError('CASH_LOG_VALIDATION', 'Linked transfer category cannot be edited individually');
       }
 
       let nextCategoryType = existing.category?.type ?? null;
@@ -540,7 +537,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           select: { type: true },
         });
         if (!nextCategory) {
-          throw new Error('CATEGORY_NOT_FOUND');
+          throw new NotFoundError('CATEGORY_NOT_FOUND', 'Category');
         }
         nextCategoryType = nextCategory.type;
       }
@@ -601,7 +598,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           });
 
           if (!wallet) {
-            throw new Error('WALLET_NOT_FOUND');
+            throw new AppError('WALLET_NOT_FOUND', 'walletName is invalid', 400);
           }
 
           const oldAffects = shouldAffectWallet(
@@ -724,7 +721,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       });
 
       if (!oldWallet || !newWallet) {
-        throw new Error('WALLET_NOT_FOUND');
+        throw new AppError('WALLET_NOT_FOUND', 'walletName is invalid', 400);
       }
 
       const oldDelta =
@@ -810,36 +807,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     return ok(updated);
   } catch (error) {
-    if (error instanceof Error && error.message === 'CASH_LOG_NOT_FOUND') {
-      return notFound('Cash log not found');
-    }
-    if (error instanceof Error && error.message === 'CATEGORY_NOT_FOUND') {
-      return badRequest('categoryId is invalid');
-    }
-    if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
-      return badRequest('walletName is invalid');
-    }
-    if (error instanceof Error && error.message === 'CREDIT_LIMIT_NOT_SET') {
-      return badRequest('Credit card wallet is missing credit limit');
-    }
-    if (error instanceof Error && error.message === 'CREDIT_LIMIT_EXCEEDED') {
-      return badRequest('Credit card outstanding cannot exceed credit limit');
-    }
-    if (
-      error instanceof Error &&
-      error.message === 'LINKED_TRANSFER_IMMUTABLE_WALLET'
-    ) {
-      return badRequest('Linked transfer wallet cannot be edited individually');
-    }
-    if (
-      error instanceof Error &&
-      error.message === 'LINKED_TRANSFER_IMMUTABLE_CATEGORY'
-    ) {
-      return badRequest(
-        'Linked transfer category cannot be edited individually',
-      );
-    }
-    return badRequest('Failed to update cash log');
+    return handleApiError(error);
   }
 }
 
@@ -876,7 +844,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       });
 
       if (!existing) {
-        throw new Error('CASH_LOG_NOT_FOUND');
+        throw new NotFoundError('CASH_LOG_NOT_FOUND', 'Cash log');
       }
 
       const linkedTransfer = await findLinkedTransferEntry(
@@ -908,7 +876,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
           });
 
           if (!wallet) {
-            throw new Error('WALLET_NOT_FOUND');
+            throw new AppError('WALLET_NOT_FOUND', 'walletName is invalid', 400);
           }
 
           const delta = getWalletDelta(
@@ -935,18 +903,6 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
     return ok({ success: true });
   } catch (error) {
-    if (error instanceof Error && error.message === 'CASH_LOG_NOT_FOUND') {
-      return notFound('Cash log not found');
-    }
-    if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
-      return badRequest('walletName is invalid');
-    }
-    if (error instanceof Error && error.message === 'CREDIT_LIMIT_NOT_SET') {
-      return badRequest('Credit card wallet is missing credit limit');
-    }
-    if (error instanceof Error && error.message === 'CREDIT_LIMIT_EXCEEDED') {
-      return badRequest('Credit card outstanding cannot exceed credit limit');
-    }
-    return badRequest('Failed to delete cash log');
+    return handleApiError(error);
   }
 }

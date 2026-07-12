@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WalletsInput } from '@/features/wallets/types/wallets';
 import { prisma } from '@/core/db/prisma';
-import { ok, badRequest, serverError } from '@/core/http/apiResponse';
+import { ok, badRequest } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
 import { WalletKind } from '@/features/wallets/types/wallets';
+import {
+  validateWalletFields,
+} from '@/features/wallets/utils/validation';
+import {
+  AppError,
+  ValidationError,
+  NotFoundError,
+  handleApiError,
+} from '@/core/http/apiErrors';
 
-function isValidDueMonth(value: string): boolean {
-  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
-}
-
-function isWalletKind(value: unknown): value is WalletsInput['walletKind'] {
+function isWalletKind(value: unknown): value is WalletKind {
   return value === 'basic' || value === 'goal' || value === 'credit_card';
-}
-
-function isValidDayOfMonth(value: number): boolean {
-  return Number.isInteger(value) && value >= 1 && value <= 31;
 }
 
 function toId(value: unknown): number | null {
@@ -37,19 +38,28 @@ function getAdjustmentCategoryType(
   if (walletKind === 'credit_card') {
     return balanceDelta > 0 ? 'outcome' : 'income';
   }
-
   return balanceDelta > 0 ? 'income' : 'outcome';
 }
 
+// ---------------------------------------------------------------------------
+// POST – Create wallet
+// ---------------------------------------------------------------------------
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = requireAuth(req);
   if (auth.error) return auth.error;
 
   try {
-    const {
+    const body = (await req.json()) as Partial<WalletsInput>;
+    const { name, balance, excludeFromTotal, walletKind, goalAmount, goalStartMonth, goalDueMonth, creditLimit, statementDay, dueDay } = body;
+
+    if (!isWalletKind(walletKind)) {
+      return badRequest('All fields are required');
+    }
+
+    // Shared validation (replaces ~80 lines of inline checks)
+    const validation = validateWalletFields({
       name,
       balance,
-      excludeFromTotal,
       walletKind,
       goalAmount,
       goalStartMonth,
@@ -57,75 +67,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       creditLimit,
       statementDay,
       dueDay,
-    }: Partial<WalletsInput> = await req.json();
+    });
 
-    if (!name?.trim() || balance === undefined || !isWalletKind(walletKind)) {
-      return badRequest('All fields are required');
-    }
-
-    if (walletKind === 'goal') {
-      if (
-        typeof goalAmount !== 'number' ||
-        !Number.isInteger(goalAmount) ||
-        goalAmount <= 0
-      ) {
-        return badRequest('Savings Goal must be greater than 0');
-      }
-      if (!goalDueMonth || !isValidDueMonth(goalDueMonth)) {
-        return badRequest('Due Month must be in YYYY-MM format');
-      }
-      if (
-        (creditLimit !== undefined && creditLimit !== null) ||
-        (statementDay !== undefined && statementDay !== null) ||
-        (dueDay !== undefined && dueDay !== null)
-      ) {
-        return badRequest('Credit card fields are not allowed for Goal Wallet');
-      }
-    } else if (
-      (goalAmount !== undefined && goalAmount !== null) ||
-      (goalStartMonth !== undefined && goalStartMonth !== null) ||
-      (goalDueMonth !== undefined && goalDueMonth !== null)
-    ) {
-      return badRequest('Goal fields are only allowed for Goal Wallet');
-    }
-
-    if (walletKind === 'credit_card') {
-      if (
-        typeof creditLimit !== 'number' ||
-        !Number.isInteger(creditLimit) ||
-        creditLimit <= 0
-      ) {
-        return badRequest('Credit limit must be greater than 0');
-      }
-      if (
-        typeof statementDay !== 'number' ||
-        !Number.isInteger(statementDay) ||
-        !isValidDayOfMonth(statementDay)
-      ) {
-        return badRequest('Statement day must be between 1 and 31');
-      }
-      if (
-        typeof dueDay !== 'number' ||
-        !Number.isInteger(dueDay) ||
-        !isValidDayOfMonth(dueDay)
-      ) {
-        return badRequest('Due day must be between 1 and 31');
-      }
-      if (
-        typeof balance === 'number' &&
-        typeof creditLimit === 'number' &&
-        balance > creditLimit
-      ) {
-        return badRequest('Outstanding balance cannot exceed credit limit');
-      }
-    } else if (
-      (creditLimit !== undefined && creditLimit !== null) ||
-      (statementDay !== undefined && statementDay !== null) ||
-      (dueDay !== undefined && dueDay !== null)
-    ) {
-      return badRequest(
-        'Credit card fields are only allowed for Credit Card Wallet',
-      );
+    if (!validation.valid) {
+      return badRequest(validation.errors[0]);
     }
 
     const wallet = await prisma.$transaction(async (tx) => {
@@ -140,8 +85,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const created = await tx.wallet.create({
         data: {
           userId: auth.user.sub,
-          name: name.trim(),
-          balance,
+          name: name!.trim(),
+          balance: balance!,
           excludeFromTotal:
             walletKind === 'goal' || walletKind === 'credit_card'
               ? true
@@ -160,24 +105,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       if (balance !== 0) {
         const today = new Date().toISOString().slice(0, 10);
-        const adjustmentCategoryType = getAdjustmentCategoryType(
-          balance,
-          created.walletKind,
-        );
+        const adjustmentCategoryType = getAdjustmentCategoryType(balance!, created.walletKind);
         const targetCategory = await tx.category.findFirst({
           where: {
             OR: [{ systemDefault: true }, { userId: auth.user.sub }],
-            name:
-              adjustmentCategoryType === 'income'
-                ? 'Transfer In'
-                : 'Transfer Out',
+            name: adjustmentCategoryType === 'income' ? 'Transfer In' : 'Transfer Out',
             type: adjustmentCategoryType,
           },
           select: { id: true },
         });
 
         if (!targetCategory) {
-          throw new Error('TRANSFER_CATEGORY_NOT_FOUND');
+          throw new AppError('CATEGORY_DEFAULT_PROTECTED', 'Transfer category not found', 400);
         }
 
         await tx.cashLog.create({
@@ -186,7 +125,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             walletId: created.id,
             date: today,
             description: 'Adjust Balance',
-            amount: Math.abs(balance),
+            amount: Math.abs(balance!),
             walletName: created.name,
             excludeFromReport: true,
             categoryId: targetCategory.id,
@@ -199,16 +138,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return ok(wallet, 201);
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === 'TRANSFER_CATEGORY_NOT_FOUND'
-    ) {
-      return badRequest('Transfer category not found');
-    }
-    return badRequest('Failed to create wallet');
+    return handleApiError(error);
   }
 }
 
+// ---------------------------------------------------------------------------
+// GET – List wallets
+// ---------------------------------------------------------------------------
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const auth = requireAuth(req);
   if (auth.error) return auth.error;
@@ -221,11 +157,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return ok(wallets);
   } catch (error) {
     console.error('GET /api/wallets error:', error);
-    const message = error instanceof Error ? error.message : undefined;
-    return serverError(message);
+    return handleApiError(error);
   }
 }
 
+// ---------------------------------------------------------------------------
+// PATCH – Update wallet or reorder
+// ---------------------------------------------------------------------------
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   const auth = requireAuth(req);
   if (auth.error) return auth.error;
@@ -236,24 +174,22 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       orderedIds?: Array<number | string>;
     } = await req.json();
 
+    // -- Reorder branch --
     if (Array.isArray(payload.orderedIds)) {
       const orderedIds = payload.orderedIds
         .map((item) => toId(item))
         .filter((item): item is number => item !== null);
 
       if (orderedIds.length === 0) {
-        return badRequest('orderedIds is required');
+        throw new ValidationError('WALLET_VALIDATION', 'orderedIds is required');
       }
 
       const ownedCount = await prisma.wallet.count({
-        where: {
-          userId: auth.user.sub,
-          id: { in: orderedIds },
-        },
+        where: { userId: auth.user.sub, id: { in: orderedIds } },
       });
 
       if (ownedCount !== orderedIds.length) {
-        return badRequest('Some wallets are not found for current user');
+        throw new ValidationError('WALLET_VALIDATION', 'Some wallets are not found for current user');
       }
 
       await prisma.$transaction(
@@ -268,10 +204,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       return ok({ success: true });
     }
 
+    // -- Update branch --
     const { id, ...data } = payload;
     const numericId = toId(id);
 
-    if (!numericId) return badRequest('ID is required');
+    if (!numericId) {
+      throw new ValidationError('WALLET_VALIDATION', 'ID is required');
+    }
 
     const wallet = await prisma.$transaction(async (tx) => {
       const existing = await tx.wallet.findFirst({
@@ -291,100 +230,53 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       });
 
       if (!existing) {
-        throw new Error('WALLET_NOT_FOUND');
+        throw new NotFoundError('WALLET_NOT_FOUND', 'Wallet');
       }
 
+      // Wallet kind is immutable
+      if (data.walletKind !== undefined && data.walletKind !== existing.walletKind) {
+        throw new ValidationError('WALLET_VALIDATION', 'Wallet type cannot be changed once created');
+      }
+
+      // Goal start month is immutable
       if (
-        data.walletKind !== undefined &&
-        data.walletKind !== existing.walletKind
+        existing.walletKind === 'goal' &&
+        data.goalStartMonth !== undefined &&
+        data.goalStartMonth !== existing.goalStartMonth
       ) {
-        throw new Error('WALLET_KIND_IMMUTABLE');
+        throw new ValidationError('WALLET_VALIDATION', 'Goal start month cannot be changed');
       }
 
-      if (existing.walletKind === 'goal') {
-        if (data.goalAmount !== undefined) {
-          if (
-            typeof data.goalAmount !== 'number' ||
-            !Number.isInteger(data.goalAmount) ||
-            data.goalAmount <= 0
-          ) {
-            throw new Error('GOAL_AMOUNT_INVALID');
-          }
-        }
+      // Shared validation for partial update
+      const validation = validateWalletFields(
+        {
+          walletKind: existing.walletKind,
+          goalAmount: data.goalAmount,
+          goalDueMonth: data.goalDueMonth,
+          creditLimit: data.creditLimit,
+          statementDay: data.statementDay,
+          dueDay: data.dueDay,
+          balance: data.balance !== undefined ? data.balance : existing.balance,
+        },
+        true, // isUpdate
+      );
 
-        if (data.goalDueMonth !== undefined) {
-          if (!data.goalDueMonth || !isValidDueMonth(data.goalDueMonth)) {
-            throw new Error('GOAL_DUE_MONTH_INVALID');
-          }
-        }
-
-        if (
-          data.goalStartMonth !== undefined &&
-          data.goalStartMonth !== existing.goalStartMonth
-        ) {
-          throw new Error('GOAL_START_MONTH_IMMUTABLE');
-        }
-      } else {
-        if (
-          (data.goalAmount !== undefined && data.goalAmount !== null) ||
-          (data.goalDueMonth !== undefined && data.goalDueMonth !== null) ||
-          (data.goalStartMonth !== undefined && data.goalStartMonth !== null)
-        ) {
-          throw new Error('GOAL_FIELDS_NOT_ALLOWED');
-        }
+      if (!validation.valid) {
+        throw new ValidationError('WALLET_VALIDATION', validation.errors.join('; '));
       }
 
+      // Credit card: merge existing fields for validation
       if (existing.walletKind === 'credit_card') {
-        const nextCreditLimit =
-          data.creditLimit !== undefined
-            ? data.creditLimit
-            : existing.creditLimit;
-        const nextStatementDay =
-          data.statementDay !== undefined
-            ? data.statementDay
-            : existing.statementDay;
-        const nextDueDay =
-          data.dueDay !== undefined ? data.dueDay : existing.dueDay;
-        const nextBalance =
-          data.balance !== undefined ? data.balance : existing.balance;
-
-        if (
-          typeof nextCreditLimit !== 'number' ||
-          !Number.isInteger(nextCreditLimit) ||
-          nextCreditLimit <= 0
-        ) {
-          throw new Error('CREDIT_LIMIT_INVALID');
-        }
-
-        if (
-          typeof nextStatementDay !== 'number' ||
-          !Number.isInteger(nextStatementDay) ||
-          !isValidDayOfMonth(nextStatementDay)
-        ) {
-          throw new Error('STATEMENT_DAY_INVALID');
-        }
-
-        if (
-          typeof nextDueDay !== 'number' ||
-          !Number.isInteger(nextDueDay) ||
-          !isValidDayOfMonth(nextDueDay)
-        ) {
-          throw new Error('DUE_DAY_INVALID');
-        }
+        const nextCreditLimit = data.creditLimit !== undefined ? data.creditLimit : existing.creditLimit;
+        const nextBalance = data.balance !== undefined ? data.balance : existing.balance;
 
         if (
           typeof nextCreditLimit === 'number' &&
           typeof nextBalance === 'number' &&
           nextBalance > nextCreditLimit
         ) {
-          throw new Error('CREDIT_LIMIT_EXCEEDED');
+          throw new ValidationError('WALLET_VALIDATION', 'Outstanding balance cannot exceed credit limit');
         }
-      } else if (
-        (data.creditLimit !== undefined && data.creditLimit !== null) ||
-        (data.statementDay !== undefined && data.statementDay !== null) ||
-        (data.dueDay !== undefined && data.dueDay !== null)
-      ) {
-        throw new Error('CREDIT_CARD_FIELDS_NOT_ALLOWED');
       }
 
       const updateData: Partial<WalletsInput> = { ...data };
@@ -402,43 +294,30 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         data: updateData,
       });
 
+      // Sync wallet name in cash logs
       if (updated.name !== existing.name) {
         await tx.cashLog.updateMany({
-          where: {
-            userId: auth.user.sub,
-            walletName: existing.name,
-          },
-          data: {
-            walletName: updated.name,
-          },
+          where: { userId: auth.user.sub, walletName: existing.name },
+          data: { walletName: updated.name },
         });
       }
 
-      if (
-        updateData.balance !== undefined &&
-        updateData.balance !== existing.balance
-      ) {
+      // Adjust balance: create adjustment cash log if balance changed
+      if (updateData.balance !== undefined && updateData.balance !== existing.balance) {
         const today = new Date().toISOString().slice(0, 10);
         const adjustmentAmount = updateData.balance - existing.balance;
-        const adjustmentNominal = Math.abs(adjustmentAmount);
-        const adjustmentCategoryType = getAdjustmentCategoryType(
-          adjustmentAmount,
-          existing.walletKind,
-        );
+        const adjustmentCategoryType = getAdjustmentCategoryType(adjustmentAmount, existing.walletKind);
         const targetCategory = await tx.category.findFirst({
           where: {
             OR: [{ systemDefault: true }, { userId: auth.user.sub }],
-            name:
-              adjustmentCategoryType === 'income'
-                ? 'Transfer In'
-                : 'Transfer Out',
+            name: adjustmentCategoryType === 'income' ? 'Transfer In' : 'Transfer Out',
             type: adjustmentCategoryType,
           },
           select: { id: true },
         });
 
         if (!targetCategory) {
-          throw new Error('TRANSFER_CATEGORY_NOT_FOUND');
+          throw new AppError('CATEGORY_DEFAULT_PROTECTED', 'Transfer category not found', 400);
         }
 
         await tx.cashLog.create({
@@ -447,7 +326,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
             walletId: updated.id,
             date: today,
             description: 'Adjust Balance',
-            amount: adjustmentNominal,
+            amount: Math.abs(adjustmentAmount),
             walletName: updated.name,
             excludeFromReport: true,
             categoryId: targetCategory.id,
@@ -460,57 +339,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     return ok(wallet);
   } catch (error) {
-    if (error instanceof Error && error.message === 'WALLET_NOT_FOUND') {
-      return badRequest('Wallet not found');
-    }
-    if (error instanceof Error && error.message === 'WALLET_KIND_IMMUTABLE') {
-      return badRequest('Wallet type cannot be changed once created');
-    }
-    if (error instanceof Error && error.message === 'GOAL_AMOUNT_INVALID') {
-      return badRequest('Savings Goal must be greater than 0');
-    }
-    if (error instanceof Error && error.message === 'GOAL_DUE_MONTH_INVALID') {
-      return badRequest('Due Month must be in YYYY-MM format');
-    }
-    if (error instanceof Error && error.message === 'GOAL_FIELDS_NOT_ALLOWED') {
-      return badRequest('Goal fields are only allowed for Goal Wallet');
-    }
-    if (
-      error instanceof Error &&
-      error.message === 'GOAL_START_MONTH_IMMUTABLE'
-    ) {
-      return badRequest('Goal start month cannot be changed');
-    }
-    if (error instanceof Error && error.message === 'CREDIT_LIMIT_INVALID') {
-      return badRequest('Credit limit must be greater than 0');
-    }
-    if (error instanceof Error && error.message === 'STATEMENT_DAY_INVALID') {
-      return badRequest('Statement day must be between 1 and 31');
-    }
-    if (error instanceof Error && error.message === 'DUE_DAY_INVALID') {
-      return badRequest('Due day must be between 1 and 31');
-    }
-    if (error instanceof Error && error.message === 'CREDIT_LIMIT_EXCEEDED') {
-      return badRequest('Outstanding balance cannot exceed credit limit');
-    }
-    if (
-      error instanceof Error &&
-      error.message === 'CREDIT_CARD_FIELDS_NOT_ALLOWED'
-    ) {
-      return badRequest(
-        'Credit card fields are only allowed for Credit Card Wallet',
-      );
-    }
-    if (
-      error instanceof Error &&
-      error.message === 'TRANSFER_CATEGORY_NOT_FOUND'
-    ) {
-      return badRequest('Transfer category not found');
-    }
-    return badRequest('Failed to update wallet');
+    return handleApiError(error);
   }
 }
 
+// ---------------------------------------------------------------------------
+// DELETE – Delete wallet
+// ---------------------------------------------------------------------------
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   const auth = requireAuth(req);
   if (auth.error) return auth.error;
@@ -538,18 +373,14 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
     const deletedCashLogCount = await prisma.$transaction(async (tx) => {
       const deletedLogs = await tx.cashLog.deleteMany({
-        where: {
-          userId: auth.user.sub,
-          walletId: owned.id,
-        },
+        where: { userId: auth.user.sub, walletId: owned.id },
       });
-
       await tx.wallet.delete({ where: { id } });
       return deletedLogs.count;
     });
 
     return ok({ success: true, deletedCashLogCount });
-  } catch {
-    return badRequest('Failed to delete wallet');
+  } catch (error) {
+    return handleApiError(error);
   }
 }

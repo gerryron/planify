@@ -1,3 +1,4 @@
+import { apiClient } from '@/core/http/apiClient';
 import { WalletsInput } from '@/features/wallets/types/wallets';
 
 export type Wallets = WalletsInput & { id: number };
@@ -28,71 +29,31 @@ export type WalletTransferResponse = {
   };
 };
 
-const API_URL = '/api/wallets';
-
-async function buildApiError(res: Response, fallback: string): Promise<Error> {
-  try {
-    const data = (await res.json()) as { error?: string };
-    if (data?.error) return new Error(data.error);
-  } catch {
-    // Ignore JSON parse failure and use fallback message.
-  }
-  return new Error(fallback);
-}
-
 export const walletsService = {
   async getAll(): Promise<Wallets[]> {
-    const res = await fetch(API_URL, { method: 'GET' });
-    if (!res.ok) throw new Error('Failed to fetch wallets');
-    return res.json();
+    return apiClient.get('/api/wallets');
   },
+
   async create(data: WalletsInput): Promise<Wallets> {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) throw await buildApiError(res, 'Failed to create wallet');
-    return res.json();
+    return apiClient.post('/api/wallets', data);
   },
+
   async update(id: number, data: Partial<WalletsInput>): Promise<Wallets> {
-    const res = await fetch(API_URL, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, ...data }),
-    });
-    if (!res.ok) throw await buildApiError(res, 'Failed to update wallet');
-    return res.json();
+    return apiClient.patch('/api/wallets', { id, ...data });
   },
+
   async reorder(orderedIds: number[]): Promise<{ success: boolean }> {
-    const res = await fetch(API_URL, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderedIds }),
-    });
-    if (!res.ok) throw await buildApiError(res, 'Failed to reorder wallets');
-    return res.json();
+    return apiClient.patch('/api/wallets', { orderedIds });
   },
+
   async remove(id: number): Promise<{
     success: boolean;
     deletedCashLogCount?: number;
   }> {
-    const res = await fetch(API_URL, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-    if (!res.ok) throw await buildApiError(res, 'Failed to delete wallet');
-    return res.json();
+    return apiClient.delete('/api/wallets', { id });
   },
+
   async transfer(data: WalletTransferInput): Promise<WalletTransferResponse> {
-    const res = await fetch(`${API_URL}/transfer`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok)
-      throw await buildApiError(res, 'Failed to transfer wallet balance');
-    return res.json();
+    return apiClient.post('/api/wallets/transfer', data);
   },
 };

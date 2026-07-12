@@ -1,3 +1,5 @@
+import { apiClient } from '@/core/http/apiClient';
+
 export type DeleteScope = 'none' | 'months' | 'all';
 
 export type PurgePayload = {
@@ -24,23 +26,8 @@ export type PurgeResponse = {
   };
 };
 
-const API_URL = '/api/settings/purge';
-
 export const settingsService = {
   async purgeData(payload: PurgePayload): Promise<PurgeResponse> {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      const body = (await res.json().catch(() => null)) as {
-        error?: string;
-      } | null;
-      throw new Error(body?.error || 'Failed to purge data');
-    }
-
-    return res.json();
+    return apiClient.post('/api/settings/purge', payload);
   },
 };
