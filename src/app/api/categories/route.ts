@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/core/db/prisma';
-import { badRequest, ok, serverError } from '@/core/http/apiResponse';
+import { ok } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
 import { CategoryType } from '@/features/categories/types/category';
+import {
+  ValidationError,
+  NotFoundError,
+  ForbiddenError,
+  handleApiError,
+} from '@/core/http/apiErrors';
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const auth = requireAuth(req);
@@ -18,9 +24,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     return ok(categories);
   } catch (error) {
-    console.error('GET /api/categories error:', error);
-    const message = error instanceof Error ? error.message : undefined;
-    return serverError(message);
+    return handleApiError(error);
   }
 }
 
@@ -29,7 +33,7 @@ async function validateParent(
   type: CategoryType,
   userId: number,
   currentCategoryId?: number,
-): Promise<{ valid: true } | { valid: false; message: string }> {
+): Promise<void> {
   const parent = await prisma.category.findFirst({
     where: {
       id: parentId,
@@ -39,28 +43,20 @@ async function validateParent(
   });
 
   if (!parent) {
-    return { valid: false, message: 'Parent category not found' };
+    throw new NotFoundError('CATEGORY_NOT_FOUND', 'Parent category');
   }
 
   if (parent.type !== type) {
-    return {
-      valid: false,
-      message: 'Parent category type must match category type',
-    };
+    throw new ValidationError('CATEGORY_VALIDATION', 'Parent category type must match category type');
   }
 
   if (parent.parentId !== null) {
-    return {
-      valid: false,
-      message: 'Subcategory cannot have subcategory (max 1 level)',
-    };
+    throw new ValidationError('CATEGORY_VALIDATION', 'Subcategory cannot have subcategory (max 1 level)');
   }
 
   if (currentCategoryId && parent.id === currentCategoryId) {
-    return { valid: false, message: 'Category cannot be its own parent' };
+    throw new ValidationError('CATEGORY_VALIDATION', 'Category cannot be its own parent');
   }
-
-  return { valid: true };
 }
 
 function toId(value: unknown): number | null {
@@ -89,25 +85,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await req.json();
 
     if (!name?.trim() || !type) {
-      return badRequest('Name and type are required');
+      throw new ValidationError('CATEGORY_VALIDATION', 'Name and type are required');
     }
 
     if (type !== 'income' && type !== 'outcome') {
-      return badRequest('Type must be income or outcome');
+      throw new ValidationError('CATEGORY_VALIDATION', 'Type must be income or outcome');
     }
 
     const cleanParentId =
       parentId === null || parentId === undefined ? null : toId(parentId);
     if (parentId !== null && parentId !== undefined && !cleanParentId) {
-      return badRequest('Parent category not found');
+      throw new NotFoundError('CATEGORY_NOT_FOUND', 'Parent category');
     }
     if (cleanParentId) {
-      const validation = await validateParent(
-        cleanParentId,
-        type,
-        auth.user.sub,
-      );
-      if (!validation.valid) return badRequest(validation.message);
+      await validateParent(cleanParentId, type, auth.user.sub);
     }
 
     const category = await prisma.category.create({
@@ -121,8 +112,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     return ok(category, 201);
-  } catch {
-    return badRequest('Failed to create category');
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -146,7 +137,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const numericId = toId(id);
 
     if (!numericId) {
-      return badRequest('ID is required');
+      throw new ValidationError('CATEGORY_VALIDATION', 'ID is required');
     }
 
     const existing = await prisma.category.findFirst({
@@ -155,11 +146,11 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     });
 
     if (!existing) {
-      return badRequest('Category not found');
+      throw new NotFoundError('CATEGORY_NOT_FOUND', 'Category');
     }
 
     if (existing.systemDefault) {
-      return badRequest('Default category cannot be modified');
+      throw new ForbiddenError('Default category cannot be modified');
     }
 
     const nextType = type ?? existing.type;
@@ -168,14 +159,12 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         where: { parentId: numericId, userId: auth.user.sub },
       });
       if (childCount > 0) {
-        return badRequest(
-          'Parent category with subcategories cannot change type',
-        );
+        throw new ValidationError('CATEGORY_VALIDATION', 'Parent category with subcategories cannot change type');
       }
     }
 
     if (nextType !== 'income' && nextType !== 'outcome') {
-      return badRequest('Type must be income or outcome');
+      throw new ValidationError('CATEGORY_VALIDATION', 'Type must be income or outcome');
     }
 
     const nextParentId =
@@ -186,17 +175,11 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
           : toId(parentId);
 
     if (parentId !== undefined && parentId !== null && !nextParentId) {
-      return badRequest('Parent category not found');
+      throw new NotFoundError('CATEGORY_NOT_FOUND', 'Parent category');
     }
 
     if (nextParentId) {
-      const validation = await validateParent(
-        nextParentId,
-        nextType,
-        auth.user.sub,
-        numericId,
-      );
-      if (!validation.valid) return badRequest(validation.message);
+      await validateParent(nextParentId, nextType, auth.user.sub, numericId);
     }
 
     const updateData: {
@@ -215,8 +198,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     });
 
     return ok(category);
-  } catch {
-    return badRequest('Failed to update category');
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -229,7 +212,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     const id = toId(raw.id);
 
     if (!id) {
-      return badRequest('ID is required');
+      throw new ValidationError('CATEGORY_VALIDATION', 'ID is required');
     }
 
     const category = await prisma.category.findFirst({
@@ -238,11 +221,11 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     });
 
     if (!category) {
-      return badRequest('Category not found');
+      throw new NotFoundError('CATEGORY_NOT_FOUND', 'Category');
     }
 
     if (category.systemDefault) {
-      return badRequest('Default category cannot be deleted');
+      throw new ForbiddenError('Default category cannot be deleted');
     }
 
     const childCount = await prisma.category.count({
@@ -250,15 +233,13 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     });
 
     if (childCount > 0) {
-      return badRequest(
-        'Cannot delete parent category that still has subcategories',
-      );
+      throw new ValidationError('CATEGORY_VALIDATION', 'Cannot delete parent category that still has subcategories');
     }
 
     await prisma.category.delete({ where: { id } });
 
     return ok({ success: true });
-  } catch {
-    return badRequest('Failed to delete category');
+  } catch (error) {
+    return handleApiError(error);
   }
 }

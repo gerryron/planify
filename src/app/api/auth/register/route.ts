@@ -1,7 +1,12 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/core/db/prisma';
-import { badRequest, ok, serverError } from '@/core/http/apiResponse';
+import { ok } from '@/core/http/apiResponse';
 import { hashPassword } from '@/core/auth/password';
+import {
+  ValidationError,
+  AuthError,
+  handleApiError,
+} from '@/core/http/apiErrors';
 
 type RegisterPayload = {
   name?: string;
@@ -21,20 +26,20 @@ export async function POST(req: NextRequest) {
     const password = payload.password ?? '';
 
     if (!name || !email || !password) {
-      return badRequest('name, email, and password are required');
+      throw new ValidationError('AUTH_INVALID_CREDENTIALS', 'Name, email, and password are required');
     }
 
     if (!isValidEmail(email)) {
-      return badRequest('email format is invalid');
+      throw new ValidationError('AUTH_INVALID_CREDENTIALS', 'Email format is invalid');
     }
 
     if (password.length < 8) {
-      return badRequest('password must be at least 8 characters');
+      throw new ValidationError('AUTH_INVALID_CREDENTIALS', 'Password must be at least 8 characters');
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return badRequest('Email is already registered');
+      throw new AuthError('AUTH_EMAIL_EXISTS', 'Email is already registered');
     }
 
     const passwordHash = await hashPassword(password);
@@ -71,7 +76,6 @@ export async function POST(req: NextRequest) {
       201,
     );
   } catch (error) {
-    console.error('POST /api/auth/register error:', error);
-    return serverError('Failed to register user');
+    return handleApiError(error);
   }
 }

@@ -1,8 +1,13 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/core/db/prisma';
-import { badRequest, ok, unauthorized } from '@/core/http/apiResponse';
+import { ok } from '@/core/http/apiResponse';
 import { verifyPassword } from '@/core/auth/password';
 import { setAuthCookie, signAuthToken } from '@/core/auth/session';
+import {
+  ValidationError,
+  AuthError,
+  handleApiError,
+} from '@/core/http/apiErrors';
 
 type LoginPayload = {
   email?: string;
@@ -20,27 +25,25 @@ export async function POST(req: NextRequest) {
     const password = payload.password ?? '';
 
     if (!email || !password) {
-      return badRequest('email and password are required');
+      throw new ValidationError('AUTH_INVALID_CREDENTIALS', 'Email and password are required');
     }
 
     if (!isValidEmail(email)) {
-      return badRequest('email format is invalid');
+      throw new ValidationError('AUTH_INVALID_CREDENTIALS', 'Email format is invalid');
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return unauthorized('Invalid email or password');
+      throw new AuthError('AUTH_INVALID_CREDENTIALS', 'Invalid email or password');
     }
 
     const isValid = await verifyPassword(password, user.passwordHash);
     if (!isValid) {
-      return unauthorized('Invalid email or password');
+      throw new AuthError('AUTH_INVALID_CREDENTIALS', 'Invalid email or password');
     }
 
     if (user.status !== 'active') {
-      return unauthorized(
-        'Your account is pending superadmin approval. Please try again later.',
-      );
+      throw new AuthError('AUTH_NOT_APPROVED', 'Your account is pending superadmin approval. Please try again later.');
     }
 
     const token = signAuthToken({
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     setAuthCookie(req, response, token);
     return response;
-  } catch {
-    return unauthorized('Failed to login');
+  } catch (error) {
+    return handleApiError(error);
   }
 }

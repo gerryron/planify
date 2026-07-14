@@ -4,8 +4,13 @@ import {
   BudgetResponse,
 } from '@/features/monthly-budget/types/budget';
 import { prisma } from '@/core/db/prisma';
-import { ok, badRequest, serverError } from '@/core/http/apiResponse';
+import { ok } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
+import {
+  ValidationError,
+  NotFoundError,
+  handleApiError,
+} from '@/core/http/apiErrors';
 
 type MonthlyBudgetRecord = {
   id: number;
@@ -52,10 +57,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { name, amount, month, category, type }: Partial<BudgetInput> =
       await req.json();
     if (!name || amount === undefined || !month || !category || !type) {
-      return badRequest('All fields are required');
+      throw new ValidationError('BUDGET_VALIDATION', 'All fields are required');
     }
     if (type !== 'income' && type !== 'outcome' && type !== 'carryover') {
-      return badRequest('Type must be income, outcome, or carryover');
+      throw new ValidationError('BUDGET_VALIDATION', 'Type must be income, outcome, or carryover');
     }
 
     const lastBudgetInMonth = await prisma.monthlyBudget.findFirst({
@@ -81,8 +86,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     return ok(toBudgetResponse(budget as MonthlyBudgetRecord), 201);
-  } catch {
-    return badRequest();
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -125,9 +130,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       ),
     );
   } catch (error) {
-    console.error('GET /api/monthly-budget error:', error);
-    const message = error instanceof Error ? error.message : undefined;
-    return serverError(message);
+    return handleApiError(error);
   }
 }
 
@@ -149,7 +152,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
         .filter((item): item is number => item !== null);
 
       if (orderedIds.length === 0) {
-        return badRequest('orderedIds is required');
+        throw new ValidationError('BUDGET_VALIDATION', 'orderedIds is required');
       }
 
       const ownedCount = await prisma.monthlyBudget.count({
@@ -160,7 +163,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       });
 
       if (ownedCount !== orderedIds.length) {
-        return badRequest('Some budgets are not found for current user');
+        throw new NotFoundError('BUDGET_NOT_FOUND', 'Budget');
       }
 
       await prisma.$transaction(
@@ -178,14 +181,14 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     const { id, isDone, ...data } = payload;
     const numericId = toId(id);
 
-    if (!numericId) return badRequest('ID is required');
+    if (!numericId) throw new ValidationError('BUDGET_VALIDATION', 'ID is required');
     if (
       data.type &&
       data.type !== 'income' &&
       data.type !== 'outcome' &&
       data.type !== 'carryover'
     ) {
-      return badRequest('Type must be income, outcome, or carryover');
+      throw new ValidationError('BUDGET_VALIDATION', 'Type must be income, outcome, or carryover');
     }
 
     const owned = await prisma.monthlyBudget.findFirst({
@@ -194,7 +197,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     });
 
     if (!owned) {
-      return badRequest('Budget not found');
+      throw new NotFoundError('BUDGET_NOT_FOUND', 'Budget');
     }
 
     const updateData: Record<string, unknown> = { ...data };
@@ -207,8 +210,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       data: updateData,
     });
     return ok(toBudgetResponse(budget as MonthlyBudgetRecord));
-  } catch {
-    return badRequest('Failed to update budget');
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
@@ -220,7 +223,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
     const raw = (await req.json()) as { id?: number | string };
     const id = toId(raw.id);
-    if (!id) return badRequest('ID is required');
+    if (!id) throw new ValidationError('BUDGET_VALIDATION', 'ID is required');
 
     const owned = await prisma.monthlyBudget.findFirst({
       where: { id, userId: auth.user.sub },
@@ -228,12 +231,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     });
 
     if (!owned) {
-      return badRequest('Budget not found');
+      throw new NotFoundError('BUDGET_NOT_FOUND', 'Budget');
     }
 
     await prisma.monthlyBudget.delete({ where: { id } });
     return ok({ success: true });
-  } catch {
-    return badRequest('Failed to delete budget');
+  } catch (error) {
+    return handleApiError(error);
   }
 }
