@@ -1,6 +1,7 @@
 import './globals.css';
 import { ensureConfiguredSuperadmin } from '@/core/auth/ensureSuperadmin';
 import AppShell from '@/shared/layout/AppShell';
+import QueryProvider from '@/shared/providers/QueryProvider';
 import PWARegister from '@/shared/pwa/PWARegister';
 import { ThemeProvider } from '@/shared/theme/ThemeProvider';
 import type { Metadata, Viewport } from 'next';
@@ -46,7 +47,9 @@ export default async function RootLayout({
       <body>
         <PWARegister />
         <ThemeProvider />
-        <AppShell>{children}</AppShell>
+        <QueryProvider>
+          <AppShell>{children}</AppShell>
+        </QueryProvider>
       </body>
     </html>
   );

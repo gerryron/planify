@@ -1,24 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  cashLogService,
-  type CashLog,
-} from '@/features/cash-log/services/cashLogService';
-import {
-  monthlyBudgetService,
-  type Budget,
-} from '@/features/monthly-budget/services/monthlyBudgetService';
-import {
-  walletsService,
-  type Wallets,
-} from '@/features/wallets/services/walletsService';
-import { categoryService } from '@/features/categories/services/categoryService';
-import type { Category } from '@/features/categories/types/category';
+import { useWallets } from '@/features/wallets/hooks/useWallets';
+import { useCategories } from '@/features/categories/hooks/useCategories';
+import { useCashLogs } from '@/features/cash-log/hooks/useCashLogs';
+import { useMonthlyBudgets } from '@/features/monthly-budget/hooks/useMonthlyBudgets';
+import type { CashLog } from '@/features/cash-log/services/cashLogService';
 import {
   formatCurrency,
-  formatCompact,
-  monthLabel,
   shortMonthLabel,
   toIsoDate,
   getDateWithSafeDay,
@@ -122,13 +111,27 @@ export function useDashboardData() {
   const [summaryChildFromOther, setSummaryChildFromOther] = useState(false);
   const [budgetVsActualPageRaw, setBudgetVsActualPageRaw] = useState(0);
 
-  // ─── Raw data ───
-  const [wallets, setWallets] = useState<Wallets[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [cashLogs, setCashLogs] = useState<CashLog[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [dataError, setDataError] = useState<string | null>(null);
+  // ─── Raw data via React Query ───
+  const walletsQuery = useWallets();
+  const categoriesQuery = useCategories();
+  const cashLogsQuery = useCashLogs();
+  const budgetsQuery = useMonthlyBudgets();
+
+  const wallets = walletsQuery.data ?? [];
+  const budgets = budgetsQuery.data ?? [];
+  const cashLogs = (cashLogsQuery.data ?? []) as CashLog[];
+  const categories = categoriesQuery.data ?? [];
+
+  const loadingData =
+    walletsQuery.isLoading ||
+    categoriesQuery.isLoading ||
+    cashLogsQuery.isLoading ||
+    budgetsQuery.isLoading;
+
+  const dataError =
+    walletsQuery.error || categoriesQuery.error || cashLogsQuery.error || budgetsQuery.error
+      ? 'Failed to load dashboard data'
+      : null;
 
   // ─── Theme detection ───
   useEffect(() => {
@@ -169,44 +172,6 @@ export function useDashboardData() {
     mediaQuery.addEventListener('change', listener);
 
     return () => mediaQuery.removeEventListener('change', listener);
-  }, []);
-
-  // ─── Data fetching ───
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchDashboardData = async () => {
-      setLoadingData(true);
-      setDataError(null);
-
-      try {
-        const [walletsData, budgetsData, logsData, categoriesData] =
-          await Promise.all([
-            walletsService.getAll(),
-            monthlyBudgetService.getAll(),
-            cashLogService.getAll(),
-            categoryService.getAll(),
-          ]);
-
-        if (!isMounted) return;
-        setWallets(walletsData);
-        setBudgets(budgetsData);
-        setCashLogs(logsData);
-        setCategories(categoriesData);
-      } catch {
-        if (!isMounted) return;
-        setDataError('Failed to load dashboard data');
-      } finally {
-        if (!isMounted) return;
-        setLoadingData(false);
-      }
-    };
-
-    fetchDashboardData();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   // ─── Offline snapshot ───
@@ -936,10 +901,9 @@ export function useDashboardData() {
     [showNominal],
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currencyFormatter = useCallback(
-    (value: any) => {
-      if (value === undefined) return '';
+    (value: unknown) => {
+      if (value === undefined || value === null) return '';
       return showNominal ? formatCurrency(Number(value)) : HIDDEN_VALUE;
     },
     [showNominal],

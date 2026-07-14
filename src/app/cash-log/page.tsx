@@ -3,11 +3,14 @@
 import { Suspense, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import CashLogList from '../../features/cash-log/components/CashLogList';
 import CashLogForm from '../../features/cash-log/components/CashLogForm';
 import { CashLog } from '../../features/cash-log/services/cashLogService';
+import { QUERY_KEYS } from '../../lib/queryClient';
 
 function CashLogPageContent() {
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const rawWalletId = searchParams.get('walletId');
   const initialWalletId = rawWalletId ? Number(rawWalletId) : null;
@@ -34,6 +37,8 @@ function CashLogPageContent() {
   const handleSuccess = () => {
     setEditing(null);
     setShowForm(false);
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CASH_LOGS() });
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WALLETS });
     setRefreshKey((key) => key + 1);
   };
 

@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import CategoryList from '@/features/categories/components/CategoryList';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import { Category } from '@/features/categories/types/category';
+import { QUERY_KEYS } from '@/lib/queryClient';
 
 export default function CategoriesPage() {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Category | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
@@ -26,6 +29,7 @@ export default function CategoriesPage() {
   const handleSuccess = () => {
     setEditing(null);
     setShowForm(false);
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CATEGORIES });
     setRefreshKey((key) => key + 1);
   };
 

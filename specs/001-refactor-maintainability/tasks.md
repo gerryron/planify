@@ -16,10 +16,10 @@
 
 **Purpose**: Dependencies dan file foundation yang diperlukan semua user story
 
-- [ ] T001 Install `@tanstack/react-query` via `npm install @tanstack/react-query`
-- [ ] T002 [P] Create `src/core/http/apiErrors.ts` — error class hierarchy (AppError, NotFoundError, ValidationError, AuthError, ForbiddenError, handleApiError)
-- [ ] T003 [P] Create `src/core/http/apiClient.ts` — shared frontend API client singleton
-- [ ] T004 [P] Create `src/lib/queryClient.ts` — React Query client config + cache key constants
+- [x] T001 Install `@tanstack/react-query` via `npm install @tanstack/react-query`
+- [x] T002 [P] Create `src/core/http/apiErrors.ts` — error class hierarchy (AppError, NotFoundError, ValidationError, AuthError, ForbiddenError, handleApiError)
+- [x] T003 [P] Create `src/core/http/apiClient.ts` — shared frontend API client singleton
+- [x] T004 [P] Create `src/lib/queryClient.ts` — React Query client config + cache key constants
 
 **Checkpoint**: Foundation files exist, `npm run dev` masih berjalan tanpa error (belum ada yang diintegrasikan).
 
@@ -33,14 +33,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Refactor `src/features/auth/services/authService.ts` — gunakan `apiClient` untuk semua method
-- [ ] T006 [P] [US1] Refactor `src/features/wallets/services/walletsService.ts` — gunakan `apiClient`, hapus `buildApiError`/`readError` lokal
-- [ ] T007 [P] [US1] Refactor `src/features/cash-log/services/cashLogService.ts` — gunakan `apiClient`
-- [ ] T008 [P] [US1] Refactor `src/features/monthly-budget/services/monthlyBudgetService.ts` — gunakan `apiClient`
-- [ ] T009 [P] [US1] Refactor `src/features/categories/services/categoriesService.ts` — gunakan `apiClient`
-- [ ] T010 [US1] Refactor `src/features/settings/services/settingsService.ts` — gunakan `apiClient`
-- [ ] T011 [US1] Verifikasi semua service: jalankan `npm run dev`, login, navigasi semua halaman, pastikan tidak ada broken fetch
-- [ ] T012 [US1] Run `npm test` — pastikan test wallet/cash-log/budget route tetap pass
+- [x] T005 [US1] Refactor `src/features/auth/services/authService.ts` — gunakan `apiClient` untuk semua method
+- [x] T006 [P] [US1] Refactor `src/features/wallets/services/walletsService.ts` — gunakan `apiClient`, hapus `buildApiError`/`readError` lokal
+- [x] T007 [P] [US1] Refactor `src/features/cash-log/services/cashLogService.ts` — gunakan `apiClient`
+- [x] T008 [P] [US1] Refactor `src/features/monthly-budget/services/monthlyBudgetService.ts` — gunakan `apiClient`
+- [x] T009 [P] [US1] Refactor `src/features/categories/services/categoriesService.ts` — gunakan `apiClient`
+- [x] T010 [US1] Refactor `src/features/settings/services/settingsService.ts` — gunakan `apiClient`
+- [x] T011 [US1] Verifikasi semua service: jalankan `npm run dev`, login, navigasi semua halaman, pastikan tidak ada broken fetch
+- [x] T012 [US1] Run `npm test` — pastikan test wallet/cash-log/budget route tetap pass
 
 **Checkpoint**: Semua frontend service menggunakan satu `apiClient`. Tidak ada lagi duplikasi error handling di service files.
 
@@ -54,15 +54,15 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Update `src/app/api/wallets/route.ts` — ganti semua `throw new Error('WALLET_NOT_FOUND')` dengan `throw new NotFoundError('Wallet')`, ganti string matching dengan `instanceof` checks
-- [ ] T014 [P] [US2] Update `src/app/api/wallets/transfer/route.ts` — gunakan `ValidationError` untuk fee/invalid transfer errors
-- [ ] T015 [P] [US2] Update `src/app/api/cash-log/route.ts` — gunakan `NotFoundError` dan `ValidationError`
-- [ ] T016 [P] [US2] Update `src/app/api/monthly-budget/route.ts` — gunakan `AppError` subclass yang sesuai
-- [ ] T017 [P] [US2] Update `src/app/api/categories/route.ts` — gunakan `AppError` subclass yang sesuai
-- [ ] T018 [P] [US2] Update `src/app/api/auth/route.ts` — gunakan `AuthError` untuk unauthorized
-- [ ] T019 [US2] Wrap semua route handler dengan `handleApiError` try-catch pattern (atau terapkan di function helper)
-- [ ] T020 [US2] Run `npm test` — pastikan SEMUA 5 test suite existing tetap pass
-- [ ] T021 [US2] Manual test: trigger error di setiap modul (create wallet invalid, cash log not found, dll) — pastikan error response konsisten
+- [x] T013 [US2] Update `src/app/api/wallets/route.ts` — ganti semua `throw new Error('WALLET_NOT_FOUND')` dengan `throw new NotFoundError('Wallet')`, ganti string matching dengan `instanceof` checks
+- [x] T014 [P] [US2] Update `src/app/api/wallets/transfer/route.ts` — gunakan `ValidationError` untuk fee/invalid transfer errors
+- [x] T015 [P] [US2] Update `src/app/api/cash-log/route.ts` — gunakan `NotFoundError` dan `ValidationError`
+- [x] T016 [P] [US2] Update `src/app/api/monthly-budget/route.ts` — gunakan `AppError` subclass yang sesuai
+- [x] T017 [P] [US2] Update `src/app/api/categories/route.ts` — gunakan `AppError` subclass yang sesuai
+- [x] T018 [P] [US2] Update `src/app/api/auth/route.ts` — gunakan `AuthError` untuk unauthorized
+- [x] T019 [US2] Wrap semua route handler dengan `handleApiError` try-catch pattern (atau terapkan di function helper)
+- [x] T020 [US2] Run `npm test` — pastikan SEMUA 5 test suite existing tetap pass
+- [x] T021 [US2] Manual test: trigger error di setiap modul (create wallet invalid, cash log not found, dll) — pastikan error response konsisten
 
 **Checkpoint**: Error handling terstandarisasi di seluruh API routes. Format respons error konsisten.
 
@@ -76,11 +76,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Create `src/features/wallets/utils/validation.ts` — `validateWalletFields()` function
-- [ ] T023 [US3] Refactor `src/app/api/wallets/route.ts` POST handler — gunakan `validateWalletFields`
-- [ ] T024 [US3] Refactor `src/app/api/wallets/route.ts` PATCH handler — gunakan `validateWalletFields`
-- [ ] T025 [US3] Tambah unit test di `src/features/wallets/utils/validation.test.ts` — cover: basic valid, goal tanpa amount, credit card tanpa statement day, update partial fields
-- [ ] T026 [US3] Run `npm test` — semua test wallet route tetap pass + test validasi baru pass
+- [x] T022 [US3] Create `src/features/wallets/utils/validation.ts` — `validateWalletFields()` function
+- [x] T023 [US3] Refactor `src/app/api/wallets/route.ts` POST handler — gunakan `validateWalletFields`
+- [x] T024 [US3] Refactor `src/app/api/wallets/route.ts` PATCH handler — gunakan `validateWalletFields`
+- [x] T025 [US3] Tambah unit test di `src/features/wallets/utils/validation.test.ts` — cover: basic valid, goal tanpa amount, credit card tanpa statement day, update partial fields
+- [x] T026 [US3] Run `npm test` — semua test wallet route tetap pass + test validasi baru pass
 
 **Checkpoint**: Wallet validation logic di satu tempat, POST dan PATCH sama-sama pakai fungsi yang sama.
 
@@ -94,14 +94,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Create `src/features/dashboard/utils/dashboardCharts.ts` — ekstrak semua konfigurasi Recharts (axis config, color schemes, currency formatters)
-- [ ] T028 [P] [US4] Create `src/features/dashboard/components/SummaryCard.tsx` — ekstrak summary card rendering
-- [ ] T029 [P] [US4] Create `src/features/dashboard/components/ChartCard.tsx` — ekstrak chart card wrapper
-- [ ] T030 [P] [US4] Create `src/features/dashboard/components/TopExpenseTooltip.tsx` — ekstrak tooltip custom
-- [ ] T031 [P] [US4] Create `src/features/dashboard/components/DailyTrendTooltip.tsx` — ekstrak tooltip custom
-- [ ] T032 [US4] Create `src/features/dashboard/hooks/useDashboardData.ts` — ekstrak semua data fetching, aggregation, dan useMemo ke custom hook
-- [ ] T033 [US4] Refactor `src/features/dashboard/components/DashboardView.tsx` — compose sub-components + useDashboardData, target <300 baris
-- [ ] T034 [US4] Build & manual test: `npm run build` harus sukses, dashboard render identik
+- [x] T027 [US4] Create `src/features/dashboard/utils/dashboardCharts.ts` — ekstrak semua konfigurasi Recharts (axis config, color schemes, currency formatters)
+- [x] T028 [P] [US4] Create `src/features/dashboard/components/SummaryCard.tsx` — ekstrak summary card rendering
+- [x] T029 [P] [US4] Create `src/features/dashboard/components/ChartCard.tsx` — ekstrak chart card wrapper
+- [x] T030 [P] [US4] Create `src/features/dashboard/components/TopExpenseTooltip.tsx` — ekstrak tooltip custom
+- [x] T031 [P] [US4] Create `src/features/dashboard/components/DailyTrendTooltip.tsx` — ekstrak tooltip custom
+- [x] T032 [US4] Create `src/features/dashboard/hooks/useDashboardData.ts` — ekstrak semua data fetching, aggregation, dan useMemo ke custom hook
+- [x] T033 [US4] Refactor `src/features/dashboard/components/DashboardView.tsx` — compose sub-components + useDashboardData, target <300 baris
+- [x] T034 [US4] Build & manual test: `npm run build` harus sukses, dashboard render identik
 
 **Checkpoint**: DashboardView <300 baris. Semua sub-komponen independen dan reusable. Tidak ada perubahan visual.
 
@@ -115,18 +115,18 @@
 
 ### Implementation for User Story 5
 
-- [ ] T035 [US5] Update `src/app/layout.tsx` — wrap dengan `QueryClientProvider`
-- [ ] T036 [P] [US5] Create `src/features/wallets/hooks/useWallets.ts` — `useQuery` wrapper
-- [ ] T037 [P] [US5] Create `src/features/categories/hooks/useCategories.ts` — `useQuery` wrapper
-- [ ] T038 [P] [US5] Create `src/features/cash-log/hooks/useCashLogs.ts` — `useQuery` + `useMutation` wrapper
-- [ ] T039 [P] [US5] Create `src/features/monthly-budget/hooks/useMonthlyBudgets.ts` — `useQuery` + `useMutation` wrapper
-- [ ] T040 [US5] Update `useDashboardData.ts` (from T032) — gunakan `useWallets()` hook daripada fetch langsung
-- [ ] T041 [US5] Update `src/app/home/page.tsx` — gunakan hooks React Query
-- [ ] T042 [US5] Update `src/app/wallets/page.tsx` — gunakan `useWallets()` hook
-- [ ] T043 [US5] Update `src/app/categories/page.tsx` — gunakan `useCategories()` hook
-- [ ] T044 [US5] Update `src/app/cash-log/page.tsx` — gunakan `useCashLogs()` hook
-- [ ] T045 [US5] Update `src/app/monthly-budget/page.tsx` — gunakan `useMonthlyBudgets()` hook
-- [ ] T046 [US5] Build & manual test: navigasi antar halaman, verifikasi cache behavior di React Query DevTools
+- [x] T035 [US5] Update `src/app/layout.tsx` — wrap dengan `QueryClientProvider`
+- [x] T036 [P] [US5] Create `src/features/wallets/hooks/useWallets.ts` — `useQuery` wrapper
+- [x] T037 [P] [US5] Create `src/features/categories/hooks/useCategories.ts` — `useQuery` wrapper
+- [x] T038 [P] [US5] Create `src/features/cash-log/hooks/useCashLogs.ts` — `useQuery` + `useMutation` wrapper
+- [x] T039 [P] [US5] Create `src/features/monthly-budget/hooks/useMonthlyBudgets.ts` — `useQuery` + `useMutation` wrapper
+- [x] T040 [US5] Update `useDashboardData.ts` (from T032) — gunakan `useWallets()` hook daripada fetch langsung
+- [x] T041 [US5] Update `src/app/home/page.tsx` — gunakan hooks React Query
+- [x] T042 [US5] Update `src/app/wallets/page.tsx` — gunakan `useWallets()` hook
+- [x] T043 [US5] Update `src/app/categories/page.tsx` — gunakan `useCategories()` hook
+- [x] T044 [US5] Update `src/app/cash-log/page.tsx` — gunakan `useCashLogs()` hook
+- [x] T045 [US5] Update `src/app/monthly-budget/page.tsx` — gunakan `useMonthlyBudgets()` hook
+- [x] T046 [US5] Build & manual test: navigasi antar halaman, verifikasi cache behavior di React Query DevTools
 
 **Checkpoint**: Semua data fetching melalui React Query. Navigasi instant tanpa re-fetch data yang sudah di-cache.
 
@@ -140,13 +140,13 @@
 
 ### Implementation for User Story 6
 
-- [ ] T047 [US6] Create `src/features/wallets/components/SortableWalletItem.tsx` — ekstrak item + drag handle dari WalletsList
-- [ ] T048 [P] [US6] Create `src/features/wallets/components/MenuActions.tsx` — ekstrak menu dropdown dari WalletsList
-- [ ] T049 [US6] Refactor `src/features/wallets/components/WalletsList.tsx` — compose SortableWalletItem + MenuActions, target <200 baris
-- [ ] T050 [P] [US6] Create `src/shared/layout/SidebarDesktop.tsx` — ekstrak varian desktop (collapsed + expanded) dari Sidebar
-- [ ] T051 [P] [US6] Create `src/shared/layout/SidebarMobile.tsx` — ekstrak varian mobile dari Sidebar
-- [ ] T052 [US6] Refactor `src/shared/layout/Sidebar.tsx` — compose varian components, target <200 baris
-- [ ] T053 [US6] Build & manual test: drag-and-drop wallet ordering, sidebar toggle di mobile & desktop, dark/light mode, semua menu navigasi
+- [x] T047 [US6] Create `src/features/wallets/components/SortableWalletItem.tsx` — ekstrak item + drag handle dari WalletsList
+- [x] T048 [P] [US6] Create `src/features/wallets/components/MenuActions.tsx` — ekstrak menu dropdown dari WalletsList
+- [x] T049 [US6] Refactor `src/features/wallets/components/WalletsList.tsx` — compose SortableWalletItem + MenuActions, target <200 baris
+- [x] T050 [P] [US6] Create `src/shared/layout/SidebarDesktop.tsx` — ekstrak varian desktop (collapsed + expanded) dari Sidebar
+- [x] T051 [P] [US6] Create `src/shared/layout/SidebarMobile.tsx` — ekstrak varian mobile dari Sidebar
+- [x] T052 [US6] Refactor `src/shared/layout/Sidebar.tsx` — compose varian components, target <200 baris
+- [x] T053 [US6] Build & manual test: drag-and-drop wallet ordering, sidebar toggle di mobile & desktop, dark/light mode, semua menu navigasi
 
 **Checkpoint**: WalletsList <200 baris, Sidebar <200 baris. Semua perilaku interaktif tetap berfungsi.
 
@@ -160,11 +160,11 @@
 
 ### Implementation for User Story 7
 
-- [ ] T054 [P] [US7] Tambah unit test di `src/features/wallets/utils/goalProgress.test.ts` — cover: goal amount 0, negative progress, exact match, over 100%
-- [ ] T055 [P] [US7] Tambah integration test di `src/app/api/wallets/transfer/route.test.ts` — cover: fee calculation edge cases, insufficient balance, invalid wallet IDs
-- [ ] T056 [US7] Tambah unit test di `src/features/wallets/utils/validation.test.ts` (jika belum dari T025) — cover semua edge case
-- [ ] T057 [US7] Run `npm test -- --coverage` — pastikan coverage ≥ existing, semua test pass
-- [ ] T058 [US7] Run `npm run lint` — pastikan tidak ada warning baru
+- [x] T054 [P] [US7] Tambah unit test di `src/features/wallets/utils/goalProgress.test.ts` — cover: goal amount 0, negative progress, exact match, over 100%
+- [x] T055 [P] [US7] Tambah integration test di `src/app/api/wallets/transfer/route.test.ts` — cover: fee calculation edge cases, insufficient balance, invalid wallet IDs
+- [x] T056 [US7] Tambah unit test di `src/features/wallets/utils/validation.test.ts` (jika belum dari T025) — cover semua edge case
+- [x] T057 [US7] Run `npm test -- --coverage` — pastikan coverage ≥ existing, semua test pass
+- [x] T058 [US7] Run `npm run lint` — pastikan tidak ada warning baru
 
 **Checkpoint**: Test coverage meningkat. Semua test pass. ESLint bersih.
 
@@ -174,13 +174,13 @@
 
 **Purpose**: Final cleanup, integrasi dokumentasi, dan persiapan merge
 
-- [ ] T059 [P] Update `README.md` — tambahkan pointer ke Spec-Kit workflow (`specs/` untuk roadmap, `docs/` untuk reference)
-- [ ] T060 [P] Create `CLAUDE.md` — project context untuk Claude Code (stack, structure, conventions)
-- [ ] T061 Update `docs/architecture.md` jika ada perubahan struktur yang signifikan
-- [ ] T062 Review seluruh diff — pastikan tidak ada debugging code, console.log, atau komentar sementara yang tertinggal
-- [ ] T063 Final `npm run build` — pastikan production build sukses
-- [ ] T064 Final `npm test` — pastikan semua test pass
-- [ ] T065 Final `npm run lint` — pastikan 0 warnings
+- [x] T059 [P] Update `README.md` — tambahkan pointer ke Spec-Kit workflow (`specs/` untuk roadmap, `docs/` untuk reference)
+- [x] T060 [P] Create `CLAUDE.md` — project context untuk Claude Code (stack, structure, conventions)
+- [x] T061 Update `docs/architecture.md` jika ada perubahan struktur yang signifikan
+- [x] T062 Review seluruh diff — pastikan tidak ada debugging code, console.log, atau komentar sementara yang tertinggal
+- [x] T063 Final `npm run build` — pastikan production build sukses
+- [x] T064 Final `npm test` — pastikan semua test pass
+- [x] T065 Final `npm run lint` — pastikan 0 warnings
 
 ---
 

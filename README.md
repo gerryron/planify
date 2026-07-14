@@ -40,7 +40,7 @@ Planify menggunakan **Spec-Driven Development** dengan [GitHub Spec-Kit](https:/
 Spesifikasi fitur, rencana implementasi, dan task tracking. Lihat [specs/](specs/) untuk daftar fitur yang sedang atau akan dikerjakan.
 
 Saat ini aktif:
-- [001-refactor-maintainability](specs/001-refactor-maintainability/) — Refaktor struktural untuk meningkatkan maintainability
+- [001-refactor-maintainability](specs/001-refactor-maintainability/) — Refaktor struktural untuk meningkatkan maintainability ✅ **Completed 2026-07-15**
 
 ### 📚 Technical Reference → `docs/`
 

@@ -2,14 +2,17 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import WalletsList from '@/features/wallets/components/WalletsList';
 import WalletsForm from '@/features/wallets/components/WalletsForm';
 import WalletTransferForm from '@/features/wallets/components/WalletTransferForm';
 import GoalTrackingModal from '@/features/wallets/components/GoalTrackingModal';
 import { Wallets } from '@/features/wallets/services/walletsService';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
+import { QUERY_KEYS } from '@/lib/queryClient';
 
 export default function WalletsPage() {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Wallets | null>(null);
   const [transferring, setTransferring] = useState<Wallets | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -43,6 +46,7 @@ export default function WalletsPage() {
     setTrackingGoal(null);
     setShowForm(false);
     setShowTransferForm(false);
+    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WALLETS });
     setRefreshKey((key) => key + 1);
   };
 

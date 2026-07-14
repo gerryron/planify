@@ -1,11 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import MonthlyBudgetList from '@/features/monthly-budget/components/MonthlyBudgetList';
 import MonthlyBudgetForm from '@/features/monthly-budget/components/MonthlyBudgetForm';
 import { Budget } from '@/features/monthly-budget/services/monthlyBudgetService';
 
 export default function MonthlyBudgetPage() {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Budget | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
@@ -22,6 +24,7 @@ export default function MonthlyBudgetPage() {
   const handleSuccess = () => {
     setEditing(null);
     setShowForm(false);
+    queryClient.invalidateQueries({ queryKey: ['monthly-budgets'] });
     setRefreshKey((k) => k + 1);
   };
   const handleCancel = () => {

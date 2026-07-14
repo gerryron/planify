@@ -37,9 +37,22 @@ Planify menggunakan Next.js App Router dengan pembagian tanggung jawab yang jela
 Setiap feature memiliki struktur standar:
 
 - `components`: UI komponen
-- `services`: API/logic helper
+- `hooks`: custom React hooks (data fetching, state management)
+- `services`: API client functions
 - `types`: tipe data domain
 - `utils` (opsional): helper logic spesifik fitur
+
+### HTTP & Error Handling
+
+- `src/core/http/apiClient.ts` — shared frontend API client singleton (get, post, patch, delete)
+- `src/core/http/apiErrors.ts` — error class hierarchy (AppError, ValidationError, NotFoundError, AuthError, ForbiddenError) + `handleApiError()` mapper
+- `src/core/http/apiResponse.ts` — response helpers (ok, badRequest, notFound, unauthorized, serverError)
+
+### Data Caching
+
+- `src/lib/queryClient.ts` — React Query client config + cache key constants
+- `QueryClientProvider` di root layout via `src/shared/providers/QueryProvider.tsx`
+- Custom hooks (`useWallets`, `useCategories`, `useCashLogs`, `useMonthlyBudgets`) menyediakan query + mutation
 
 ## Alur Request (Ringkas)
 
@@ -47,7 +60,8 @@ Setiap feature memiliki struktur standar:
 2. Middleware memutuskan boleh lanjut, ditolak, atau redirect.
 3. Route handler memanggil `requireAuth` (untuk endpoint privat).
 4. Route menjalankan query/mutasi Prisma.
-5. Response distandarkan oleh helper di `src/core/http/apiResponse.ts`.
+5. Error handling via `handleApiError()` — semua error terstandarisasi sebagai `AppError` subclass.
+6. Response distandarkan oleh helper di `src/core/http/apiResponse.ts`.
 
 ## Pola Konsistensi Data
 
