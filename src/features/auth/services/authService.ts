@@ -39,6 +39,6 @@ export const authService = {
   },
 
   async logout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await apiClient.post('/api/auth/logout');
   },
 };

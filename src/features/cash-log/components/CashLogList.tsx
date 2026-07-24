@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Swal from 'sweetalert2';
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
+import { toast } from 'sonner';
+import {
+  Lock,
+  LockOpen,
+  EllipsisVertical,
+  Pencil,
+  Trash2,
+  RefreshCw,
+} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   cashLogService,
   CashLog,
@@ -93,7 +96,7 @@ function MenuActions({
         type='button'
         onClick={handleToggleMenu}
       >
-        <MoreVertIcon fontSize='small' />
+        <EllipsisVertical size={16} />
       </button>
       {open && (
         <div
@@ -110,7 +113,7 @@ function MenuActions({
             }}
             type='button'
           >
-            <EditIcon fontSize='small' />
+            <Pencil size={16} />
             Edit
           </button>
           <button
@@ -121,7 +124,7 @@ function MenuActions({
             }}
             type='button'
           >
-            <DeleteIcon fontSize='small' />
+            <Trash2 size={16} />
             Delete
           </button>
         </div>
@@ -270,33 +273,15 @@ export default function CashLogList({
   }, [wallets]);
 
   const handleDelete = async (id: number) => {
-    const result = await Swal.fire({
-      title: 'Delete this entry?',
-      text: 'This action cannot be undone.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Delete',
-      cancelButtonText: 'Cancel',
-      confirmButtonColor: '#dc2626',
-    });
-
-    if (!result.isConfirmed) return;
+    if (!window.confirm('Delete this entry?\nThis action cannot be undone.')) return;
 
     try {
       await cashLogService.remove(id);
-      await Swal.fire({
-        icon: 'success',
-        title: 'Deleted!',
-        timer: 1000,
-        showConfirmButton: false,
-      });
+      toast.success('Deleted!');
       await fetchWallets();
       fetchLogs(selectedMonth);
     } catch {
-      await Swal.fire({
-        icon: 'error',
-        title: 'Failed to delete entry',
-      });
+      toast.error('Failed to delete entry');
     }
   };
 
@@ -364,9 +349,9 @@ export default function CashLogList({
                 }}
               >
                 {showNominal ? (
-                  <LockIcon fontSize='small' />
+                  <Lock size={16} />
                 ) : (
-                  <LockOpenIcon fontSize='small' />
+                  <LockOpen size={16} />
                 )}
               </button>
             </div>
@@ -464,93 +449,95 @@ export default function CashLogList({
         </div>
       </div>
 
-      <div className='bg-white dark:bg-slate-800 rounded-lg border border-emerald-200 dark:border-slate-700 shadow p-6'>
-        {loading ? (
-          <div className='min-h-56 flex items-center justify-center'>
-            <AutorenewIcon
-              className='animate-spin text-emerald-600 dark:text-emerald-400'
-              fontSize='large'
-            />
-          </div>
-        ) : sortedLogs.length === 0 ? (
-          <div>No cash log entries found.</div>
-        ) : (
-          <div className='space-y-4'>
-            {Object.entries(groupedLogs).map(([date, dateLogs]) => (
-              <div key={date}>
-                <div className='flex items-center gap-3 mb-3'>
-                  <div className='h-0.5 flex-1 bg-emerald-200 dark:bg-emerald-800' />
-                  <div className='text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 whitespace-nowrap text-right'>
-                    {dateGroupLabel(date)}
+      <Card>
+        <CardContent>
+          {loading ? (
+            <div className='min-h-56 flex items-center justify-center'>
+              <RefreshCw
+                className='animate-spin text-emerald-600 dark:text-emerald-400'
+                size={24}
+              />
+            </div>
+          ) : sortedLogs.length === 0 ? (
+            <div>No cash log entries found.</div>
+          ) : (
+            <div className='space-y-4'>
+              {Object.entries(groupedLogs).map(([date, dateLogs]) => (
+                <div key={date}>
+                  <div className='flex items-center gap-3 mb-3'>
+                    <div className='h-0.5 flex-1 bg-emerald-200 dark:bg-emerald-800' />
+                    <div className='text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 whitespace-nowrap text-right'>
+                      {dateGroupLabel(date)}
+                    </div>
+                  </div>
+                  <div>
+                    {dateLogs.map((log, index) => (
+                      <div
+                        key={log.id}
+                        className={`flex items-center justify-between ${
+                          index < dateLogs.length - 1
+                            ? 'border-b border-slate-200 dark:border-slate-700/80 pb-3 mb-3'
+                            : 'pb-0 mb-0'
+                        }`}
+                      >
+                        <div>
+                          <div className='font-bold'>{log.description}</div>
+                          {selectedWalletId === 'all' && (
+                            <div className='text-sm text-gray-500'>
+                              {log.walletName}
+                            </div>
+                          )}
+                          <div
+                            className={`text-xs font-medium ${
+                              log.category?.type === 'income'
+                                ? 'text-green-700 dark:text-green-300'
+                                : log.category?.type === 'outcome'
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : 'text-gray-500 dark:text-gray-400'
+                            }`}
+                          >
+                            {log.category?.name ?? 'Uncategorized'}
+                          </div>
+                          <div
+                            className={`font-mono ${
+                              showNominal
+                                ? log.category?.type === 'outcome'
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : log.category?.type === 'income'
+                                    ? 'text-green-700 dark:text-green-300'
+                                    : log.amount < 0
+                                      ? 'text-red-600 dark:text-red-400'
+                                      : 'text-green-700 dark:text-green-300'
+                                : 'text-gray-500 dark:text-gray-400'
+                            }`}
+                          >
+                            Rp{' '}
+                            {showNominal
+                              ? Math.abs(log.amount).toLocaleString('id-ID')
+                              : '••••••••'}
+                          </div>
+                        </div>
+
+                        <div className='flex items-start gap-2 self-start'>
+                          {log.excludeFromReport && (
+                            <span className='text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'>
+                              Excluded
+                            </span>
+                          )}
+                          <MenuActions
+                            onEdit={() => onEdit(log)}
+                            onDelete={() => handleDelete(log.id)}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div>
-                  {dateLogs.map((log, index) => (
-                    <div
-                      key={log.id}
-                      className={`flex items-center justify-between ${
-                        index < dateLogs.length - 1
-                          ? 'border-b border-slate-200 dark:border-slate-700/80 pb-3 mb-3'
-                          : 'pb-0 mb-0'
-                      }`}
-                    >
-                      <div>
-                        <div className='font-bold'>{log.description}</div>
-                        {selectedWalletId === 'all' && (
-                          <div className='text-sm text-gray-500'>
-                            {log.walletName}
-                          </div>
-                        )}
-                        <div
-                          className={`text-xs font-medium ${
-                            log.category?.type === 'income'
-                              ? 'text-green-700 dark:text-green-300'
-                              : log.category?.type === 'outcome'
-                                ? 'text-red-600 dark:text-red-400'
-                                : 'text-gray-500 dark:text-gray-400'
-                          }`}
-                        >
-                          {log.category?.name ?? 'Uncategorized'}
-                        </div>
-                        <div
-                          className={`font-mono ${
-                            showNominal
-                              ? log.category?.type === 'outcome'
-                                ? 'text-red-600 dark:text-red-400'
-                                : log.category?.type === 'income'
-                                  ? 'text-green-700 dark:text-green-300'
-                                  : log.amount < 0
-                                    ? 'text-red-600 dark:text-red-400'
-                                    : 'text-green-700 dark:text-green-300'
-                              : 'text-gray-500 dark:text-gray-400'
-                          }`}
-                        >
-                          Rp{' '}
-                          {showNominal
-                            ? Math.abs(log.amount).toLocaleString('id-ID')
-                            : '••••••••'}
-                        </div>
-                      </div>
-
-                      <div className='flex items-start gap-2 self-start'>
-                        {log.excludeFromReport && (
-                          <span className='text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'>
-                            Excluded
-                          </span>
-                        )}
-                        <MenuActions
-                          onEdit={() => onEdit(log)}
-                          onDelete={() => handleDelete(log.id)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

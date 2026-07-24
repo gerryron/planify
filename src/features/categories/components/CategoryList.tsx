@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import Swal from 'sweetalert2';
+import {
+  EllipsisVertical,
+  Pencil,
+  Trash2,
+  RefreshCw,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Card, CardContent } from '@/components/ui/card';
 import { categoryService } from '@/features/categories/services/categoryService';
 import { Category } from '@/features/categories/types/category';
 import { CategoryTreeNode } from '@/features/categories/types/categoryTree';
@@ -65,7 +68,7 @@ function MenuActions({
         type='button'
         onClick={handleToggleMenu}
       >
-        <MoreVertIcon fontSize='small' />
+        <EllipsisVertical size={16} />
       </button>
       {open && (
         <div
@@ -82,7 +85,7 @@ function MenuActions({
             }}
             type='button'
           >
-            <EditIcon fontSize='small' />
+            <Pencil size={16} />
             Edit
           </button>
           <button
@@ -93,7 +96,7 @@ function MenuActions({
             }}
             type='button'
           >
-            <DeleteIcon fontSize='small' />
+            <Trash2 size={16} />
             Delete
           </button>
         </div>
@@ -133,35 +136,16 @@ export default function CategoryList({
   }, [refreshKey, onDataLoaded]);
 
   const handleDelete = async (id: number) => {
-    const result = await Swal.fire({
-      title: 'Delete category?',
-      text: 'Deleted category cannot be restored.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, delete',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (!result.isConfirmed) return;
+    if (!window.confirm('Delete category?\nDeleted category cannot be restored.')) return;
 
     try {
       await categoryService.remove(id);
-      await Swal.fire({
-        title: 'Success',
-        text: 'Category deleted successfully.',
-        icon: 'success',
-        timer: 1400,
-        showConfirmButton: false,
-      });
+      toast.success('Category deleted successfully.');
       const data = await categoryService.getAll();
       setCategories(data);
       onDataLoaded?.(data);
     } catch {
-      await Swal.fire({
-        title: 'Failed',
-        text: 'Failed to delete category.',
-        icon: 'error',
-      });
+      toast.error('Failed to delete category.');
     }
   };
 
@@ -236,111 +220,113 @@ export default function CategoryList({
         </div>
       </div>
 
-      <div className='bg-white dark:bg-slate-800 rounded-lg border border-emerald-200 dark:border-slate-700 shadow p-6'>
-        <div className='mb-4 w-full'>
-          <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden'>
-            <span
-              className={
-                'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +
-                (activeTab === 'income' ? 'bg-emerald-500 ' : 'bg-red-500 ') +
-                (activeTab === 'income' ? 'translate-x-0' : 'translate-x-full')
-              }
-              aria-hidden='true'
-            />
-            <div className='relative z-10 grid grid-cols-2'>
-              <button
-                type='button'
-                onClick={() => setActiveTab('income')}
+      <Card className='shadow'>
+        <CardContent>
+          <div className='mb-4 w-full'>
+            <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden'>
+              <span
                 className={
-                  'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
-                  (activeTab === 'income'
-                    ? 'text-white dark:text-slate-900'
-                    : 'text-gray-700 dark:text-gray-200')
+                  'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +
+                  (activeTab === 'income' ? 'bg-emerald-500 ' : 'bg-red-500 ') +
+                  (activeTab === 'income' ? 'translate-x-0' : 'translate-x-full')
                 }
-              >
-                Income
-              </button>
-              <button
-                type='button'
-                onClick={() => setActiveTab('outcome')}
-                className={
-                  'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
-                  (activeTab === 'outcome'
-                    ? 'text-white'
-                    : 'text-gray-700 dark:text-gray-200')
-                }
-              >
-                Outcome
-              </button>
+                aria-hidden='true'
+              />
+              <div className='relative z-10 grid grid-cols-2'>
+                <button
+                  type='button'
+                  onClick={() => setActiveTab('income')}
+                  className={
+                    'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
+                    (activeTab === 'income'
+                      ? 'text-white dark:text-slate-900'
+                      : 'text-gray-700 dark:text-gray-200')
+                  }
+                >
+                  Income
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setActiveTab('outcome')}
+                  className={
+                    'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
+                    (activeTab === 'outcome'
+                      ? 'text-white'
+                      : 'text-gray-700 dark:text-gray-200')
+                  }
+                >
+                  Outcome
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {loading ? (
-          <div className='min-h-56 flex items-center justify-center'>
-            <AutorenewIcon
-              className='animate-spin text-emerald-600 dark:text-emerald-400'
-              fontSize='large'
-            />
-          </div>
-        ) : (
-          <div>
-            {activeCategories.length === 0 ? (
-              <div className='text-gray-500 dark:text-gray-300'>
-                No categories found.
-              </div>
-            ) : (
-              <ul className='space-y-3'>
-                {activeCategories.map((category, index) => (
-                  <li key={category.id}>
-                    <div className='px-1 py-1 text-gray-800 dark:text-gray-100 flex items-center justify-between'>
-                      <span className='font-semibold'>{category.name}</span>
-                      <MenuActions
-                        onEdit={() => onEdit(category)}
-                        onDelete={() => handleDelete(category.id)}
-                      />
-                    </div>
+          {loading ? (
+            <div className='min-h-56 flex items-center justify-center'>
+              <RefreshCw
+                className='animate-spin text-emerald-600 dark:text-emerald-400'
+                size={24}
+              />
+            </div>
+          ) : (
+            <div>
+              {activeCategories.length === 0 ? (
+                <div className='text-gray-500 dark:text-gray-300'>
+                  No categories found.
+                </div>
+              ) : (
+                <ul className='space-y-3'>
+                  {activeCategories.map((category, index) => (
+                    <li key={category.id}>
+                      <div className='px-1 py-1 text-gray-800 dark:text-gray-100 flex items-center justify-between'>
+                        <span className='font-semibold'>{category.name}</span>
+                        <MenuActions
+                          onEdit={() => onEdit(category)}
+                          onDelete={() => handleDelete(category.id)}
+                        />
+                      </div>
 
-                    {category.children.length > 0 && (
-                      <ul className='mt-2 ml-1'>
-                        {category.children.map((child, childIndex) => (
-                          <li
-                            key={child.id}
-                            className='relative py-2 pl-7 text-gray-700 dark:text-gray-200 flex items-center justify-between'
-                          >
-                            <span
-                              className='absolute left-0 top-1/2 -translate-y-1/2 h-px w-5 bg-emerald-200 dark:bg-emerald-700'
-                              aria-hidden='true'
-                            />
-                            <span
-                              className={
-                                'absolute left-0 w-px bg-emerald-200 dark:bg-emerald-700 ' +
-                                (childIndex === category.children.length - 1
-                                  ? 'top-0 h-1/2'
-                                  : 'top-0 bottom-0')
-                              }
-                              aria-hidden='true'
-                            />
-                            <span>{child.name}</span>
-                            <MenuActions
-                              onEdit={() => onEdit(child)}
-                              onDelete={() => handleDelete(child.id)}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                      {category.children.length > 0 && (
+                        <ul className='mt-2 ml-1'>
+                          {category.children.map((child, childIndex) => (
+                            <li
+                              key={child.id}
+                              className='relative py-2 pl-7 text-gray-700 dark:text-gray-200 flex items-center justify-between'
+                            >
+                              <span
+                                className='absolute left-0 top-1/2 -translate-y-1/2 h-px w-5 bg-emerald-200 dark:bg-emerald-700'
+                                aria-hidden='true'
+                              />
+                              <span
+                                className={
+                                  'absolute left-0 w-px bg-emerald-200 dark:bg-emerald-700 ' +
+                                  (childIndex === category.children.length - 1
+                                    ? 'top-0 h-1/2'
+                                    : 'top-0 bottom-0')
+                                }
+                                aria-hidden='true'
+                              />
+                              <span>{child.name}</span>
+                              <MenuActions
+                                onEdit={() => onEdit(child)}
+                                onDelete={() => handleDelete(child.id)}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
 
-                    {index < activeCategories.length - 1 && (
-                      <div className='h-0.5 bg-emerald-200 dark:bg-emerald-800 mt-2' />
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
+                      {index < activeCategories.length - 1 && (
+                        <div className='h-0.5 bg-emerald-200 dark:bg-emerald-800 mt-2' />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

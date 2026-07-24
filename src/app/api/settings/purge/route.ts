@@ -3,6 +3,9 @@ import { prisma } from '@/core/db/prisma';
 import { badRequest, ok } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
 import {
+  handleApiError,
+} from '@/core/http/apiErrors';
+import {
   buildSeedCategoryKey,
   seedCategoryKeys,
 } from '@/features/settings/constants/seedCategories';
@@ -193,7 +196,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     return ok({ success: true, summary });
-  } catch {
-    return badRequest('Failed to purge selected data');
+  } catch (error) {
+    return handleApiError(error);
   }
 }

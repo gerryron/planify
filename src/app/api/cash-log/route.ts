@@ -183,42 +183,8 @@ async function findLinkedTransferEntry(
   return selectLinkedCandidate(source, filtered);
 }
 
-function toId(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
-    return value;
-  }
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = Number(value);
-    if (Number.isInteger(parsed) && parsed > 0) {
-      return parsed;
-    }
-  }
-  return null;
-}
-
-function getWalletDelta(
-  amount: number,
-  type: 'income' | 'outcome',
-  walletKind: WalletKind,
-) {
-  const nominal = Math.abs(amount);
-  const delta = type === 'income' ? nominal : -nominal;
-  return walletKind === 'credit_card' ? -delta : delta;
-}
-
-function assertCreditLimit(
-  nextBalance: number,
-  walletKind: WalletKind,
-  creditLimit: number | null,
-) {
-  if (walletKind !== 'credit_card') return;
-  if (typeof creditLimit !== 'number') {
-    throw new ValidationError('CASH_LOG_VALIDATION', 'Credit card wallet is missing credit limit');
-  }
-  if (nextBalance > creditLimit) {
-    throw new ValidationError('CASH_LOG_VALIDATION', 'Credit card outstanding cannot exceed credit limit');
-  }
-}
+import { toId } from '@/shared/utils/routeHelpers';
+import { getWalletDelta, assertCreditLimit } from '@/features/wallets/utils/walletDelta';
 
 function shouldAffectWallet(
   categoryType: 'income' | 'outcome' | null,
@@ -429,8 +395,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     });
 
     return ok(logs);
-  } catch {
-    return badRequest();
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 

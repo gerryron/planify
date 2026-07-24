@@ -4,7 +4,12 @@ import AppShell from '@/shared/layout/AppShell';
 import QueryProvider from '@/shared/providers/QueryProvider';
 import PWARegister from '@/shared/pwa/PWARegister';
 import { ThemeProvider } from '@/shared/theme/ThemeProvider';
+import { Toaster } from 'sonner';
 import type { Metadata, Viewport } from 'next';
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: 'Planify',
@@ -43,10 +48,11 @@ export default async function RootLayout({
   await ensureConfiguredSuperadmin();
 
   return (
-    <html lang='en'>
+    <html lang='en' className={cn("font-sans", geist.variable)}>
       <body>
         <PWARegister />
         <ThemeProvider />
+        <Toaster position="bottom-right" richColors />
         <QueryProvider>
           <AppShell>{children}</AppShell>
         </QueryProvider>

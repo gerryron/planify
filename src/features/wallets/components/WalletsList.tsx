@@ -2,16 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import Swal from 'sweetalert2';
+import { Lock, LockOpen, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 import { cashLogService } from '@/features/cash-log/services/cashLogService';
 import { walletsService, type Wallets } from '@/features/wallets/services/walletsService';
 import { DndContext, useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableWalletItem from './SortableWalletItem';
 import { useWalletDragDrop } from '../hooks/useWalletDragDrop';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface WalletsListProps {
   onEdit: (wallet: Wallets) => void;
@@ -55,18 +54,13 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
       transactionCount = logs.filter((item) => item.walletName === wallet.name).length;
     } catch { transactionCount = 0; }
 
-    const result = await Swal.fire({
-      title: 'Delete wallet?',
-      html: `This action cannot be undone.<br/>Cash log transactions to delete: <b>${transactionCount}</b>.`,
-      icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete wallet', cancelButtonText: 'Cancel',
-    });
-    if (!result.isConfirmed) return;
+    if (!window.confirm(`Delete wallet?\nThis action cannot be undone.\nCash log transactions to delete: ${transactionCount}.`)) return;
 
     try {
       const deleted = await walletsService.remove(wallet.id);
       setWallets((prev) => prev.filter((item) => item.id !== wallet.id));
-      await Swal.fire({ title: 'Success', html: `Wallet deleted successfully.<br/>Deleted cash log transactions: <b>${deleted.deletedCashLogCount ?? transactionCount}</b>.`, icon: 'success', timer: 1400, showConfirmButton: false });
-    } catch { await Swal.fire({ title: 'Failed', text: 'Failed to delete wallet.', icon: 'error' }); }
+      toast.success(`Wallet deleted successfully. Deleted cash log transactions: ${deleted.deletedCashLogCount ?? transactionCount}.`);
+    } catch { toast.error('Failed to delete wallet.'); }
   };
 
   const handleOpenCashLog = (wallet: Wallets) => {
@@ -108,7 +102,7 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
               <button type='button' className='ml-1 flex items-center justify-center p-1 rounded hover:bg-emerald-100 dark:hover:bg-slate-700'
                 aria-label={showNominal ? 'Sembunyikan nominal' : 'Tampilkan nominal'} onClick={() => setShowNominal((v) => !v)} tabIndex={0}
                 style={{ height: '2rem', display: 'flex', alignItems: 'center' }}>
-                {showNominal ? <LockIcon fontSize='small' /> : <LockOpenIcon fontSize='small' />}
+                {showNominal ? <Lock size={16} /> : <LockOpen size={16} />}
               </button>
             </div>
           </div>
@@ -118,23 +112,25 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
         </div>
       </div>
 
-      <div className='bg-white dark:bg-slate-800 rounded-lg border border-emerald-200 dark:border-slate-700 shadow p-6'>
-        {loading ? (
-          <div className='min-h-56 flex items-center justify-center'>
-            <AutorenewIcon className='animate-spin text-emerald-600 dark:text-emerald-400' fontSize='large' />
-          </div>
-        ) : wallets.length === 0 ? (
-          <div>No wallets found.</div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
-            <div className='space-y-5'>
-              {renderSection(includeWallets, INCLUDE_ZONE_ID, setIncludeDropRef, isIncludeOver, 'Include from total', 'No included wallet.')}
-              <div className='h-0.5 flex-1 bg-emerald-200 dark:bg-emerald-800' />
-              {renderSection(excludeWallets, EXCLUDE_ZONE_ID, setExcludeDropRef, isExcludeOver, 'Exclude from total', 'No excluded wallet.')}
+      <Card className='bg-white dark:bg-slate-800 border-emerald-200 dark:border-slate-700 shadow-sm'>
+        <CardContent className='p-6'>
+          {loading ? (
+            <div className='min-h-56 flex items-center justify-center'>
+              <RefreshCw className='animate-spin text-emerald-600 dark:text-emerald-400' size={24} />
             </div>
-          </DndContext>
-        )}
-      </div>
+          ) : wallets.length === 0 ? (
+            <div>No wallets found.</div>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+              <div className='space-y-5'>
+                {renderSection(includeWallets, INCLUDE_ZONE_ID, setIncludeDropRef, isIncludeOver, 'Include from total', 'No included wallet.')}
+                <div className='h-0.5 flex-1 bg-emerald-200 dark:bg-emerald-800' />
+                {renderSection(excludeWallets, EXCLUDE_ZONE_ID, setExcludeDropRef, isExcludeOver, 'Exclude from total', 'No excluded wallet.')}
+              </div>
+            </DndContext>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

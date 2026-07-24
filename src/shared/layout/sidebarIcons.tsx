@@ -1,20 +1,13 @@
 // Centralized icon mapping for sidebar menu items
-import HomeIcon from '@mui/icons-material/Home';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import TodayIcon from '@mui/icons-material/Today';
-import CategoryIcon from '@mui/icons-material/Category';
-import DescriptionIcon from '@mui/icons-material/Description';
-import SettingsIcon from '@mui/icons-material/Settings';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import { Calendar, CalendarDays, FileText, Home, LayoutGrid, Settings, Shield, Wallet } from 'lucide-react';
 
 export const sidebarIcons = {
-  Home: HomeIcon,
-  Wallets: AccountBalanceWalletIcon,
-  Categories: CategoryIcon,
-  Settings: SettingsIcon,
-  'Admin Panel': AdminPanelSettingsIcon,
-  Swagger: DescriptionIcon,
-  'Monthly Budget': CalendarMonthIcon,
-  'Cash Log': TodayIcon,
+  Home: Home,
+  Wallets: Wallet,
+  Categories: LayoutGrid,
+  Settings: Settings,
+  'Admin Panel': Shield,
+  Swagger: FileText,
+  'Monthly Budget': Calendar,
+  'Cash Log': CalendarDays,
 };

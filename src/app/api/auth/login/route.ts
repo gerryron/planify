@@ -14,9 +14,7 @@ type LoginPayload = {
   password?: string;
 };
 
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
+import { isValidEmail } from '@/shared/utils/validation';
 
 export async function POST(req: NextRequest) {
   try {

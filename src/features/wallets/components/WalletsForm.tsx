@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   walletsService,
   Wallets,
@@ -77,32 +80,20 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
 
   const currentMonth = useMemo(() => new Date().toISOString().slice(0, 7), []);
 
-  const showFieldInfo = async (
+  const showFieldInfo = (
     field: 'outstanding' | 'statementDay' | 'dueDay',
   ) => {
     if (field === 'outstanding') {
-      await Swal.fire({
-        icon: 'info',
-        title: 'Outstanding Balance',
-        text: 'The total unpaid credit card bill at the moment. This value cannot exceed the credit limit.',
-      });
+      toast.info('The total unpaid credit card bill at the moment. This value cannot exceed the credit limit.');
       return;
     }
 
     if (field === 'statementDay') {
-      await Swal.fire({
-        icon: 'info',
-        title: 'Statement Day',
-        text: 'The monthly billing statement date. Example: 20 means the statement is generated every month on the 20th.',
-      });
+      toast.info('The monthly billing statement date. Example: 20 means the statement is generated every month on the 20th.');
       return;
     }
 
-    await Swal.fire({
-      icon: 'info',
-      title: 'Due Day',
-      text: 'The payment due date. If the due day is earlier than the statement day (for example, 20 then 7), the due date is in the following month.',
-    });
+    toast.info('The payment due date. If the due day is earlier than the statement day (for example, 20 then 7), the due date is in the following month.');
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,18 +144,11 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
     e.preventDefault();
 
     const isUpdate = initial && initial.id;
-    const confirmResult = await Swal.fire({
-      title: isUpdate ? 'Update this wallet?' : 'Add this wallet?',
-      text: isUpdate
-        ? 'Are you sure you want to update this wallet?'
-        : 'Are you sure you want to add this wallet?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: isUpdate ? 'Update' : 'Add',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (!confirmResult.isConfirmed) return;
+    if (!window.confirm(
+      isUpdate
+        ? 'Update this wallet?\nAre you sure you want to update this wallet?'
+        : 'Add this wallet?\nAre you sure you want to add this wallet?',
+    )) return;
 
     setLoading(true);
     setError(null);
@@ -172,20 +156,10 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
     try {
       if (isUpdate) {
         await walletsService.update(initial.id, form);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Wallet updated!',
-          showConfirmButton: false,
-          timer: 1200,
-        });
+        toast.success('Wallet updated!');
       } else {
         await walletsService.create(form);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Wallet added!',
-          showConfirmButton: false,
-          timer: 1200,
-        });
+        toast.success('Wallet added!');
       }
 
       onSuccess();
@@ -259,24 +233,23 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       </div>
 
       <div>
-        <label className='mb-1.5 block text-sm font-medium'>Name</label>
-        <input
+        <Label className='mb-1.5'>Name</Label>
+        <Input
           name='name'
           value={form.name}
           onChange={handleChange}
           placeholder='e.g. Cash, Bank, E-Wallet'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
 
       <div>
         <div className='mb-1.5 flex items-center gap-2.5'>
-          <label className='block text-sm font-medium'>
+          <Label>
             {form.walletKind === 'credit_card'
               ? 'Outstanding Balance'
               : 'Balance'}
-          </label>
+          </Label>
           {form.walletKind === 'credit_card' && (
             <button
               type='button'
@@ -288,14 +261,13 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
             </button>
           )}
         </div>
-        <input
+        <Input
           name='balance'
           type='text'
           inputMode='numeric'
           value={formattedBalance}
           onChange={handleChange}
           placeholder='e.g. 1000000'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
@@ -309,17 +281,14 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       >
         <div className='space-y-4 pb-1'>
           <div>
-            <label className='mb-1.5 block text-sm font-medium'>
-              Credit Limit
-            </label>
-            <input
+            <Label className='mb-1.5'>Credit Limit</Label>
+            <Input
               name='creditLimit'
               type='text'
               inputMode='numeric'
               value={formattedCreditLimit}
               onChange={handleChange}
               placeholder='e.g. 15000000'
-              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
               required={form.walletKind === 'credit_card'}
             />
           </div>
@@ -327,9 +296,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
           <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
             <div>
               <div className='mb-1.5 flex items-center gap-2.5'>
-                <label className='block text-sm font-medium'>
-                  Statement Day
-                </label>
+                <Label>Statement Day</Label>
                 <button
                   type='button'
                   onClick={() => showFieldInfo('statementDay')}
@@ -339,21 +306,20 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
                   i
                 </button>
               </div>
-              <input
+              <Input
                 name='statementDay'
                 type='number'
                 min={1}
                 max={31}
                 value={form.statementDay ?? ''}
                 onChange={handleChange}
-                className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
                 required={form.walletKind === 'credit_card'}
               />
             </div>
 
             <div>
               <div className='mb-1.5 flex items-center gap-2.5'>
-                <label className='block text-sm font-medium'>Due Day</label>
+                <Label>Due Day</Label>
                 <button
                   type='button'
                   onClick={() => showFieldInfo('dueDay')}
@@ -363,14 +329,13 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
                   i
                 </button>
               </div>
-              <input
+              <Input
                 name='dueDay'
                 type='number'
                 min={1}
                 max={31}
                 value={form.dueDay ?? ''}
                 onChange={handleChange}
-                className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
                 required={form.walletKind === 'credit_card'}
               />
             </div>
@@ -387,32 +352,26 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       >
         <div className='space-y-4 pb-1'>
           <div>
-            <label className='mb-1.5 block text-sm font-medium'>
-              Savings Goal
-            </label>
-            <input
+            <Label className='mb-1.5'>Savings Goal</Label>
+            <Input
               name='goalAmount'
               type='text'
               inputMode='numeric'
               value={formattedGoalAmount}
               onChange={handleChange}
               placeholder='e.g. 5000000'
-              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
               required={form.walletKind === 'goal'}
             />
           </div>
 
           <div>
-            <label className='mb-1.5 block text-sm font-medium'>
-              Due Month
-            </label>
-            <input
+            <Label className='mb-1.5'>Due Month</Label>
+            <Input
               type='month'
               value={form.goalDueMonth ?? ''}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, goalDueMonth: e.target.value }))
               }
-              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
               required={form.walletKind === 'goal'}
             />
           </div>
@@ -470,13 +429,14 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
       {error && <div className='text-red-500'>{error}</div>}
 
       <div>
-        <button
+        <Button
           type='submit'
-          className='w-full px-4 py-2.5 bg-green-600 text-white rounded mt-2 min-h-11'
+          variant='default'
+          className='w-full bg-emerald-600 mt-2'
           disabled={loading}
         >
           {initial ? 'Update' : 'Add'}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/core/db/prisma';
-import { ok, serverError } from '@/core/http/apiResponse';
+import { ok } from '@/core/http/apiResponse';
 import { requireAuth } from '@/core/auth/requireAuth';
+import { handleApiError } from '@/core/http/apiErrors';
 
 export async function GET(req: NextRequest) {
   const auth = requireAuth(req, { requireSuperadmin: true });
@@ -25,7 +26,6 @@ export async function GET(req: NextRequest) {
       active: users.filter((user) => user.status === 'active'),
     });
   } catch (error) {
-    console.error('GET /api/superadmin/users error:', error);
-    return serverError('Failed to load users');
+    return handleApiError(error);
   }
 }

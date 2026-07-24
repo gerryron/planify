@@ -59,18 +59,7 @@ async function validateParent(
   }
 }
 
-function toId(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
-    return value;
-  }
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = Number(value);
-    if (Number.isInteger(parsed) && parsed > 0) {
-      return parsed;
-    }
-  }
-  return null;
-}
+import { toId } from '@/shared/utils/routeHelpers';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = requireAuth(req);

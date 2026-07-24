@@ -3,14 +3,17 @@ import {
   monthlyBudgetService,
   Budget,
 } from '@/features/monthly-budget/services/monthlyBudgetService';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import Swal from 'sweetalert2';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  EllipsisVertical,
+  GripVertical,
+  Pencil,
+  Trash2,
+  Lock,
+  LockOpen,
+  RefreshCw,
+} from 'lucide-react';
+import { toast } from 'sonner';
 import {
   closestCenter,
   DndContext,
@@ -98,7 +101,7 @@ function MenuActions({
         type='button'
         onClick={handleToggleMenu}
       >
-        <MoreVertIcon fontSize='small' />
+        <EllipsisVertical size={16} />
       </button>
       {open && (
         <div
@@ -115,7 +118,7 @@ function MenuActions({
             }}
             type='button'
           >
-            <EditIcon fontSize='small' />
+            <Pencil size={16} />
             Edit
           </button>
           <button
@@ -126,7 +129,7 @@ function MenuActions({
             }}
             type='button'
           >
-            <DeleteIcon fontSize='small' />
+            <Trash2 size={16} />
             Delete
           </button>
         </div>
@@ -238,7 +241,7 @@ function SortableBudgetItem({
           {...listeners}
           title='Drag to reorder'
         >
-          <DragIndicatorIcon fontSize='small' />
+          <GripVertical size={16} />
         </span>
         <MenuActions
           onEdit={() => onEdit(budget)}
@@ -308,34 +311,17 @@ export default function MonthlyBudgetList({
 
   const handleCarryOver = async () => {
     if (selectedMonth === 'future') {
-      await Swal.fire({
-        title: 'Carry over unavailable',
-        text: 'Please select a specific month first.',
-        icon: 'info',
-      });
+      toast.info('Please select a specific month first.');
       return;
     }
 
     if (totalTransaction <= 0) {
-      await Swal.fire({
-        title: 'No surplus',
-        text: 'Carry over is only available when total transaction is positive.',
-        icon: 'info',
-      });
+      toast.info('Carry over is only available when total transaction is positive.');
       return;
     }
 
     const targetMonth = nextMonth(selectedMonth);
-    const confirm = await Swal.fire({
-      title: 'Carry over this surplus?',
-      text: `Rp ${totalTransaction.toLocaleString('id-ID')} will be added to ${monthLabel(targetMonth)} as carryover income, and deducted from this month as outcome.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Carry Over',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (!confirm.isConfirmed) return;
+    if (!window.confirm(`Carry over this surplus?\nRp ${totalTransaction.toLocaleString('id-ID')} will be added to ${monthLabel(targetMonth)} as carryover income, and deducted from this month as outcome.`)) return;
 
     try {
       // 1. Add outcome (minus) to current month
@@ -354,51 +340,22 @@ export default function MonthlyBudgetList({
         category: 'Carry Over',
         type: 'carryover',
       });
-      await Swal.fire({
-        title: 'Success',
-        text: `Carry over added to ${monthLabel(targetMonth)} and deducted from this month.`,
-        icon: 'success',
-        timer: 1400,
-        showConfirmButton: false,
-      });
+      toast.success(`Carry over added to ${monthLabel(targetMonth)} and deducted from this month.`);
       fetchBudgets(selectedMonth);
     } catch {
-      await Swal.fire({
-        title: 'Failed',
-        text: 'Failed to create carry over.',
-        icon: 'error',
-      });
+      toast.error('Failed to create carry over.');
     }
   };
 
   const handleDelete = async (id: number) => {
-    const result = await Swal.fire({
-      title: 'Delete budget?',
-      text: 'Deleted data cannot be restored.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, delete',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (!result.isConfirmed) return;
+    if (!window.confirm('Delete budget?\nDeleted data cannot be restored.')) return;
 
     try {
       await monthlyBudgetService.remove(id);
       setBudgets((prev) => prev.filter((budget) => budget.id !== id));
-      await Swal.fire({
-        title: 'Success',
-        text: 'Budget deleted successfully.',
-        icon: 'success',
-        timer: 1400,
-        showConfirmButton: false,
-      });
+      toast.success('Budget deleted successfully.');
     } catch {
-      await Swal.fire({
-        title: 'Failed',
-        text: 'Failed to delete budget.',
-        icon: 'error',
-      });
+      toast.error('Failed to delete budget.');
     }
   };
 
@@ -487,9 +444,9 @@ export default function MonthlyBudgetList({
                 }}
               >
                 {showNominal ? (
-                  <LockIcon fontSize='small' />
+                  <Lock size={16} />
                 ) : (
-                  <LockOpenIcon fontSize='small' />
+                  <LockOpen size={16} />
                 )}
               </button>
             </div>
@@ -598,12 +555,13 @@ export default function MonthlyBudgetList({
         </div>
       </div>
 
-      <div className='bg-white dark:bg-slate-800 rounded-lg border border-emerald-200 dark:border-slate-700 shadow p-6'>
+      <Card>
+        <CardContent>
         {loading ? (
           <div className='min-h-56 flex items-center justify-center'>
-            <AutorenewIcon
+            <RefreshCw
               className='animate-spin text-emerald-600 dark:text-emerald-400'
-              fontSize='large'
+              size={24}
             />
           </div>
         ) : budgets.length === 0 ? (
@@ -633,7 +591,7 @@ export default function MonthlyBudgetList({
             </SortableContext>
           </DndContext>
         )}
-      </div>
+      </CardContent></Card>
     </div>
   );
 }

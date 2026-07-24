@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import {
   monthlyBudgetService,
   Budget,
@@ -7,6 +7,16 @@ import {
 import { BudgetInput } from '@/features/monthly-budget/types/budget';
 import { categoryService } from '@/features/categories/services/categoryService';
 import type { Category } from '@/features/categories/types/category';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface MonthlyBudgetFormProps {
   initial?: Budget | null;
@@ -99,7 +109,7 @@ export default function MonthlyBudgetForm({
     setForm((prev) => ({
       ...prev,
       category: availableParentCategories.some(
-        (category) => category.name === prev.category,
+        (cat) => cat.name === prev.category,
       )
         ? prev.category
         : '',
@@ -114,9 +124,7 @@ export default function MonthlyBudgetForm({
     }));
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({
       ...f,
@@ -132,36 +140,20 @@ export default function MonthlyBudgetForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isUpdate = initial && initial.id;
-    const confirmResult = await Swal.fire({
-      title: isUpdate ? 'Update this budget?' : 'Add this budget?',
-      text: isUpdate
-        ? 'Are you sure you want to update this budget?'
-        : 'Are you sure you want to add this budget?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: isUpdate ? 'Update' : 'Add',
-      cancelButtonText: 'Cancel',
-    });
-    if (!confirmResult.isConfirmed) return;
+    if (!window.confirm(
+      isUpdate
+        ? 'Update this budget?\nAre you sure you want to update this budget?'
+        : 'Add this budget?\nAre you sure you want to add this budget?',
+    )) return;
     setLoading(true);
     setError(null);
     try {
       if (isUpdate) {
         await monthlyBudgetService.update(initial.id, form);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Budget updated!',
-          showConfirmButton: false,
-          timer: 1200,
-        });
+        toast.success('Budget updated!');
       } else {
         await monthlyBudgetService.create(form);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Budget added!',
-          showConfirmButton: false,
-          timer: 1200,
-        });
+        toast.success('Budget added!');
       }
       onSuccess();
       setForm(defaultForm);
@@ -175,10 +167,10 @@ export default function MonthlyBudgetForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
+      className="space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow"
     >
       <div>
-        <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden mb-3'>
+        <div className="relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden mb-3">
           <span
             className={
               'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +
@@ -189,11 +181,11 @@ export default function MonthlyBudgetForm({
                 ? 'translate-x-0'
                 : 'translate-x-full')
             }
-            aria-hidden='true'
+            aria-hidden="true"
           />
-          <div className='relative z-10 grid grid-cols-2'>
+          <div className="relative z-10 grid grid-cols-2">
             <button
-              type='button'
+              type="button"
               onClick={() => handleBudgetTypeChange('income')}
               className={
                 'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
@@ -205,7 +197,7 @@ export default function MonthlyBudgetForm({
               Income
             </button>
             <button
-              type='button'
+              type="button"
               onClick={() => handleBudgetTypeChange('outcome')}
               className={
                 'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
@@ -221,78 +213,92 @@ export default function MonthlyBudgetForm({
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Name</label>
-        <input
-          name='name'
+        <Label htmlFor="name">Name</Label>
+        <Input
+          id="name"
+          name="name"
           value={form.name}
           onChange={handleChange}
-          placeholder='e.g. Groceries, Salary'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          placeholder="e.g. Groceries, Salary"
           required
+          className="h-11"
         />
       </div>
+
       <div>
-        <label className='block text-sm font-medium'>Amount</label>
-        <input
-          name='amount'
-          type='text'
-          inputMode='numeric'
+        <Label htmlFor="amount">Amount</Label>
+        <Input
+          id="amount"
+          name="amount"
+          type="text"
+          inputMode="numeric"
           value={formattedAmount}
           onChange={handleChange}
-          placeholder='e.g. 1000000'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          placeholder="e.g. 1000000"
           required
+          className="h-11"
         />
       </div>
+
       <div>
-        <label className='block text-sm font-medium'>Month</label>
-        <input
-          name='month'
-          type='month'
+        <Label htmlFor="month">Month</Label>
+        <Input
+          id="month"
+          name="month"
+          type="month"
           value={form.month}
           onChange={handleChange}
-          placeholder='Select month'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          placeholder="Select month"
           required
+          className="h-11"
         />
       </div>
+
       <div>
-        <label className='block text-sm font-medium'>Category</label>
-        <select
-          name='category'
+        <Label htmlFor="category">Category</Label>
+        <Select
           value={form.category}
-          onChange={handleChange}
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          onValueChange={(value) =>
+            setForm((f) => ({ ...f, category: value ?? '' }))
+          }
           disabled={loadingCategories || !!categoryError}
-          required
         >
-          <option value=''>
-            {loadingCategories
-              ? 'Loading categories...'
-              : categoryError
-                ? 'Failed to load categories'
-                : 'Select category'}
-          </option>
-          {availableParentCategories.map((category) => (
-            <option key={category.id} value={category.name}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            id="category"
+            className="w-full h-11"
+          >
+            <SelectValue
+              placeholder={
+                loadingCategories
+                  ? 'Loading categories...'
+                  : categoryError
+                    ? 'Failed to load categories'
+                    : 'Select category'
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {availableParentCategories.map((category) => (
+              <SelectItem key={category.id} value={category.name}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {categoryError && (
-          <p className='mt-1 text-sm text-red-500'>{categoryError}</p>
+          <p className="mt-1 text-sm text-red-500">{categoryError}</p>
         )}
       </div>
-      {error && <div className='text-red-500'>{error}</div>}
-      <div>
-        <button
-          type='submit'
-          className='w-full px-4 py-2.5 bg-green-600 text-white rounded mt-2 min-h-11'
-          disabled={loading}
-        >
-          {initial ? 'Update' : 'Add'}
-        </button>
-      </div>
+
+      {error && <div className="text-red-500">{error}</div>}
+
+      <Button
+        type="submit"
+        className="w-full h-11"
+        disabled={loading}
+      >
+        {initial ? 'Update' : 'Add'}
+      </Button>
     </form>
   );
 }

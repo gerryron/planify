@@ -2,8 +2,7 @@ import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
 import { goalStatusTone } from '@/features/wallets/utils/goalStatusTone';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
-import TrackChangesIcon from '@mui/icons-material/TrackChanges';
+import { GripVertical, Target } from 'lucide-react';
 import type { Wallets } from '@/features/wallets/services/walletsService';
 import MenuActions from './MenuActions';
 
@@ -189,7 +188,7 @@ export default function SortableWalletItem({
               className='inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-800/60'
               aria-label='Track goal'
             >
-              <TrackChangesIcon fontSize='small' />
+              <Target size={16} />
             </button>
           </div>
         )}
@@ -202,7 +201,7 @@ export default function SortableWalletItem({
           {...listeners}
           title='Drag to reorder'
         >
-          <DragIndicatorIcon fontSize='small' />
+          <GripVertical size={16} />
         </span>
         <MenuActions
           onEdit={() => onEdit(wallet)}

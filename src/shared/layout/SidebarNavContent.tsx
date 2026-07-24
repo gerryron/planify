@@ -3,9 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import WbSunnyIcon from '@mui/icons-material/WbSunny';
-import NightlightIcon from '@mui/icons-material/Nightlight';
-import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
+import { Moon, PanelLeftClose, Sun } from 'lucide-react';
 import PWAInstallButton from '@/shared/pwa/PWAInstallButton';
 import { sidebarIcons } from './sidebarIcons';
 
@@ -49,13 +47,13 @@ export function ThemeSwitch({
       onClick={toggleTheme} disabled={isThemeAnimating} title='Toggle theme'
       className={`${baseBg} ${size} relative border transition-colors ${animDuration} ease-in-out overflow-hidden disabled:cursor-not-allowed disabled:opacity-85`}
     >
-      <span aria-hidden='true' className='absolute inset-y-0 left-2 flex items-center opacity-90'><WbSunnyIcon fontSize='small' /></span>
-      <span aria-hidden='true' className='absolute inset-y-0 right-2 flex items-center opacity-90'><NightlightIcon fontSize='small' /></span>
+      <span aria-hidden='true' className='absolute inset-y-0 left-2 flex items-center opacity-90'><Sun size={16} /></span>
+      <span aria-hidden='true' className='absolute inset-y-0 right-2 flex items-center opacity-90'><Moon size={16} /></span>
       <span
         style={{ left: darkMode ? 'calc(100% - 2.25rem)' : '0.25rem' }}
         className={`absolute top-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm transition-[left,transform] ${animDuration} ease-in-out`}
       >
-        {darkMode ? <NightlightIcon fontSize='small' /> : <WbSunnyIcon fontSize='small' />}
+        {darkMode ? <Moon size={16} /> : <Sun size={16} />}
       </span>
     </button>
   );
@@ -82,13 +80,13 @@ export function SidebarNavContent({
           {data.isMobile && (
             <button type='button' className={`h-11 w-11 rounded-lg flex items-center justify-center ${darkMode ? 'bg-slate-700 text-slate-100' : 'bg-emerald-500 text-white'}`}
               onClick={onCloseMobile} aria-label='Close menu'>
-              <KeyboardDoubleArrowLeftIcon fontSize='medium' />
+              <PanelLeftClose size={24} />
             </button>
           )}
           {!data.isMobile && (
             <button type='button' className={`h-11 w-11 rounded-lg flex items-center justify-center ${darkMode ? 'bg-slate-700 text-slate-100' : 'bg-emerald-500 text-white'}`}
               onClick={data.closeDesktopMenu} aria-label='Close desktop sidebar'>
-              <KeyboardDoubleArrowLeftIcon fontSize='medium' />
+              <PanelLeftClose size={24} />
             </button>
           )}
         </div>
@@ -126,7 +124,7 @@ export function SidebarNavContent({
                     ? isActive ? 'bg-slate-700 text-white font-bold' : 'text-slate-100 hover:text-slate-300'
                     : isActive ? 'bg-emerald-500 text-white font-bold' : 'text-emerald-50 hover:text-white'}`}
                   aria-current={isActive ? 'page' : undefined}>
-                  {Icon && <Icon fontSize='small' className='-ml-1' />}{label}
+                  {Icon && <Icon size={16} className='-ml-1' />}{label}
                 </Link>
               </li>
             );
@@ -152,11 +150,11 @@ export function SidebarNavContent({
                       <li key={label}>
                         {external ? (
                           <a href={href} target='_blank' rel='noreferrer' onClick={onCloseMobile} className={linkClass}>
-                            {Icon && <Icon fontSize='small' className='-ml-1' />}{label}
+                            {Icon && <Icon size={16} className='-ml-1' />}{label}
                           </a>
                         ) : (
                           <Link href={href} onClick={onCloseMobile} className={linkClass} aria-current={isActive ? 'page' : undefined}>
-                            {Icon && <Icon fontSize='small' className='-ml-1' />}{label}
+                            {Icon && <Icon size={16} className='-ml-1' />}{label}
                           </Link>
                         )}
                       </li>

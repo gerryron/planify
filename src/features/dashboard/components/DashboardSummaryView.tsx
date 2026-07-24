@@ -1,11 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import SavingsIcon from '@mui/icons-material/Savings';
+import { TrendingUp, TrendingDown, Wallet, Receipt, PiggyBank } from 'lucide-react';
 import {
   BarChart,
   ComposedChart,
@@ -32,12 +28,12 @@ type Props = { d: DashboardData };
 
 export default function DashboardSummaryView({ d }: Props) {
   const overallSummaryCards: Array<{ key: string; icon: ReactNode; label: string; value: string; color: 'green' | 'red' | 'emerald' }> = [
-    { key: 'assets', icon: <AccountBalanceWalletIcon />, label: 'Total Assets', value: d.val(d.totalAssets), color: 'emerald' },
-    { key: 'debt', icon: <ReceiptLongIcon />, label: 'Total Debt', value: d.val(d.totalDebt), color: 'red' },
-    { key: 'networth', icon: <SavingsIcon />, label: 'Net Worth', value: d.val(d.netWorth), color: d.netWorth >= 0 ? 'green' : 'red' },
-    { key: 'avg-income', icon: <TrendingUpIcon />, label: 'Average Income (6 Months)', value: d.val(Math.round(d.avgIncome6Months)), color: 'green' },
-    { key: 'avg-outcome', icon: <TrendingDownIcon />, label: 'Average Outcome (6 Months)', value: d.val(Math.round(d.avgOutcome6Months)), color: 'red' },
-    { key: 'net-acc', icon: <SavingsIcon />, label: 'Net Accumulation (6 Months)', value: d.val(d.net6Months), color: d.net6Months >= 0 ? 'green' : 'red' },
+    { key: 'assets', icon: <Wallet />, label: 'Total Assets', value: d.val(d.totalAssets), color: 'emerald' },
+    { key: 'debt', icon: <Receipt />, label: 'Total Debt', value: d.val(d.totalDebt), color: 'red' },
+    { key: 'networth', icon: <PiggyBank />, label: 'Net Worth', value: d.val(d.netWorth), color: d.netWorth >= 0 ? 'green' : 'red' },
+    { key: 'avg-income', icon: <TrendingUp />, label: 'Average Income (6 Months)', value: d.val(Math.round(d.avgIncome6Months)), color: 'green' },
+    { key: 'avg-outcome', icon: <TrendingDown />, label: 'Average Outcome (6 Months)', value: d.val(Math.round(d.avgOutcome6Months)), color: 'red' },
+    { key: 'net-acc', icon: <PiggyBank />, label: 'Net Accumulation (6 Months)', value: d.val(d.net6Months), color: d.net6Months >= 0 ? 'green' : 'red' },
   ];
 
   return (

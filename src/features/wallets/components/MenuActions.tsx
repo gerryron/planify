@@ -1,115 +1,56 @@
-import { useEffect, useRef, useState } from 'react';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import { ReactNode } from 'react';
+import { EllipsisVertical, Pencil, Trash2, ArrowLeftRight } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface MenuActionsProps {
   onEdit: () => void;
-  onTransfer: () => void;
   onDelete: () => void;
-  canDelete: boolean;
-  transferLabel: string;
+  onTransfer?: () => void;
+  canDelete?: boolean;
+  transferLabel?: string;
+  extraActions?: ReactNode;
 }
 
 export default function MenuActions({
   onEdit,
   onTransfer,
   onDelete,
-  canDelete,
-  transferLabel,
+  canDelete = true,
+  transferLabel = 'Transfer',
+  extraActions,
 }: MenuActionsProps) {
-  const [open, setOpen] = useState(false);
-  const [menuAlign, setMenuAlign] = useState<'left' | 'right'>('right');
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    window.addEventListener('mousedown', handleClickOutside);
-    return () => window.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
-
-  const handleToggleMenu = () => {
-    if (!open) {
-      const triggerRect = containerRef.current?.getBoundingClientRect();
-      if (triggerRect) {
-        const estimatedMenuWidth = 180;
-        const viewportPadding = 12;
-        const hasLeftOverflowRisk =
-          triggerRect.right - estimatedMenuWidth < viewportPadding;
-        setMenuAlign(hasLeftOverflowRisk ? 'left' : 'right');
-      }
-    }
-
-    setOpen((value) => !value);
-  };
-
   return (
-    <div
-      ref={containerRef}
-      className='relative'
-      onClick={(event) => event.stopPropagation()}
-    >
-      <button
-        className='p-2 rounded hover:bg-emerald-100 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200'
-        aria-label='Action'
-        type='button'
-        onClick={handleToggleMenu}
-      >
-        <MoreVertIcon fontSize='small' />
-      </button>
-      {open && (
-        <div
-          className={
-            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md ' +
-            (menuAlign === 'left' ? 'left-0' : 'right-0')
-          }
-        >
-          <button
-            className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2'
-            onClick={() => {
-              setOpen(false);
-              onEdit();
-            }}
-            type='button'
-          >
-            <EditIcon fontSize='small' />
-            Edit
-          </button>
-          <button
-            className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2'
-            onClick={() => {
-              setOpen(false);
-              onTransfer();
-            }}
-            type='button'
-          >
-            <SwapHorizIcon fontSize='small' />
+    <DropdownMenu>
+      <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 p-2">
+        <EllipsisVertical size={16} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onEdit}>
+          <Pencil size={16} className="mr-2" />
+          Edit
+        </DropdownMenuItem>
+        {onTransfer && (
+          <DropdownMenuItem onClick={onTransfer}>
+            <ArrowLeftRight size={16} className="mr-2" />
             {transferLabel}
-          </button>
-          {canDelete && (
-            <button
-              className='w-full px-3 py-2 text-left text-sm hover:bg-emerald-100 dark:hover:bg-slate-700 flex items-center gap-2 text-red-600 dark:text-red-400'
-              onClick={() => {
-                setOpen(false);
-                onDelete();
-              }}
-              type='button'
-            >
-              <DeleteIcon fontSize='small' />
-              Delete
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+          </DropdownMenuItem>
+        )}
+        {extraActions}
+        {canDelete && (
+          <DropdownMenuItem
+            onClick={onDelete}
+            className="text-red-600 dark:text-red-400 focus:text-red-600"
+          >
+            <Trash2 size={16} className="mr-2" />
+            Delete
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import CloseIcon from '@mui/icons-material/Close';
+import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Pie, PieChart, ResponsiveContainer, Cell } from 'recharts';
 import { Wallets } from '@/features/wallets/services/walletsService';
@@ -107,7 +107,7 @@ export default function GoalTrackingModal({
             className='p-1 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white'
             aria-label='Close goal tracking modal'
           >
-            <CloseIcon fontSize='small' />
+            <X size={16} />
           </button>
         </div>
 

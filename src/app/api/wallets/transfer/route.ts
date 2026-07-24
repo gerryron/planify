@@ -33,46 +33,8 @@ function isIsoDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function toNumber(value: unknown) {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : NaN;
-  }
-  return NaN;
-}
-
-function toId(value: unknown): number | null {
-  const parsed = toNumber(value);
-  if (Number.isInteger(parsed) && parsed > 0) {
-    return parsed;
-  }
-  return null;
-}
-
-function getWalletDelta(
-  amount: number,
-  type: 'income' | 'outcome',
-  walletKind: WalletKind,
-) {
-  const nominal = Math.abs(amount);
-  const delta = type === 'income' ? nominal : -nominal;
-  return walletKind === 'credit_card' ? -delta : delta;
-}
-
-function assertCreditLimit(
-  nextBalance: number,
-  walletKind: WalletKind,
-  creditLimit: number | null,
-) {
-  if (walletKind !== 'credit_card') return;
-  if (typeof creditLimit !== 'number') {
-    throw new ValidationError('TRANSFER_VALIDATION', 'Credit card wallet is missing credit limit');
-  }
-  if (nextBalance > creditLimit) {
-    throw new ValidationError('TRANSFER_VALIDATION', 'Credit card outstanding cannot exceed credit limit');
-  }
-}
+import { toId, toNumber } from '@/shared/utils/routeHelpers';
+import { getWalletDelta, assertCreditLimit } from '@/features/wallets/utils/walletDelta';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = requireAuth(req);

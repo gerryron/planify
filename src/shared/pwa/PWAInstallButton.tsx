@@ -1,6 +1,6 @@
 'use client';
 
-import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
+import { Download } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 type BeforeInstallPromptEvent = Event & {
@@ -96,7 +96,7 @@ export default function PWAInstallButton({
         }
         aria-label='Install app'
       >
-        <DownloadForOfflineIcon fontSize='small' />
+        <Download size={16} />
         <span className='text-sm font-semibold'>Install</span>
       </button>
     );
@@ -115,7 +115,7 @@ export default function PWAInstallButton({
       }
       aria-label='Install app'
     >
-      <DownloadForOfflineIcon fontSize='small' />
+      <Download size={16} />
       <span>Install App</span>
     </button>
   );

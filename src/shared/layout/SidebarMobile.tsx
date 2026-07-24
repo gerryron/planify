@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Menu } from 'lucide-react';
 import PWAInstallButton from '@/shared/pwa/PWAInstallButton';
 import { SidebarNavContent, type SidebarData } from './SidebarNavContent';
 
@@ -35,7 +35,7 @@ export default function SidebarMobile({
           <div className='relative'>
             <button type='button' onClick={openMobile} aria-label='Open menu' aria-expanded={isMobileOpen} aria-controls='mobile-sidebar'
               className={`h-11 w-11 rounded-lg flex items-center justify-center ${darkMode ? 'text-slate-100 bg-slate-700' : 'text-white bg-emerald-500'}`}>
-              <MenuIcon fontSize='small' />
+              <Menu size={16} />
             </button>
             {queueCount > 0 && (
               <span className='absolute -right-1 -top-1 min-w-5 h-5 rounded-full bg-red-500 px-1 text-[10px] font-bold text-white flex items-center justify-center'>

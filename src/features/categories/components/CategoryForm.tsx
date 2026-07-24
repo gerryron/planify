@@ -1,11 +1,21 @@
 import { useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import { categoryService } from '@/features/categories/services/categoryService';
 import {
   Category,
   CategoryInput,
   CategoryType,
 } from '@/features/categories/types/category';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface CategoryFormProps {
   initial?: Category | null;
@@ -48,18 +58,11 @@ export default function CategoryForm({
     e.preventDefault();
 
     const isUpdate = Boolean(initial?.id);
-    const confirmResult = await Swal.fire({
-      title: isUpdate ? 'Update this category?' : 'Add this category?',
-      text: isUpdate
-        ? 'Are you sure you want to update this category?'
-        : 'Are you sure you want to add this category?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: isUpdate ? 'Update' : 'Add',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (!confirmResult.isConfirmed) return;
+    if (!window.confirm(
+      isUpdate
+        ? 'Update this category?\nAre you sure you want to update this category?'
+        : 'Add this category?\nAre you sure you want to add this category?',
+    )) return;
 
     setLoading(true);
     setError(null);
@@ -67,20 +70,10 @@ export default function CategoryForm({
     try {
       if (isUpdate && initial) {
         await categoryService.update(initial.id, form);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Category updated!',
-          showConfirmButton: false,
-          timer: 1200,
-        });
+        toast.success('Category updated!');
       } else {
         await categoryService.create(form);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Category added!',
-          showConfirmButton: false,
-          timer: 1200,
-        });
+        toast.success('Category added!');
       }
 
       onSuccess();
@@ -106,7 +99,7 @@ export default function CategoryForm({
       className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
     >
       <div>
-        <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden'>
+        <div className='relative w-full rounded border border-input bg-transparent dark:bg-input/30 p-1 overflow-hidden'>
           <span
             className={
               'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +
@@ -145,8 +138,8 @@ export default function CategoryForm({
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Name</label>
-        <input
+        <Label>Name</Label>
+        <Input
           name='name'
           value={form.name}
           onChange={(e) =>
@@ -156,44 +149,45 @@ export default function CategoryForm({
             }))
           }
           placeholder='e.g. Food, Salary, Groceries'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
 
       <div>
-        <label className='block text-sm font-medium'>Parent Category</label>
-        <select
-          name='parentId'
-          value={form.parentId ?? ''}
-          onChange={(e) =>
+        <Label>Parent Category</Label>
+        <Select
+          value={form.parentId?.toString() ?? ''}
+          onValueChange={(value) =>
             setForm((prev) => ({
               ...prev,
-              parentId: e.target.value === '' ? null : Number(e.target.value),
+              parentId: value === '' ? null : Number(value),
             }))
           }
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          name='parentId'
         >
-          <option value=''>No parent (root category)</option>
-          {parentOptions.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className='w-full'>
+            <SelectValue placeholder='No parent (root category)' />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value=''>No parent (root category)</SelectItem>
+            {parentOptions.map((category) => (
+              <SelectItem key={category.id} value={category.id.toString()}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {error && <div className='text-red-500'>{error}</div>}
+      {error && <div className='text-red-500 text-sm'>{error}</div>}
 
-      <div>
-        <button
-          type='submit'
-          className='w-full px-4 py-2.5 bg-green-600 text-white rounded mt-2 min-h-11'
-          disabled={loading}
-        >
-          {initial ? 'Update' : 'Add'}
-        </button>
-      </div>
+      <Button
+        type='submit'
+        className='w-full'
+        disabled={loading}
+      >
+        {initial ? 'Update' : 'Add'}
+      </Button>
     </form>
   );
 }

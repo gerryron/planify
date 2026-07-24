@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import {
   cashLogService,
@@ -31,6 +31,15 @@ import {
   type FailedWriteHistoryItem,
   requestReplayQueuedWrites,
 } from '@/shared/pwa/writeQueueClient';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 
 function sortMonthsDesc(months: string[]) {
   return [...months].sort((a, b) => b.localeCompare(a));
@@ -115,11 +124,7 @@ export default function SettingsDataResetPanel() {
         setAvailableBudgetMonths(monthlyBudgetMonths);
       } catch {
         if (!mounted) return;
-        await Swal.fire({
-          icon: 'error',
-          title: 'Failed to load month options',
-          text: 'Please refresh the page and try again.',
-        });
+        toast.error('Failed to load month options');
       } finally {
         if (!mounted) return;
         setLoadingOptions(false);
@@ -190,37 +195,21 @@ export default function SettingsDataResetPanel() {
       setFailedHistory(failed);
 
       if (count === 0) {
-        await Swal.fire({
-          icon: 'success',
-          title: 'Queue synced',
-          text: 'All offline requests have been replayed.',
-        });
+        toast.success('Queue synced');
       } else {
-        await Swal.fire({
-          icon: 'info',
-          title: 'Queue still pending',
-          text: `${count} request(s) are still waiting.`,
-        });
+        toast.info(`Queue still pending — ${count} request(s) are still waiting.`);
       }
     } catch {
-      await Swal.fire({
-        icon: 'error',
-        title: 'Sync failed',
-        text: 'Unable to sync queued requests right now.',
-      });
+      toast.error('Sync failed');
     } finally {
       setSyncingQueue(false);
     }
   };
 
-  const clearFailedHistory = async () => {
+  const clearFailedHistoryAction = async () => {
     await clearFailedWriteHistory();
     setFailedHistory([]);
-    await Swal.fire({
-      icon: 'success',
-      title: 'Failed history cleared',
-      text: 'All failed sync logs have been removed.',
-    });
+    toast.success('Failed history cleared');
   };
 
   const hasAnyAction = useMemo(
@@ -329,58 +318,25 @@ export default function SettingsDataResetPanel() {
 
   const submitPurge = async () => {
     if (!hasAnyAction) {
-      await Swal.fire({
-        icon: 'warning',
-        title: 'No action selected',
-        text: 'Select at least one data deletion option.',
-      });
+      toast.warning('No action selected');
       return;
     }
 
     if (cashLogScope === 'months' && cashLogMonths.length === 0) {
-      await Swal.fire({
-        icon: 'warning',
-        title: 'Cash Log months are empty',
-        text: 'Pick at least one month or switch to all.',
-      });
+      toast.warning('Pick at least one month or switch to all.');
       return;
     }
 
     if (budgetScope === 'months' && budgetMonths.length === 0) {
-      await Swal.fire({
-        icon: 'warning',
-        title: 'Monthly Budget months are empty',
-        text: 'Pick at least one month or switch to all.',
-      });
+      toast.warning('Pick at least one month or switch to all.');
       return;
     }
 
-    const confirmation = await Swal.fire({
-      icon: 'warning',
-      title: 'Delete selected data?',
-      html: [
-        'This action cannot be undone.',
-        `<br/>Type <b>${confirmPhrase}</b> to continue.`,
-      ].join(' '),
-      input: 'text',
-      inputPlaceholder: confirmPhrase,
-      inputAttributes: {
-        autocapitalize: 'off',
-        autocorrect: 'off',
-      },
-      showCancelButton: true,
-      confirmButtonText: 'Delete now',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (!confirmation.isConfirmed) return;
-
-    if ((confirmation.value ?? '') !== confirmPhrase) {
-      await Swal.fire({
-        icon: 'error',
-        title: 'Wrong confirmation text',
-        text: `Please type ${confirmPhrase} exactly.`,
-      });
+    const userInput = window.prompt(`Type ${confirmPhrase} to continue:\n\nThis action cannot be undone.`);
+    if (userInput !== confirmPhrase) {
+      if (userInput !== null) {
+        toast.error(`Please type ${confirmPhrase} exactly.`);
+      }
       return;
     }
 
@@ -394,26 +350,12 @@ export default function SettingsDataResetPanel() {
     setSubmitting(true);
     try {
       const result = await settingsService.purgeData(payload);
-      await Swal.fire({
-        icon: 'success',
-        title: 'Deletion completed',
-        html: [
-          `Cash Log deleted: <b>${result.summary.cashLogDeleted}</b>`,
-          `Cash Log deleted by wallet deletion: <b>${result.summary.cashLogDeletedByWallet}</b>`,
-          `Monthly Budget deleted: <b>${result.summary.monthlyBudgetDeleted}</b>`,
-          `Wallets deleted: <b>${result.summary.walletDeleted}</b>`,
-          `User categories deleted: <b>${result.summary.userCategoryDeleted}</b>`,
-        ].join('<br/>'),
-      });
+      toast.success('Deletion completed');
       router.refresh();
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to purge data';
-      await Swal.fire({
-        icon: 'error',
-        title: 'Deletion failed',
-        text: message,
-      });
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -421,252 +363,275 @@ export default function SettingsDataResetPanel() {
 
   return (
     <div className='max-w-3xl mx-auto pt-0 pb-8'>
-      <div className='app-card rounded-xl shadow p-6 border border-slate-200 dark:border-slate-700'>
-        <h1 className='text-2xl font-bold mb-2'>Settings</h1>
+      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6'>
+        <CardHeader className='px-0 pt-0'>
+          <CardTitle className='text-2xl font-bold'>Settings</CardTitle>
+        </CardHeader>
+        <CardContent className='px-0'>
+          <hr className='my-6 border-slate-300 dark:border-slate-600' />
 
-        <hr className='my-6 border-slate-300 dark:border-slate-600' />
+          <div className='mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-950/20'>
+            <h2 className='font-semibold mb-2'>Offline sync queue</h2>
+            <p className='text-sm text-slate-700 dark:text-slate-200'>
+              Pending offline write requests: <b>{queueCount}</b>
+            </p>
+            <Button
+              onClick={syncNow}
+              disabled={syncingQueue || queueCount === 0}
+              className='mt-3 bg-emerald-600 hover:bg-emerald-700 text-white'
+            >
+              {syncingQueue ? 'Syncing...' : 'Sync now'}
+            </Button>
 
-        <div className='mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-950/20'>
-          <h2 className='font-semibold mb-2'>Offline sync queue</h2>
-          <p className='text-sm text-slate-700 dark:text-slate-200'>
-            Pending offline write requests: <b>{queueCount}</b>
-          </p>
-          <button
-            type='button'
-            onClick={syncNow}
-            disabled={syncingQueue || queueCount === 0}
-            className='mt-3 px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed'
-          >
-            {syncingQueue ? 'Syncing...' : 'Sync now'}
-          </button>
-
-          <div className='mt-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900'>
-            <div className='flex flex-wrap items-center justify-between gap-2 mb-2'>
-              <h3 className='text-sm font-semibold'>Recent failed sync</h3>
-              <button
-                type='button'
-                onClick={clearFailedHistory}
-                disabled={failedHistory.length === 0}
-                className='px-3 py-1.5 rounded bg-slate-700 text-white text-xs disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                Clear history
-              </button>
-            </div>
-
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-2 mb-3'>
-              <label className='text-xs text-slate-600 dark:text-slate-300'>
-                Method
-                <select
-                  value={failedMethodFilter}
-                  onChange={(event) =>
-                    setFailedMethodFilter(event.target.value)
-                  }
-                  className='mt-1 w-full p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-xs'
+            <div className='mt-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900'>
+              <div className='flex flex-wrap items-center justify-between gap-2 mb-2'>
+                <h3 className='text-sm font-semibold'>Recent failed sync</h3>
+                <Button
+                  onClick={clearFailedHistoryAction}
+                  disabled={failedHistory.length === 0}
+                  size='sm'
+                  className='bg-slate-700 text-white hover:bg-slate-800'
                 >
-                  <option value='all'>All methods</option>
-                  {availableFailedMethods.map((method) => (
-                    <option key={method} value={method}>
-                      {method}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className='text-xs text-slate-600 dark:text-slate-300'>
-                Status
-                <select
-                  value={failedStatusFilter}
-                  onChange={(event) =>
-                    setFailedStatusFilter(
-                      event.target.value as 'all' | 'network' | 'http',
-                    )
-                  }
-                  className='mt-1 w-full p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-xs'
-                >
-                  <option value='all'>All statuses</option>
-                  <option value='network'>Network error</option>
-                  <option value='http'>HTTP error</option>
-                </select>
-              </label>
-            </div>
+                  Clear history
+                </Button>
+              </div>
 
-            {filteredFailedHistory.length === 0 ? (
-              <p className='text-xs text-slate-500 dark:text-slate-400'>
-                No failed requests match current filter.
-              </p>
-            ) : (
-              <ul className='space-y-2'>
-                {filteredFailedHistory.map((item) => (
-                  <li
-                    key={item.id}
-                    className='rounded border border-slate-200 px-2 py-2 text-xs dark:border-slate-700'
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-2 mb-3'>
+                <label className='text-xs text-slate-600 dark:text-slate-300'>
+                  Method
+                  <select
+                    value={failedMethodFilter}
+                    onChange={(event) =>
+                      setFailedMethodFilter(event.target.value)
+                    }
+                    className='mt-1 w-full p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-xs'
                   >
-                    <p className='font-semibold text-slate-700 dark:text-slate-200'>
-                      {item.method}{' '}
-                      {item.status === -1 ? 'NETWORK' : item.status}
-                    </p>
-                    <p className='truncate text-slate-600 dark:text-slate-300'>
-                      {item.url}
-                    </p>
-                    <p className='text-slate-500 dark:text-slate-400'>
-                      {item.statusText} -{' '}
-                      {new Date(item.lastAttemptAt).toLocaleString('id-ID')}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+                    <option value='all'>All methods</option>
+                    {availableFailedMethods.map((method) => (
+                      <option key={method} value={method}>
+                        {method}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className='text-xs text-slate-600 dark:text-slate-300'>
+                  Status
+                  <select
+                    value={failedStatusFilter}
+                    onChange={(event) =>
+                      setFailedStatusFilter(
+                        event.target.value as 'all' | 'network' | 'http',
+                      )
+                    }
+                    className='mt-1 w-full p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-xs'
+                  >
+                    <option value='all'>All statuses</option>
+                    <option value='network'>Network error</option>
+                    <option value='http'>HTTP error</option>
+                  </select>
+                </label>
+              </div>
 
-        <hr className='my-6 border-slate-300 dark:border-slate-600' />
-
-        <div className='mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950/20'>
-          <h2 className='font-semibold mb-2'>Deletion summary (preview)</h2>
-          <ul className='text-sm space-y-1 text-slate-700 dark:text-slate-200'>
-            <li>Cash Log to delete: {summary.cashLogDeleted}</li>
-            <li>
-              Cash Log to delete by wallets option:{' '}
-              {summary.cashLogDeletedByWallet}
-            </li>
-            <li>Monthly Budget to delete: {summary.monthlyBudgetDeleted}</li>
-            <li>Wallets to delete: {summary.walletDeleted}</li>
-            <li>User categories to delete: {summary.userCategoryDeleted}</li>
-          </ul>
-        </div>
-
-        {loadingOptions ? (
-          <p className='text-sm text-slate-500 dark:text-slate-400'>
-            Loading month options...
-          </p>
-        ) : (
-          <div className='space-y-6'>
-            <section className='rounded-lg border border-slate-200 dark:border-slate-700 p-4'>
-              <h2 className='font-semibold mb-3'>
-                1. Delete Cash Log transactions
-              </h2>
-              <select
-                value={cashLogScope}
-                onChange={(event) =>
-                  setCashLogScope(event.target.value as DeleteScope)
-                }
-                className='w-full md:w-72 p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'
-              >
-                <option value='none'>Do not delete</option>
-                <option value='months'>Delete selected months</option>
-                <option value='all'>Delete all</option>
-              </select>
-
-              {cashLogScope === 'months' && (
-                <div className='mt-3 grid grid-cols-2 md:grid-cols-4 gap-2'>
-                  {availableCashLogMonths.length === 0 && (
-                    <p className='text-sm text-slate-500 dark:text-slate-400'>
-                      No months found.
-                    </p>
-                  )}
-                  {availableCashLogMonths.map((month) => (
-                    <label
-                      key={month}
-                      className='text-sm flex items-center gap-2'
+              {filteredFailedHistory.length === 0 ? (
+                <p className='text-xs text-slate-500 dark:text-slate-400'>
+                  No failed requests match current filter.
+                </p>
+              ) : (
+                <ul className='space-y-2'>
+                  {filteredFailedHistory.map((item) => (
+                    <li
+                      key={item.id}
+                      className='rounded border border-slate-200 px-2 py-2 text-xs dark:border-slate-700'
                     >
-                      <input
-                        type='checkbox'
-                        checked={cashLogMonths.includes(month)}
-                        onChange={() =>
-                          toggleMonth(month, cashLogMonths, setCashLogMonths)
-                        }
-                      />
-                      {month}
-                    </label>
+                      <p className='font-semibold text-slate-700 dark:text-slate-200'>
+                        {item.method}{' '}
+                        {item.status === -1 ? 'NETWORK' : item.status}
+                      </p>
+                      <p className='truncate text-slate-600 dark:text-slate-300'>
+                        {item.url}
+                      </p>
+                      <p className='text-slate-500 dark:text-slate-400'>
+                        {item.statusText} -{' '}
+                        {new Date(item.lastAttemptAt).toLocaleString('id-ID')}
+                      </p>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
-            </section>
-
-            <section className='rounded-lg border border-slate-200 dark:border-slate-700 p-4'>
-              <h2 className='font-semibold mb-3'>
-                2. Delete Monthly Budget data
-              </h2>
-              <select
-                value={budgetScope}
-                onChange={(event) =>
-                  setBudgetScope(event.target.value as DeleteScope)
-                }
-                className='w-full md:w-72 p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'
-              >
-                <option value='none'>Do not delete</option>
-                <option value='months'>Delete selected months</option>
-                <option value='all'>Delete all</option>
-              </select>
-
-              {budgetScope === 'months' && (
-                <div className='mt-3 grid grid-cols-2 md:grid-cols-4 gap-2'>
-                  {availableBudgetMonths.length === 0 && (
-                    <p className='text-sm text-slate-500 dark:text-slate-400'>
-                      No months found.
-                    </p>
-                  )}
-                  {availableBudgetMonths.map((month) => (
-                    <label
-                      key={month}
-                      className='text-sm flex items-center gap-2'
-                    >
-                      <input
-                        type='checkbox'
-                        checked={budgetMonths.includes(month)}
-                        onChange={() =>
-                          toggleMonth(month, budgetMonths, setBudgetMonths)
-                        }
-                      />
-                      {month}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section className='rounded-lg border border-slate-200 dark:border-slate-700 p-4'>
-              <h2 className='font-semibold mb-3'>3. Delete Wallets</h2>
-              <label className='text-sm flex items-center gap-2'>
-                <input
-                  type='checkbox'
-                  checked={deleteWallets}
-                  onChange={(event) => setDeleteWallets(event.target.checked)}
-                />
-                Reset wallets to initial state (keep 1 seed wallet Cash) and
-                delete all related cash log transactions.
-              </label>
-            </section>
-
-            <section className='rounded-lg border border-slate-200 dark:border-slate-700 p-4'>
-              <h2 className='font-semibold mb-3'>
-                4. Delete user-added categories
-              </h2>
-              <label className='text-sm flex items-center gap-2'>
-                <input
-                  type='checkbox'
-                  checked={deleteUserCategories}
-                  onChange={(event) =>
-                    setDeleteUserCategories(event.target.checked)
-                  }
-                />
-                Delete only categories created by users (default seed categories
-                are protected).
-              </label>
-            </section>
-
-            <div className='pt-2'>
-              <button
-                type='button'
-                onClick={submitPurge}
-                disabled={!hasAnyAction || submitting}
-                className='px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                {submitting ? 'Deleting...' : 'Delete selected data'}
-              </button>
             </div>
           </div>
-        )}
-      </div>
+
+          <hr className='my-6 border-slate-300 dark:border-slate-600' />
+
+          <div className='mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950/20'>
+            <h2 className='font-semibold mb-2'>Deletion summary (preview)</h2>
+            <ul className='text-sm space-y-1 text-slate-700 dark:text-slate-200'>
+              <li>Cash Log to delete: {summary.cashLogDeleted}</li>
+              <li>
+                Cash Log to delete by wallets option:{' '}
+                {summary.cashLogDeletedByWallet}
+              </li>
+              <li>Monthly Budget to delete: {summary.monthlyBudgetDeleted}</li>
+              <li>Wallets to delete: {summary.walletDeleted}</li>
+              <li>User categories to delete: {summary.userCategoryDeleted}</li>
+            </ul>
+          </div>
+
+          {loadingOptions ? (
+            <p className='text-sm text-slate-500 dark:text-slate-400'>
+              Loading month options...
+            </p>
+          ) : (
+            <div className='space-y-6'>
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    1. Delete Cash Log transactions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <select
+                    value={cashLogScope}
+                    onChange={(event) =>
+                      setCashLogScope(event.target.value as DeleteScope)
+                    }
+                    className='w-full md:w-72 p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'
+                  >
+                    <option value='none'>Do not delete</option>
+                    <option value='months'>Delete selected months</option>
+                    <option value='all'>Delete all</option>
+                  </select>
+
+                  {cashLogScope === 'months' && (
+                    <div className='mt-3 grid grid-cols-2 md:grid-cols-4 gap-2'>
+                      {availableCashLogMonths.length === 0 && (
+                        <p className='text-sm text-slate-500 dark:text-slate-400'>
+                          No months found.
+                        </p>
+                      )}
+                      {availableCashLogMonths.map((month) => (
+                        <Label
+                          key={month}
+                          className='text-sm flex items-center gap-2'
+                        >
+                          <Checkbox
+                            checked={cashLogMonths.includes(month)}
+                            onCheckedChange={() =>
+                              toggleMonth(
+                                month,
+                                cashLogMonths,
+                                setCashLogMonths,
+                              )
+                            }
+                          />
+                          {month}
+                        </Label>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    2. Delete Monthly Budget data
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <select
+                    value={budgetScope}
+                    onChange={(event) =>
+                      setBudgetScope(event.target.value as DeleteScope)
+                    }
+                    className='w-full md:w-72 p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'
+                  >
+                    <option value='none'>Do not delete</option>
+                    <option value='months'>Delete selected months</option>
+                    <option value='all'>Delete all</option>
+                  </select>
+
+                  {budgetScope === 'months' && (
+                    <div className='mt-3 grid grid-cols-2 md:grid-cols-4 gap-2'>
+                      {availableBudgetMonths.length === 0 && (
+                        <p className='text-sm text-slate-500 dark:text-slate-400'>
+                          No months found.
+                        </p>
+                      )}
+                      {availableBudgetMonths.map((month) => (
+                        <Label
+                          key={month}
+                          className='text-sm flex items-center gap-2'
+                        >
+                          <Checkbox
+                            checked={budgetMonths.includes(month)}
+                            onCheckedChange={() =>
+                              toggleMonth(
+                                month,
+                                budgetMonths,
+                                setBudgetMonths,
+                              )
+                            }
+                          />
+                          {month}
+                        </Label>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>3. Delete Wallets</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Label className='text-sm flex items-center gap-2'>
+                    <Checkbox
+                      checked={deleteWallets}
+                      onCheckedChange={(checked) =>
+                        setDeleteWallets(checked === true)
+                      }
+                    />
+                    Reset wallets to initial state (keep 1 seed wallet Cash) and
+                    delete all related cash log transactions.
+                  </Label>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    4. Delete user-added categories
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Label className='text-sm flex items-center gap-2'>
+                    <Checkbox
+                      checked={deleteUserCategories}
+                      onCheckedChange={(checked) =>
+                        setDeleteUserCategories(checked === true)
+                      }
+                    />
+                    Delete only categories created by users (default seed
+                    categories are protected).
+                  </Label>
+                </CardContent>
+              </Card>
+
+              <div className='pt-2'>
+                <Button
+                  onClick={submitPurge}
+                  disabled={!hasAnyAction || submitting}
+                  variant='destructive'
+                >
+                  {submitting ? 'Deleting...' : 'Delete selected data'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 'use client';
 
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
+import { Lock, LockOpen } from 'lucide-react';
 import { useDashboardData } from '../hooks/useDashboardData';
 import DashboardMonthlyView from './DashboardMonthlyView';
 import DashboardSummaryView from './DashboardSummaryView';
@@ -91,7 +90,7 @@ export default function DashboardView() {
             className='p-2 rounded-lg hover:bg-emerald-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors'
             aria-label='Toggle nominal visibility'
           >
-            {d.showNominal ? <LockOpenIcon fontSize='small' /> : <LockIcon fontSize='small' />}
+            {d.showNominal ? <LockOpen size={16} /> : <Lock size={16} />}
           </button>
         </div>
       </div>

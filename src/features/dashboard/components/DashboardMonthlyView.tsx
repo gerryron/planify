@@ -1,12 +1,7 @@
 'use client';
 
 import { useCallback, type ReactNode } from 'react';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import SavingsIcon from '@mui/icons-material/Savings';
-import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
-import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import { TrendingUp, TrendingDown, Receipt, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   BarChart,
   ComposedChart,
@@ -62,10 +57,10 @@ export default function DashboardMonthlyView({ d }: Props) {
   );
 
   const monthlySummaryCards: Array<{ key: string; icon: ReactNode; label: string; value: string; color: 'green' | 'red' | 'blue' }> = [
-    { key: 'income', icon: <TrendingUpIcon />, label: 'Income', value: d.val(d.totalIncome), color: 'green' },
-    { key: 'outcome', icon: <TrendingDownIcon />, label: 'Outcome', value: d.val(d.totalOutcome), color: 'red' },
-    { key: 'net', icon: <SavingsIcon />, label: 'Net', value: d.val(d.netBalance), color: d.netBalance >= 0 ? 'green' : 'red' },
-    { key: 'tx', icon: <ReceiptLongIcon />, label: 'Total Transactions', value: d.txCount.toString(), color: 'blue' },
+    { key: 'income', icon: <TrendingUp />, label: 'Income', value: d.val(d.totalIncome), color: 'green' },
+    { key: 'outcome', icon: <TrendingDown />, label: 'Outcome', value: d.val(d.totalOutcome), color: 'red' },
+    { key: 'net', icon: <PiggyBank />, label: 'Net', value: d.val(d.netBalance), color: d.netBalance >= 0 ? 'green' : 'red' },
+    { key: 'tx', icon: <Receipt />, label: 'Total Transactions', value: d.txCount.toString(), color: 'blue' },
   ];
 
   return (
@@ -245,11 +240,11 @@ export default function DashboardMonthlyView({ d }: Props) {
             </div>
             <div className='flex items-center gap-2'>
               <button type='button' onClick={() => d.setBudgetVsActualPageRaw((v) => Math.max(0, v - 1))} disabled={d.budgetVsActualPage === 0} className='px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed' aria-label='Previous page'>
-                <NavigateBeforeIcon fontSize='small' />
+                <ChevronLeft size={16} />
               </button>
               <span className='text-xs text-slate-500 dark:text-slate-400 min-w-14 text-center'>{d.budgetVsActualPage + 1}/{d.budgetVsActualTotalPages}</span>
               <button type='button' onClick={() => d.setBudgetVsActualPageRaw((v) => Math.min(d.budgetVsActualTotalPages - 1, v + 1))} disabled={d.budgetVsActualPage >= d.budgetVsActualTotalPages - 1} className='px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed' aria-label='Next page'>
-                <NavigateNextIcon fontSize='small' />
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>

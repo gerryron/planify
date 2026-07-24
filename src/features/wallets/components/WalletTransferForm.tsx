@@ -1,11 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import {
   walletsService,
   WalletTransferInput,
   Wallets,
 } from '@/features/wallets/services/walletsService';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface WalletTransferFormProps {
   initialFromWalletId?: number;
@@ -232,16 +244,7 @@ export default function WalletTransferForm({
       return;
     }
 
-    const confirm = await Swal.fire({
-      title: 'Continue transfer?',
-      text: 'Make sure the amount and destination wallet are correct.',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Transfer',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (!confirm.isConfirmed) return;
+    if (!window.confirm('Continue transfer?\nMake sure the amount and destination wallet are correct.')) return;
 
     setSubmitting(true);
     setError(null);
@@ -261,12 +264,7 @@ export default function WalletTransferForm({
 
       await walletsService.transfer(payload);
 
-      await Swal.fire({
-        icon: 'success',
-        title: 'Transfer successful',
-        timer: 1200,
-        showConfirmButton: false,
-      });
+      toast.success('Transfer successful');
 
       onSuccess();
       setForm(initialState);
@@ -278,17 +276,17 @@ export default function WalletTransferForm({
   };
 
   if (loadingWallets) {
-    return <div className='text-sm text-gray-500'>Loading wallets...</div>;
+    return <div className='text-sm text-muted-foreground'>Loading wallets...</div>;
   }
 
   return (
     <form onSubmit={handleSubmit} className='space-y-4'>
-      <div>
-        <label className='block text-sm font-medium'>Source Wallet</label>
-        <select
-          value={form.fromWalletId}
-          onChange={(e) => {
-            const nextFromWalletId = Number(e.target.value);
+      <div className='grid gap-2'>
+        <Label>Source Wallet</Label>
+        <Select
+          value={String(form.fromWalletId)}
+          onValueChange={(value) => {
+            const nextFromWalletId = Number(value);
             const nextToWalletId =
               form.toWalletId === nextFromWalletId
                 ? (wallets.find((wallet) => wallet.id !== nextFromWalletId)
@@ -301,128 +299,127 @@ export default function WalletTransferForm({
               toWalletId: nextToWalletId,
             }));
           }}
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
         >
-          <option value={0} disabled>
-            Select source wallet
-          </option>
-          {groupedWallets.included.length > 0 && (
-            <optgroup label='Included from total'>
-              {groupedWallets.included.map((wallet) => (
-                <option key={wallet.id} value={wallet.id}>
-                  {wallet.name}
-                  {wallet.walletKind === 'goal'
-                    ? ' - Goal'
-                    : wallet.walletKind === 'credit_card'
-                      ? ' - Credit Card'
-                      : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {groupedWallets.excluded.length > 0 && (
-            <optgroup label='Excluded from total'>
-              {groupedWallets.excluded.map((wallet) => (
-                <option key={wallet.id} value={wallet.id}>
-                  {wallet.name}
-                  {wallet.walletKind === 'goal'
-                    ? ' - Goal'
-                    : wallet.walletKind === 'credit_card'
-                      ? ' - Credit Card'
-                      : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
+          <SelectTrigger className='w-full'>
+            <SelectValue placeholder='Select source wallet' />
+          </SelectTrigger>
+          <SelectContent>
+            {groupedWallets.included.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Included from total</SelectLabel>
+                {groupedWallets.included.map((wallet) => (
+                  <SelectItem key={wallet.id} value={String(wallet.id)}>
+                    {wallet.name}
+                    {wallet.walletKind === 'goal'
+                      ? ' - Goal'
+                      : wallet.walletKind === 'credit_card'
+                        ? ' - Credit Card'
+                        : ''}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+            {groupedWallets.excluded.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Excluded from total</SelectLabel>
+                {groupedWallets.excluded.map((wallet) => (
+                  <SelectItem key={wallet.id} value={String(wallet.id)}>
+                    {wallet.name}
+                    {wallet.walletKind === 'goal'
+                      ? ' - Goal'
+                      : wallet.walletKind === 'credit_card'
+                        ? ' - Credit Card'
+                        : ''}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div>
-        <label className='block text-sm font-medium'>Destination Wallet</label>
-        <select
-          value={form.toWalletId}
-          onChange={(e) =>
-            setForm((prev) => ({ ...prev, toWalletId: Number(e.target.value) }))
+      <div className='grid gap-2'>
+        <Label>Destination Wallet</Label>
+        <Select
+          value={String(form.toWalletId)}
+          onValueChange={(value) =>
+            setForm((prev) => ({ ...prev, toWalletId: Number(value) }))
           }
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
         >
-          <option value={0} disabled>
-            Select destination wallet
-          </option>
-          {destinationWallets.included.length > 0 && (
-            <optgroup label='Included from total'>
-              {destinationWallets.included.map((wallet) => (
-                <option key={wallet.id} value={wallet.id}>
-                  {wallet.name}
-                  {wallet.walletKind === 'goal'
-                    ? ' - Goal'
-                    : wallet.walletKind === 'credit_card'
-                      ? ' - Credit Card'
-                      : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {destinationWallets.excluded.length > 0 && (
-            <optgroup label='Excluded from total'>
-              {destinationWallets.excluded.map((wallet) => (
-                <option key={wallet.id} value={wallet.id}>
-                  {wallet.name}
-                  {wallet.walletKind === 'goal'
-                    ? ' - Goal'
-                    : wallet.walletKind === 'credit_card'
-                      ? ' - Credit Card'
-                      : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
+          <SelectTrigger className='w-full'>
+            <SelectValue placeholder='Select destination wallet' />
+          </SelectTrigger>
+          <SelectContent>
+            {destinationWallets.included.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Included from total</SelectLabel>
+                {destinationWallets.included.map((wallet) => (
+                  <SelectItem key={wallet.id} value={String(wallet.id)}>
+                    {wallet.name}
+                    {wallet.walletKind === 'goal'
+                      ? ' - Goal'
+                      : wallet.walletKind === 'credit_card'
+                        ? ' - Credit Card'
+                        : ''}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+            {destinationWallets.excluded.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Excluded from total</SelectLabel>
+                {destinationWallets.excluded.map((wallet) => (
+                  <SelectItem key={wallet.id} value={String(wallet.id)}>
+                    {wallet.name}
+                    {wallet.walletKind === 'goal'
+                      ? ' - Goal'
+                      : wallet.walletKind === 'credit_card'
+                        ? ' - Credit Card'
+                        : ''}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div>
-        <label className='block text-sm font-medium'>Transfer Amount</label>
-        <input
+      <div className='grid gap-2'>
+        <Label>Transfer Amount</Label>
+        <Input
           type='text'
           inputMode='numeric'
           value={formatRupiahInput(form.amount)}
           onChange={(e) => handleNumberChange('amount', e.target.value)}
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
-        <p className='text-xs text-gray-500 mt-1'>
+        <p className='text-xs text-muted-foreground mt-1'>
           {fromWallet?.walletKind === 'credit_card'
             ? `Remaining credit limit: Rp ${availableToTransfer.toLocaleString('id-ID')}`
             : `Maximum transferable: Rp ${availableToTransfer.toLocaleString('id-ID')}`}
         </p>
       </div>
 
-      <div>
-        <label className='block text-sm font-medium'>Transfer Date</label>
-        <input
+      <div className='grid gap-2'>
+        <Label>Transfer Date</Label>
+        <Input
           type='date'
           value={form.date}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, date: e.target.value }))
           }
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
           required
         />
       </div>
 
-      <div>
-        <label className='block text-sm font-medium'>
-          Transfer Note (optional)
-        </label>
-        <input
+      <div className='grid gap-2'>
+        <Label>Transfer Note (optional)</Label>
+        <Input
           value={form.transferNote}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, transferNote: e.target.value }))
           }
           placeholder='Example: Move operating funds'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
         />
       </div>
 
@@ -456,51 +453,51 @@ export default function WalletTransferForm({
 
       {form.enableFee && (
         <div className='space-y-4 rounded border border-emerald-200 dark:border-slate-700 p-3'>
-          <div>
-            <label className='block text-sm font-medium'>Fee Amount</label>
-            <input
+          <div className='grid gap-2'>
+            <Label>Fee Amount</Label>
+            <Input
               type='text'
               inputMode='numeric'
               value={formatRupiahInput(form.feeAmount)}
               onChange={(e) => handleNumberChange('feeAmount', e.target.value)}
-              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
               required
             />
           </div>
 
-          <div>
-            <label className='block text-sm font-medium'>Fee Payer</label>
-            <select
+          <div className='grid gap-2'>
+            <Label>Fee Payer</Label>
+            <Select
               value={form.feePayer}
-              onChange={(e) =>
+              onValueChange={(value) =>
                 setForm((prev) => ({
                   ...prev,
-                  feePayer: e.target.value as FeePayer,
+                  feePayer: value as FeePayer,
                 }))
               }
-              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             >
-              <option value='sender'>Sender Wallet</option>
-              <option value='receiver'>Receiver Wallet</option>
-            </select>
+              <SelectTrigger className='w-full'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='sender'>Sender Wallet</SelectItem>
+                <SelectItem value='receiver'>Receiver Wallet</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label className='block text-sm font-medium'>
-              Fee Note (optional)
-            </label>
-            <input
+          <div className='grid gap-2'>
+            <Label>Fee Note (optional)</Label>
+            <Input
               value={form.feeNote}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, feeNote: e.target.value }))
               }
               placeholder='Example: Transfer admin fee'
-              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             />
           </div>
 
           {form.feePayer === 'receiver' && (
-            <p className='text-xs text-gray-500'>
+            <p className='text-xs text-muted-foreground'>
               Net amount received by destination wallet: Rp{' '}
               {receiverNetAmount.toLocaleString('id-ID')}
             </p>
@@ -508,15 +505,11 @@ export default function WalletTransferForm({
         </div>
       )}
 
-      {error && <div className='text-red-500 text-sm'>{error}</div>}
+      {error && <div className='text-sm text-destructive'>{error}</div>}
 
-      <button
-        type='submit'
-        disabled={submitting}
-        className='w-full px-4 py-2.5 bg-emerald-600 text-white rounded mt-2 min-h-11 disabled:opacity-60'
-      >
+      <Button type='submit' disabled={submitting} className='w-full'>
         {submitting ? 'Processing...' : 'Transfer'}
-      </button>
+      </Button>
     </form>
   );
 }

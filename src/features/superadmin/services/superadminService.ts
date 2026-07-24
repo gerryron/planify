@@ -1,3 +1,5 @@
+import { apiClient } from '@/core/http/apiClient';
+
 export type ManagedUser = {
   id: number;
   name: string;
@@ -6,51 +8,25 @@ export type ManagedUser = {
   createdAt: string;
 };
 
-async function readError(res: Response, fallback: string) {
-  const body = (await res.json().catch(() => null)) as {
-    error?: string;
-  } | null;
-  return body?.error ?? fallback;
-}
-
 export const superadminService = {
   async getUsers() {
-    const res = await fetch('/api/superadmin/users', { method: 'GET' });
-    if (!res.ok) {
-      throw new Error(await readError(res, 'Failed to fetch users'));
-    }
-
-    return (await res.json()) as {
+    return apiClient.get<{
       pending: ManagedUser[];
       active: ManagedUser[];
-    };
+    }>('/api/superadmin/users');
   },
 
   async approve(userId: number) {
-    const res = await fetch('/api/superadmin/users/approve', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    });
-
-    if (!res.ok) {
-      throw new Error(await readError(res, 'Failed to approve user'));
-    }
-
-    return (await res.json()) as { success: true };
+    return apiClient.patch<{ success: true }>(
+      '/api/superadmin/users/approve',
+      { userId },
+    );
   },
 
   async deactivate(userId: number) {
-    const res = await fetch('/api/superadmin/users/deactivate', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    });
-
-    if (!res.ok) {
-      throw new Error(await readError(res, 'Failed to deactivate user'));
-    }
-
-    return (await res.json()) as { success: true };
+    return apiClient.patch<{ success: true }>(
+      '/api/superadmin/users/deactivate',
+      { userId },
+    );
   },
 };

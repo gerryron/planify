@@ -1,5 +1,7 @@
+'use client';
+
 import { useEffect, useMemo, useState } from 'react';
-import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 import {
   cashLogService,
   CashLog,
@@ -11,6 +13,19 @@ import {
 } from '@/features/wallets/services/walletsService';
 import { categoryService } from '@/features/categories/services/categoryService';
 import { Category } from '@/features/categories/types/category';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface CashLogFormProps {
   initial?: CashLog | null;
@@ -175,21 +190,19 @@ export default function CashLogForm({
     return `Rp ${Math.abs(form.amount).toLocaleString('id-ID')}`;
   }, [form.amount]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]:
-        name === 'amount'
-          ? value === ''
-            ? 0
-            : Number(value.replace(/[^\d]/g, ''))
-          : name === 'categoryId'
-            ? Number(value)
-            : value,
+      amount: value === '' ? 0 : Number(value.replace(/[^\d]/g, '')),
+    }));
+  };
+
+  const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
@@ -206,30 +219,14 @@ export default function CashLogForm({
     const isUpdate = initial && initial.id;
 
     if (isUpdate && isLinkedTransferEntry) {
-      const relationConfirm = await Swal.fire({
-        title: 'Transaksi transfer terhubung',
-        text: 'Perubahan pada transaksi ini akan otomatis disinkronkan ke transaksi transfer pasangannya.',
-        icon: 'info',
-        showCancelButton: true,
-        confirmButtonText: 'Lanjutkan',
-        cancelButtonText: 'Batal',
-      });
-
-      if (!relationConfirm.isConfirmed) return;
+      if (!window.confirm('Transaksi transfer terhubung\nPerubahan pada transaksi ini akan otomatis disinkronkan ke transaksi transfer pasangannya.')) return;
     }
 
-    const confirmResult = await Swal.fire({
-      title: isUpdate ? 'Update this transaction?' : 'Add this transaction?',
-      text: isUpdate
-        ? 'Are you sure you want to update this entry?'
-        : 'Are you sure you want to add this entry?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: isUpdate ? 'Update' : 'Add',
-      cancelButtonText: 'Cancel',
-    });
-
-    if (!confirmResult.isConfirmed) return;
+    if (!window.confirm(
+      isUpdate
+        ? 'Update this transaction?\nAre you sure you want to update this entry?'
+        : 'Add this transaction?\nAre you sure you want to add this entry?',
+    )) return;
 
     setLoading(true);
     setError(null);
@@ -237,20 +234,10 @@ export default function CashLogForm({
     try {
       if (isUpdate) {
         await cashLogService.update(initial.id, payload);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Transaction updated!',
-          showConfirmButton: false,
-          timer: 1200,
-        });
+        toast.success('Transaction updated!');
       } else {
         await cashLogService.create(payload);
-        await Swal.fire({
-          icon: 'success',
-          title: 'Transaction added!',
-          showConfirmButton: false,
-          timer: 1200,
-        });
+        toast.success('Transaction added!');
       }
 
       onSuccess();
@@ -265,178 +252,152 @@ export default function CashLogForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
+      className="space-y-4 rounded-xl border bg-card p-4 text-card-foreground shadow-sm sm:p-5"
     >
-      <div>
-        <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden mb-3'>
-          <span
-            className={
-              'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +
-              (activeCategoryType === 'income'
-                ? 'bg-emerald-500 '
-                : 'bg-red-500 ') +
-              (activeCategoryType === 'income'
-                ? 'translate-x-0'
-                : 'translate-x-full')
-            }
-            aria-hidden='true'
-          />
-          <div className='relative z-10 grid grid-cols-2'>
-            <button
-              type='button'
-              onClick={() => handleCategoryTypeChange('income')}
-              className={
-                'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
-                (activeCategoryType === 'income'
-                  ? 'text-white dark:text-slate-900'
-                  : 'text-gray-700 dark:text-gray-200')
-              }
-            >
-              Income
-            </button>
-            <button
-              type='button'
-              onClick={() => handleCategoryTypeChange('outcome')}
-              className={
-                'rounded px-3 py-2.5 text-sm transition-colors duration-500 ' +
-                (activeCategoryType === 'outcome'
-                  ? 'text-white'
-                  : 'text-gray-700 dark:text-gray-200')
-              }
-            >
-              Outcome
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label className='block text-sm font-medium'>Wallet</label>
-        <select
-          name='walletName'
-          value={form.walletName}
-          onChange={handleChange}
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
+      {/* Income / Outcome toggle */}
+      <div className="flex rounded-lg border border-border bg-muted/50 p-1">
+        <Button
+          type="button"
+          variant={activeCategoryType === 'income' ? 'default' : 'ghost'}
+          className={
+            activeCategoryType === 'income'
+              ? 'flex-1 bg-emerald-600 text-white hover:bg-emerald-600/80'
+              : 'flex-1'
+          }
+          onClick={() => handleCategoryTypeChange('income')}
         >
-          {groupedWallets.included.length > 0 && (
-            <optgroup label='Included from total'>
-              {groupedWallets.included.map((wallet) => (
-                <option key={wallet.id} value={wallet.name}>
-                  {wallet.name}
-                  {wallet.walletKind === 'credit_card' ? ' - Credit Card' : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {groupedWallets.excluded.length > 0 && (
-            <optgroup label='Excluded from total'>
-              {groupedWallets.excluded.map((wallet) => (
-                <option key={wallet.id} value={wallet.name}>
-                  {wallet.name}
-                  {wallet.walletKind === 'credit_card' ? ' - Credit Card' : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
-      </div>
-
-      <div>
-        <label className='block text-sm font-medium'>Category</label>
-        <select
-          name='categoryId'
-          value={form.categoryId}
-          onChange={handleChange}
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
-          required
+          Income
+        </Button>
+        <Button
+          type="button"
+          variant={activeCategoryType === 'outcome' ? 'default' : 'ghost'}
+          className={
+            activeCategoryType === 'outcome'
+              ? 'flex-1 bg-red-600 text-white hover:bg-red-600/80'
+              : 'flex-1'
+          }
+          onClick={() => handleCategoryTypeChange('outcome')}
         >
-          <option value='' disabled>
-            Select category
-          </option>
-          {activeCategories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.parentId ? `— ${category.name}` : category.name}
-            </option>
-          ))}
-        </select>
+          Outcome
+        </Button>
       </div>
 
-      <div>
-        <label className='block text-sm font-medium'>Transaction Date</label>
-        <input
-          name='date'
-          type='date'
+      {/* Wallet */}
+      <div className="space-y-1.5">
+        <Label>Wallet</Label>
+        <Select value={form.walletName} onValueChange={(value) => setForm((prev) => ({ ...prev, walletName: value ?? '' }))}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select wallet" />
+          </SelectTrigger>
+          <SelectContent>
+            {groupedWallets.included.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Included from total</SelectLabel>
+                {groupedWallets.included.map((wallet) => (
+                  <SelectItem key={wallet.id} value={wallet.name}>
+                    {wallet.name}
+                    {wallet.walletKind === 'credit_card' ? ' - Credit Card' : ''}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+            {groupedWallets.excluded.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Excluded from total</SelectLabel>
+                {groupedWallets.excluded.map((wallet) => (
+                  <SelectItem key={wallet.id} value={wallet.name}>
+                    {wallet.name}
+                    {wallet.walletKind === 'credit_card' ? ' - Credit Card' : ''}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Category */}
+      <div className="space-y-1.5">
+        <Label>Category</Label>
+        <Select
+          value={String(form.categoryId)}
+          onValueChange={(value) =>
+            setForm((prev) => ({ ...prev, categoryId: Number(value ?? 0) }))
+          }
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select category" />
+          </SelectTrigger>
+          <SelectContent>
+            {activeCategories.map((category) => (
+              <SelectItem key={category.id} value={String(category.id)}>
+                {category.parentId ? `— ${category.name}` : category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Transaction Date */}
+      <div className="space-y-1.5">
+        <Label htmlFor="date">Transaction Date</Label>
+        <Input
+          id="date"
+          name="date"
+          type="date"
           value={form.date}
-          onChange={handleChange}
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          onChange={handleFieldChange}
           required
         />
       </div>
 
-      <div>
-        <label className='block text-sm font-medium'>Amount</label>
-        <input
-          name='amount'
-          type='text'
-          inputMode='numeric'
+      {/* Amount */}
+      <div className="space-y-1.5">
+        <Label htmlFor="amount">Amount</Label>
+        <Input
+          id="amount"
+          name="amount"
+          type="text"
+          inputMode="numeric"
           value={formattedAmount}
-          onChange={handleChange}
-          placeholder='e.g. 50000'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          onChange={handleAmountChange}
+          placeholder="e.g. 50000"
           required
         />
       </div>
 
-      <div>
-        <label className='block text-sm font-medium'>Description</label>
-        <input
-          name='description'
+      {/* Description */}
+      <div className="space-y-1.5">
+        <Label htmlFor="description">Description</Label>
+        <Input
+          id="description"
+          name="description"
           value={form.description}
-          onChange={handleChange}
-          placeholder='Optional: e.g. Lunch, Fuel, Freelance'
-          className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
+          onChange={handleFieldChange}
+          placeholder="Optional: e.g. Lunch, Fuel, Freelance"
         />
       </div>
 
-      <div className='flex items-center justify-between gap-3'>
-        <span className='text-sm font-medium'>Exclude from report</span>
-        <button
-          type='button'
-          role='switch'
-          aria-checked={form.excludeFromReport}
-          aria-label='Exclude from report'
-          onClick={() =>
+      {/* Exclude from report */}
+      <div className="flex items-center justify-between">
+        <Label htmlFor="exclude-from-report">Exclude from report</Label>
+        <Switch
+          id="exclude-from-report"
+          checked={form.excludeFromReport}
+          onCheckedChange={(checked) =>
             setForm((prev) => ({
               ...prev,
-              excludeFromReport: !prev.excludeFromReport,
+              excludeFromReport: checked,
             }))
           }
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            form.excludeFromReport
-              ? 'bg-emerald-600'
-              : 'bg-gray-300 dark:bg-slate-600'
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              form.excludeFromReport ? 'translate-x-6' : 'translate-x-1'
-            }`}
-          />
-        </button>
+        />
       </div>
 
-      {error && <div className='text-red-500'>{error}</div>}
+      {error && <div className="text-sm text-destructive">{error}</div>}
 
-      <div>
-        <button
-          type='submit'
-          className='w-full px-4 py-2.5 bg-green-600 text-white rounded mt-2 min-h-11'
-          disabled={loading}
-        >
-          {initial ? 'Update' : 'Add'}
-        </button>
-      </div>
+      <Button type="submit" className="w-full" disabled={loading}>
+        {initial ? 'Update' : 'Add'}
+      </Button>
     </form>
   );
 }
