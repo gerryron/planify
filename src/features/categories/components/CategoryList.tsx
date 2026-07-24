@@ -13,6 +13,7 @@ import { categoryService } from '@/features/categories/services/categoryService'
 import { Category } from '@/features/categories/types/category';
 import { CategoryTreeNode } from '@/features/categories/types/categoryTree';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 
 interface CategoryListProps {
   onEdit: (category: Category) => void;
@@ -145,14 +146,14 @@ export default function CategoryList({
       variant: 'destructive',
     })) return;
 
-    try {
-      await categoryService.remove(id);
-      toast.success('Category deleted successfully.');
+    const result = await asyncToast(
+      () => categoryService.remove(id),
+      { success: 'Category deleted successfully.', error: 'Failed to delete category.' }
+    );
+    if (result) {
       const data = await categoryService.getAll();
       setCategories(data);
       onDataLoaded?.(data);
-    } catch {
-      toast.error('Failed to delete category.');
     }
   };
 

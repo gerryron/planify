@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 import {
   Select,
   SelectContent,
@@ -239,22 +240,15 @@ export default function CashLogForm({
     setLoading(true);
     setError(null);
 
-    try {
-      if (isUpdate) {
-        await cashLogService.update(initial.id, payload);
-        toast.success('Transaction updated!');
-      } else {
-        await cashLogService.create(payload);
-        toast.success('Transaction added!');
-      }
-
+    const result = await asyncToast(
+      () => isUpdate ? cashLogService.update(initial.id, payload) : cashLogService.create(payload),
+      { success: isUpdate ? 'Transaction updated!' : 'Transaction added!', error: 'Failed to save cash log' }
+    );
+    if (result) {
       onSuccess();
       setForm(defaultForm);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save cash log');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (

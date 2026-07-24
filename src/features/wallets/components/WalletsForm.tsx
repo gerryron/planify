@@ -10,6 +10,7 @@ import {
 import { WalletsInput } from '@/features/wallets/types/wallets';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 
 interface WalletsFormProps {
   initial?: Wallets | null;
@@ -156,22 +157,15 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
     setLoading(true);
     setError(null);
 
-    try {
-      if (isUpdate) {
-        await walletsService.update(initial.id, form);
-        toast.success('Wallet updated!');
-      } else {
-        await walletsService.create(form);
-        toast.success('Wallet added!');
-      }
-
+    const result = await asyncToast(
+      () => isUpdate ? walletsService.update(initial.id, form) : walletsService.create(form),
+      { success: isUpdate ? 'Wallet updated!' : 'Wallet added!', error: 'Failed to save wallet' }
+    );
+    if (result) {
       onSuccess();
       setForm(defaultForm);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save wallet');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (

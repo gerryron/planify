@@ -12,6 +12,7 @@ import SortableWalletItem from './SortableWalletItem';
 import { useWalletDragDrop } from '../hooks/useWalletDragDrop';
 import { Card, CardContent } from '@/components/ui/card';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 
 interface WalletsListProps {
   onEdit: (wallet: Wallets) => void;
@@ -63,11 +64,13 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
       variant: 'destructive',
     })) return;
 
-    try {
-      const deleted = await walletsService.remove(wallet.id);
+    const result = await asyncToast(
+      () => walletsService.remove(wallet.id),
+      { success: 'Wallet deleted successfully.', error: 'Failed to delete wallet.' }
+    );
+    if (result) {
       setWallets((prev) => prev.filter((item) => item.id !== wallet.id));
-      toast.success(`Wallet deleted successfully. Deleted cash log transactions: ${deleted.deletedCashLogCount ?? transactionCount}.`);
-    } catch { toast.error('Failed to delete wallet.'); }
+    }
   };
 
   const handleOpenCashLog = (wallet: Wallets) => {

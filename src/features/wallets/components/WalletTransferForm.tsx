@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 
 interface WalletTransferFormProps {
   initialFromWalletId?: number;
@@ -256,30 +257,27 @@ export default function WalletTransferForm({
     setSubmitting(true);
     setError(null);
 
-    try {
-      const payload: WalletTransferInput = {
-        fromWalletId: form.fromWalletId,
-        toWalletId: form.toWalletId,
-        amount: form.amount,
-        date: form.date,
-        transferNote: form.transferNote.trim() || undefined,
-        enableFee: form.enableFee,
-        feeAmount: form.enableFee ? form.feeAmount : undefined,
-        feePayer: form.enableFee ? form.feePayer : undefined,
-        feeNote: form.enableFee ? form.feeNote.trim() || undefined : undefined,
-      };
+    const payload: WalletTransferInput = {
+      fromWalletId: form.fromWalletId,
+      toWalletId: form.toWalletId,
+      amount: form.amount,
+      date: form.date,
+      transferNote: form.transferNote.trim() || undefined,
+      enableFee: form.enableFee,
+      feeAmount: form.enableFee ? form.feeAmount : undefined,
+      feePayer: form.enableFee ? form.feePayer : undefined,
+      feeNote: form.enableFee ? form.feeNote.trim() || undefined : undefined,
+    };
 
-      await walletsService.transfer(payload);
-
-      toast.success('Transfer successful');
-
+    const result = await asyncToast(
+      () => walletsService.transfer(payload),
+      { success: 'Transfer successful', error: 'Transfer failed. Please try again.' }
+    );
+    if (result) {
       onSuccess();
       setForm(initialState);
-    } catch {
-      setError('Transfer failed. Please try again.');
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   };
 
   if (loadingWallets) {

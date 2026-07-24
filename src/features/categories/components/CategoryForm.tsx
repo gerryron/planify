@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 
 interface CategoryFormProps {
   initial?: Category | null;
@@ -70,22 +71,15 @@ export default function CategoryForm({
     setLoading(true);
     setError(null);
 
-    try {
-      if (isUpdate && initial) {
-        await categoryService.update(initial.id, form);
-        toast.success('Category updated!');
-      } else {
-        await categoryService.create(form);
-        toast.success('Category added!');
-      }
-
+    const result = await asyncToast(
+      () => isUpdate && initial ? categoryService.update(initial.id, form) : categoryService.create(form),
+      { success: isUpdate ? 'Category updated!' : 'Category added!', error: 'Failed to save category' }
+    );
+    if (result) {
       onSuccess();
       setForm(defaultForm);
-    } catch {
-      setError('Failed to save category');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const handleTypeChange = (nextType: CategoryType) => {

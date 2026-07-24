@@ -18,6 +18,7 @@ import {
   Wallets,
 } from '@/features/wallets/services/walletsService';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 import {
   Select,
   SelectContent,
@@ -291,13 +292,13 @@ export default function CashLogList({
       variant: 'destructive',
     })) return;
 
-    try {
-      await cashLogService.remove(id);
-      toast.success('Deleted!');
+    const result = await asyncToast(
+      () => cashLogService.remove(id),
+      { success: 'Deleted!', error: 'Failed to delete entry' }
+    );
+    if (result) {
       await fetchWallets();
       fetchLogs(selectedMonth);
-    } catch {
-      toast.error('Failed to delete entry');
     }
   };
 

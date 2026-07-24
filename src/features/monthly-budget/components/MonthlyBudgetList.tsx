@@ -29,6 +29,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 import { Input } from '@/components/ui/input';
 
 interface MonthlyBudgetListProps {
@@ -331,27 +332,27 @@ export default function MonthlyBudgetList({
       variant: 'default',
     })) return;
 
-    try {
-      // 1. Add outcome (minus) to current month
-      await monthlyBudgetService.create({
-        name: `Carry Over Out ${selectedMonth}`,
-        amount: totalTransaction,
-        month: selectedMonth,
-        category: 'Carry Over',
-        type: 'outcome',
-      });
-      // 2. Add carryover income to next month
-      await monthlyBudgetService.create({
-        name: `Carry Over ${selectedMonth}`,
-        amount: totalTransaction,
-        month: targetMonth,
-        category: 'Carry Over',
-        type: 'carryover',
-      });
-      toast.success(`Carry over added to ${monthLabel(targetMonth)} and deducted from this month.`);
+    const result = await asyncToast(
+      async () => {
+        await monthlyBudgetService.create({
+          name: `Carry Over Out ${selectedMonth}`,
+          amount: totalTransaction,
+          month: selectedMonth,
+          category: 'Carry Over',
+          type: 'outcome',
+        });
+        await monthlyBudgetService.create({
+          name: `Carry Over ${selectedMonth}`,
+          amount: totalTransaction,
+          month: targetMonth,
+          category: 'Carry Over',
+          type: 'carryover',
+        });
+      },
+      { success: `Carry over added to ${monthLabel(targetMonth)} and deducted from this month.`, error: 'Failed to create carry over.' }
+    );
+    if (result) {
       fetchBudgets(selectedMonth);
-    } catch {
-      toast.error('Failed to create carry over.');
     }
   };
 
@@ -363,12 +364,12 @@ export default function MonthlyBudgetList({
       variant: 'destructive',
     })) return;
 
-    try {
-      await monthlyBudgetService.remove(id);
+    const result = await asyncToast(
+      () => monthlyBudgetService.remove(id),
+      { success: 'Budget deleted successfully.', error: 'Failed to delete budget.' }
+    );
+    if (result) {
       setBudgets((prev) => prev.filter((budget) => budget.id !== id));
-      toast.success('Budget deleted successfully.');
-    } catch {
-      toast.error('Failed to delete budget.');
     }
   };
 

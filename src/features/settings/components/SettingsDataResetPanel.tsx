@@ -31,6 +31,7 @@ import {
   type FailedWriteHistoryItem,
   requestReplayQueuedWrites,
 } from '@/shared/pwa/writeQueueClient';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import {
@@ -348,17 +349,14 @@ export default function SettingsDataResetPanel() {
     };
 
     setSubmitting(true);
-    try {
-      const result = await settingsService.purgeData(payload);
-      toast.success('Deletion completed');
+    const result = await asyncToast(
+      () => settingsService.purgeData(payload),
+      { success: 'Deletion completed', error: 'Failed to purge data' }
+    );
+    if (result) {
       router.refresh();
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to purge data';
-      toast.error(message);
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   };
 
   return (

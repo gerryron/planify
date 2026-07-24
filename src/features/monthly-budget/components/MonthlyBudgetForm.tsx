@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { asyncToast } from '@/shared/utils/asyncHelper';
 
 interface MonthlyBudgetFormProps {
   initial?: Budget | null;
@@ -150,21 +151,15 @@ export default function MonthlyBudgetForm({
     })) return;
     setLoading(true);
     setError(null);
-    try {
-      if (isUpdate) {
-        await monthlyBudgetService.update(initial.id, form);
-        toast.success('Budget updated!');
-      } else {
-        await monthlyBudgetService.create(form);
-        toast.success('Budget added!');
-      }
+    const result = await asyncToast(
+      () => isUpdate ? monthlyBudgetService.update(initial.id, form) : monthlyBudgetService.create(form),
+      { success: isUpdate ? 'Budget updated!' : 'Budget added!', error: 'Failed to save budget' }
+    );
+    if (result) {
       onSuccess();
       setForm(defaultForm);
-    } catch {
-      setError('Failed to save budget');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (
