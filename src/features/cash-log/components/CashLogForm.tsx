@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
 import {
   Select,
   SelectContent,
@@ -75,6 +76,7 @@ export default function CashLogForm({
     'income' | 'outcome'
   >(initialCategoryType);
   const isLinkedTransferEntry = Boolean(initial?.transferGroupId);
+  const confirm = useConfirm();
 
   useEffect(() => {
     const fetchWallets = async () => {
@@ -219,14 +221,20 @@ export default function CashLogForm({
     const isUpdate = initial && initial.id;
 
     if (isUpdate && isLinkedTransferEntry) {
-      if (!window.confirm('Transaksi transfer terhubung\nPerubahan pada transaksi ini akan otomatis disinkronkan ke transaksi transfer pasangannya.')) return;
+      if (!await confirm({
+        title: 'Transaksi transfer terhubung',
+        description: 'Perubahan pada transaksi ini akan otomatis disinkronkan ke transaksi transfer pasangannya.',
+        confirmLabel: 'Continue',
+        variant: 'default',
+      })) return;
     }
 
-    if (!window.confirm(
-      isUpdate
-        ? 'Update this transaction?\nAre you sure you want to update this entry?'
-        : 'Add this transaction?\nAre you sure you want to add this entry?',
-    )) return;
+    if (!await confirm({
+      title: isUpdate ? 'Update this transaction?' : 'Add this transaction?',
+      description: isUpdate ? 'Are you sure you want to update this entry?' : 'Are you sure you want to add this entry?',
+      confirmLabel: isUpdate ? 'Update' : 'Add',
+      variant: 'default',
+    })) return;
 
     setLoading(true);
     setError(null);

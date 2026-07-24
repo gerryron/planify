@@ -11,6 +11,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import SortableWalletItem from './SortableWalletItem';
 import { useWalletDragDrop } from '../hooks/useWalletDragDrop';
 import { Card, CardContent } from '@/components/ui/card';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
 
 interface WalletsListProps {
   onEdit: (wallet: Wallets) => void;
@@ -25,6 +26,7 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNominal, setShowNominal] = useState(true);
+  const confirm = useConfirm();
 
   const fetchWallets = async () => {
     setLoading(true);
@@ -54,7 +56,12 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
       transactionCount = logs.filter((item) => item.walletName === wallet.name).length;
     } catch { transactionCount = 0; }
 
-    if (!window.confirm(`Delete wallet?\nThis action cannot be undone.\nCash log transactions to delete: ${transactionCount}.`)) return;
+    if (!await confirm({
+      title: 'Delete wallet?',
+      description: `This action cannot be undone.\nCash log transactions to delete: ${transactionCount}.`,
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    })) return;
 
     try {
       const deleted = await walletsService.remove(wallet.id);

@@ -17,6 +17,16 @@ import {
   walletsService,
   Wallets,
 } from '@/features/wallets/services/walletsService';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface CashLogListProps {
   onEdit: (log: CashLog) => void;
@@ -149,6 +159,7 @@ export default function CashLogList({
   const [showNominal, setShowNominal] = useState(true);
   const hasAppliedInitialWalletRef = useRef(false);
   const monthPickerRef = useRef<HTMLInputElement>(null);
+  const confirm = useConfirm();
   const currentMonth = useMemo(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -273,7 +284,12 @@ export default function CashLogList({
   }, [wallets]);
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this entry?\nThis action cannot be undone.')) return;
+    if (!await confirm({
+      title: 'Delete this entry?',
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    })) return;
 
     try {
       await cashLogService.remove(id);
@@ -293,34 +309,41 @@ export default function CashLogList({
         <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-2'>
           <div className='w-full md:w-80'>
             <label className='block text-sm text-gray-500 mb-1'>Wallet</label>
-            <select
-              value={selectedWalletId}
-              onChange={(event) => {
-                const value = event.target.value;
+            <Select
+              value={String(selectedWalletId)}
+              onValueChange={(value) => {
                 setSelectedWalletId(value === 'all' ? 'all' : Number(value));
               }}
-              className='w-full min-h-11 p-2.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border-gray-300 dark:border-slate-700'
             >
-              <option value='all'>All Wallets</option>
-              {groupedWallets.included.length > 0 && (
-                <optgroup label='Included from total'>
-                  {groupedWallets.included.map((wallet) => (
-                    <option key={wallet.id} value={wallet.id}>
-                      {wallet.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {groupedWallets.excluded.length > 0 && (
-                <optgroup label='Excluded from total'>
-                  {groupedWallets.excluded.map((wallet) => (
-                    <option key={wallet.id} value={wallet.id}>
-                      {wallet.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
+              <SelectTrigger
+                className='w-full min-h-11 bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700'
+              >
+                <SelectValue placeholder='Select wallet' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>All Wallets</SelectItem>
+                {groupedWallets.included.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Included from total</SelectLabel>
+                    {groupedWallets.included.map((wallet) => (
+                      <SelectItem key={wallet.id} value={String(wallet.id)}>
+                        {wallet.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {groupedWallets.excluded.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Excluded from total</SelectLabel>
+                    {groupedWallets.excluded.map((wallet) => (
+                      <SelectItem key={wallet.id} value={String(wallet.id)}>
+                        {wallet.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
 
             <div
               className={`text-2xl font-bold flex items-center gap-1 ${

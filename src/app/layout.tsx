@@ -2,6 +2,7 @@ import './globals.css';
 import { ensureConfiguredSuperadmin } from '@/core/auth/ensureSuperadmin';
 import AppShell from '@/shared/layout/AppShell';
 import QueryProvider from '@/shared/providers/QueryProvider';
+import ClientProviders from '@/shared/providers/ClientProviders';
 import PWARegister from '@/shared/pwa/PWARegister';
 import { ThemeProvider } from '@/shared/theme/ThemeProvider';
 import { Toaster } from 'sonner';
@@ -54,7 +55,9 @@ export default async function RootLayout({
         <ThemeProvider />
         <Toaster position="bottom-right" richColors />
         <QueryProvider>
-          <AppShell>{children}</AppShell>
+          <ClientProviders>
+            <AppShell>{children}</AppShell>
+          </ClientProviders>
         </QueryProvider>
       </body>
     </html>

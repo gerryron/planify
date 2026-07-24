@@ -4,6 +4,16 @@ import { Lock, LockOpen } from 'lucide-react';
 import { useDashboardData } from '../hooks/useDashboardData';
 import DashboardMonthlyView from './DashboardMonthlyView';
 import DashboardSummaryView from './DashboardSummaryView';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 export default function DashboardView() {
   const d = useDashboardData();
@@ -27,35 +37,44 @@ export default function DashboardView() {
             </h1>
 
             <div className='relative w-full sm:w-auto'>
-              <select
-                value={d.selectedWalletId}
-                onChange={(event) => d.setSelectedWalletId(event.target.value)}
-                className='w-full sm:w-auto min-h-11 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 sm:min-w-44'
-                aria-label='Wallet filter'
-              >
-                <option value='all'>All Wallets</option>
-                {d.groupedWallets.included.length > 0 && (
-                  <optgroup label='Included from total'>
-                    {d.groupedWallets.included.map((wallet) => (
-                      <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
-                    ))}
-                  </optgroup>
-                )}
-                {d.groupedWallets.excluded.length > 0 && (
-                  <optgroup label='Excluded from total'>
-                    {d.groupedWallets.excluded.map((wallet) => (
-                      <option key={wallet.id} value={wallet.id}>{wallet.name}</option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+              <Select value={String(d.selectedWalletId)} onValueChange={(v) => v && d.setSelectedWalletId(v)}>
+                <SelectTrigger
+                  className='w-full sm:w-auto min-h-11 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 sm:min-w-44'
+                  aria-label='Wallet filter'
+                >
+                  <SelectValue placeholder='Select wallet' />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='all'>All Wallets</SelectItem>
+                  {d.groupedWallets.included.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>Included from total</SelectLabel>
+                      {d.groupedWallets.included.map((wallet) => (
+                        <SelectItem key={wallet.id} value={String(wallet.id)}>
+                          {wallet.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {d.groupedWallets.excluded.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>Excluded from total</SelectLabel>
+                      {d.groupedWallets.excluded.map((wallet) => (
+                        <SelectItem key={wallet.id} value={String(wallet.id)}>
+                          {wallet.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
-            <input
+            <Input
               type='month'
               value={d.selectedMonth}
               onChange={(e) => d.setSelectedMonth(e.target.value)}
-              className='w-full sm:w-auto min-h-11 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500'
+              className='w-full sm:w-auto min-h-11 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600'
             />
           </div>
         </div>

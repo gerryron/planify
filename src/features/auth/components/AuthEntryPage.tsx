@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/features/auth/services/authService';
+import { Input } from '@/components/ui/input';
 
 type AuthMode = 'login' | 'register';
 
@@ -239,7 +240,7 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
                 <label className='mb-1 block text-sm font-medium text-slate-700'>
                   Full name
                 </label>
-                <input
+                <Input
                   type='text'
                   required
                   value={name}
@@ -254,7 +255,7 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
               <label className='mb-1 block text-sm font-medium text-slate-700'>
                 Email
               </label>
-              <input
+              <Input
                 type='email'
                 required
                 value={email}
@@ -269,7 +270,7 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
                 Password
               </label>
               <div className='relative'>
-                <input
+                <Input
                   type={showPassword ? 'text' : 'password'}
                   required
                   minLength={mode === 'register' ? 8 : undefined}
@@ -319,7 +320,7 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
                   Confirm password
                 </label>
                 <div className='relative'>
-                  <input
+                  <Input
                     type={showConfirmPassword ? 'text' : 'password'}
                     required
                     minLength={8}

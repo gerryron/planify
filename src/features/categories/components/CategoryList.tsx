@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { categoryService } from '@/features/categories/services/categoryService';
 import { Category } from '@/features/categories/types/category';
 import { CategoryTreeNode } from '@/features/categories/types/categoryTree';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
 
 interface CategoryListProps {
   onEdit: (category: Category) => void;
@@ -115,6 +116,7 @@ export default function CategoryList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'income' | 'outcome'>('income');
+  const confirm = useConfirm();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -136,7 +138,12 @@ export default function CategoryList({
   }, [refreshKey, onDataLoaded]);
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete category?\nDeleted category cannot be restored.')) return;
+    if (!await confirm({
+      title: 'Delete category?',
+      description: 'Deleted category cannot be restored.',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    })) return;
 
     try {
       await categoryService.remove(id);

@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
 
 interface CategoryFormProps {
   initial?: Category | null;
@@ -45,6 +46,7 @@ export default function CategoryForm({
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   const parentOptions = useMemo(() => {
     return categories
@@ -58,11 +60,12 @@ export default function CategoryForm({
     e.preventDefault();
 
     const isUpdate = Boolean(initial?.id);
-    if (!window.confirm(
-      isUpdate
-        ? 'Update this category?\nAre you sure you want to update this category?'
-        : 'Add this category?\nAre you sure you want to add this category?',
-    )) return;
+    if (!await confirm({
+      title: isUpdate ? 'Update this category?' : 'Add this category?',
+      description: isUpdate ? 'Are you sure you want to update this category?' : 'Are you sure you want to add this category?',
+      confirmLabel: isUpdate ? 'Update' : 'Add',
+      variant: 'default',
+    })) return;
 
     setLoading(true);
     setError(null);

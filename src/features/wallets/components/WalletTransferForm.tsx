@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
 
 interface WalletTransferFormProps {
   initialFromWalletId?: number;
@@ -67,6 +68,7 @@ export default function WalletTransferForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<TransferFormState>(initialState);
+  const confirm = useConfirm();
 
   useEffect(() => {
     const loadWallets = async () => {
@@ -244,7 +246,12 @@ export default function WalletTransferForm({
       return;
     }
 
-    if (!window.confirm('Continue transfer?\nMake sure the amount and destination wallet are correct.')) return;
+    if (!await confirm({
+      title: 'Continue transfer?',
+      description: 'Make sure the amount and destination wallet are correct.',
+      confirmLabel: 'Continue',
+      variant: 'default',
+    })) return;
 
     setSubmitting(true);
     setError(null);

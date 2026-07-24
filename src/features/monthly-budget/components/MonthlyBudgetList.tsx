@@ -28,6 +28,8 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
+import { Input } from '@/components/ui/input';
 
 interface MonthlyBudgetListProps {
   onEdit: (budget: Budget) => void;
@@ -276,6 +278,7 @@ export default function MonthlyBudgetList({
     }),
   );
 
+  const confirm = useConfirm();
   const now = useMemo(() => new Date(), []);
   const prevMonths = useMemo(
     () => Array.from({ length: 3 }, (_, i) => shiftMonth(now, -4 + i + 1)),
@@ -321,7 +324,12 @@ export default function MonthlyBudgetList({
     }
 
     const targetMonth = nextMonth(selectedMonth);
-    if (!window.confirm(`Carry over this surplus?\nRp ${totalTransaction.toLocaleString('id-ID')} will be added to ${monthLabel(targetMonth)} as carryover income, and deducted from this month as outcome.`)) return;
+    if (!await confirm({
+      title: 'Carry over this surplus?',
+      description: `Rp ${totalTransaction.toLocaleString('id-ID')} will be added to ${monthLabel(targetMonth)} as carryover income, and deducted from this month as outcome.`,
+      confirmLabel: 'Carry Over',
+      variant: 'default',
+    })) return;
 
     try {
       // 1. Add outcome (minus) to current month
@@ -348,7 +356,12 @@ export default function MonthlyBudgetList({
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete budget?\nDeleted data cannot be restored.')) return;
+    if (!await confirm({
+      title: 'Delete budget?',
+      description: 'Deleted data cannot be restored.',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    })) return;
 
     try {
       await monthlyBudgetService.remove(id);
@@ -537,7 +550,7 @@ export default function MonthlyBudgetList({
             >
               Pick Another Month
             </button>
-            <input
+            <Input
               ref={monthPickerRef}
               type='month'
               className='absolute left-0 top-0 opacity-0 w-0 h-0 pointer-events-none'

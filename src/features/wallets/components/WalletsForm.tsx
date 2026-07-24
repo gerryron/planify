@@ -9,6 +9,7 @@ import {
 } from '@/features/wallets/services/walletsService';
 import { WalletsInput } from '@/features/wallets/types/wallets';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
 
 interface WalletsFormProps {
   initial?: Wallets | null;
@@ -47,6 +48,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   const formattedBalance = useMemo(() => {
     return `Rp ${form.balance.toLocaleString('id-ID')}`;
@@ -144,11 +146,12 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
     e.preventDefault();
 
     const isUpdate = initial && initial.id;
-    if (!window.confirm(
-      isUpdate
-        ? 'Update this wallet?\nAre you sure you want to update this wallet?'
-        : 'Add this wallet?\nAre you sure you want to add this wallet?',
-    )) return;
+    if (!await confirm({
+      title: isUpdate ? 'Update this wallet?' : 'Add this wallet?',
+      description: isUpdate ? 'Are you sure you want to update this wallet?' : 'Are you sure you want to add this wallet?',
+      confirmLabel: isUpdate ? 'Update' : 'Add',
+      variant: 'default',
+    })) return;
 
     setLoading(true);
     setError(null);

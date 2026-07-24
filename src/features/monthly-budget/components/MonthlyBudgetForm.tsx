@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useConfirm } from '@/shared/ui/ConfirmDialog';
 
 interface MonthlyBudgetFormProps {
   initial?: Budget | null;
@@ -63,6 +64,7 @@ export default function MonthlyBudgetForm({
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   const formattedAmount = useMemo(() => {
     return `Rp ${Math.abs(form.amount).toLocaleString('id-ID')}`;
@@ -140,11 +142,12 @@ export default function MonthlyBudgetForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isUpdate = initial && initial.id;
-    if (!window.confirm(
-      isUpdate
-        ? 'Update this budget?\nAre you sure you want to update this budget?'
-        : 'Add this budget?\nAre you sure you want to add this budget?',
-    )) return;
+    if (!await confirm({
+      title: isUpdate ? 'Update this budget?' : 'Add this budget?',
+      description: isUpdate ? 'Are you sure you want to update this budget?' : 'Are you sure you want to add this budget?',
+      confirmLabel: isUpdate ? 'Update' : 'Add',
+      variant: 'default',
+    })) return;
     setLoading(true);
     setError(null);
     try {
