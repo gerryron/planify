@@ -75,7 +75,7 @@ function MenuActions({
       {open && (
         <div
           className={
-            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md ' +
+            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-card shadow-md ' +
             (menuAlign === 'left' ? 'left-0' : 'right-0')
           }
         >
@@ -211,7 +211,7 @@ export default function CategoryList({
 
   return (
     <div className='w-full'>
-      <div className='md:sticky md:top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-1 pb-2'>
+      <div className='md:sticky md:top-0 z-40 bg-card pt-1 pb-2'>
         <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-2'>
           <div>
             <div className='text-2xl font-semibold'>Categories</div>
@@ -231,7 +231,7 @@ export default function CategoryList({
       <Card className='shadow'>
         <CardContent>
           <div className='mb-4 w-full'>
-            <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden'>
+            <div className='relative w-full rounded border border-gray-300 dark:border-slate-700 bg-card p-1 overflow-hidden'>
               <span
                 className={
                   'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +

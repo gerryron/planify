@@ -368,7 +368,7 @@ export default function SettingsDataResetPanel() {
         <CardContent className='px-0'>
           <hr className='my-6 border-slate-300 dark:border-slate-600' />
 
-          <div className='mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-950/20'>
+          <div className='mb-6 rounded-lg border border-slate-200 bg-card p-4 dark:border-slate-700'>
             <h2 className='font-semibold mb-2'>Offline sync queue</h2>
             <p className='text-sm text-slate-700 dark:text-slate-200'>
               Pending offline write requests: <b>{queueCount}</b>
@@ -381,7 +381,7 @@ export default function SettingsDataResetPanel() {
               {syncingQueue ? 'Syncing...' : 'Sync now'}
             </Button>
 
-            <div className='mt-4 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900'>
+            <div className='mt-4 rounded-lg border border-slate-200 bg-background p-3 dark:border-slate-700'>
               <div className='flex flex-wrap items-center justify-between gap-2 mb-2'>
                 <h3 className='text-sm font-semibold'>Recent failed sync</h3>
                 <Button
@@ -402,7 +402,7 @@ export default function SettingsDataResetPanel() {
                     onChange={(event) =>
                       setFailedMethodFilter(event.target.value)
                     }
-                    className='mt-1 w-full p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-xs'
+                    className='mt-1 w-full p-2 border rounded bg-card border-slate-300 dark:border-slate-700 text-xs'
                   >
                     <option value='all'>All methods</option>
                     {availableFailedMethods.map((method) => (
@@ -421,7 +421,7 @@ export default function SettingsDataResetPanel() {
                         event.target.value as 'all' | 'network' | 'http',
                       )
                     }
-                    className='mt-1 w-full p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-xs'
+                    className='mt-1 w-full p-2 border rounded bg-card border-slate-300 dark:border-slate-700 text-xs'
                   >
                     <option value='all'>All statuses</option>
                     <option value='network'>Network error</option>
@@ -493,7 +493,7 @@ export default function SettingsDataResetPanel() {
                     onChange={(event) =>
                       setCashLogScope(event.target.value as DeleteScope)
                     }
-                    className='w-full md:w-72 p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'
+                    className='w-full md:w-72 p-2 border rounded bg-card border-slate-300 dark:border-slate-700'
                   >
                     <option value='none'>Do not delete</option>
                     <option value='months'>Delete selected months</option>
@@ -542,7 +542,7 @@ export default function SettingsDataResetPanel() {
                     onChange={(event) =>
                       setBudgetScope(event.target.value as DeleteScope)
                     }
-                    className='w-full md:w-72 p-2 border rounded bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700'
+                    className='w-full md:w-72 p-2 border rounded bg-card border-slate-300 dark:border-slate-700'
                   >
                     <option value='none'>Do not delete</option>
                     <option value='months'>Delete selected months</option>

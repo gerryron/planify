@@ -171,7 +171,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
+      className='space-y-4 bg-card p-4 sm:p-5 rounded shadow'
     >
       <div>
         <div className='relative inline-flex rounded-lg border border-gray-300 dark:border-slate-700 overflow-hidden w-full p-1 bg-gray-100 dark:bg-slate-900'>
@@ -374,7 +374,7 @@ export default function WalletsForm({ initial, onSuccess }: WalletsFormProps) {
           </div>
 
           {goalSummary && form.goalAmount && form.goalDueMonth && (
-            <div className='rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-slate-900/60 px-3 py-2 text-sm'>
+            <div className='rounded-md border border-emerald-200 dark:border-emerald-800 bg-background px-3 py-2 text-sm'>
               <p className='font-medium text-emerald-700 dark:text-emerald-300'>
                 Required per month: Rp{' '}
                 {goalSummary.requiredPerMonth.toLocaleString('id-ID')}

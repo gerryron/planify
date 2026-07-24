@@ -24,7 +24,7 @@ function UserTable({
   const showAction = Boolean(actionLabel && onAction);
 
   return (
-    <section className='flex min-h-72 flex-col rounded-lg bg-white p-4 shadow-sm md:h-104 dark:bg-slate-800'>
+    <section className='flex min-h-72 flex-col rounded-lg bg-card p-4 shadow-sm md:h-104'>
       <h2 className='text-lg font-semibold text-slate-900 dark:text-slate-100'>
         {title}
       </h2>

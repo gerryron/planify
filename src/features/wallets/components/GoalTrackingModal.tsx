@@ -89,7 +89,7 @@ export default function GoalTrackingModal({
       onClick={onClose}
     >
       <div
-        className='w-full max-w-2xl rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 shadow-xl'
+        className='w-full max-w-2xl rounded-xl bg-card border border-emerald-200 dark:border-slate-700 shadow-xl'
         onClick={(event) => event.stopPropagation()}
       >
         <div className='flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-slate-700'>

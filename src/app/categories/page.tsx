@@ -7,6 +7,7 @@ import CategoryList from '@/features/categories/components/CategoryList';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import { Category } from '@/features/categories/types/category';
 import { QUERY_KEYS } from '@/lib/queryClient';
+import { Card } from '@/components/ui/card';
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
@@ -39,13 +40,15 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className='max-w-2xl mx-auto pt-0 pb-8 space-y-6'>
-      <CategoryList
-        key={refreshKey}
-        onEdit={handleEdit}
-        onAdd={handleAdd}
-        onDataLoaded={setCategories}
-      />
+    <div className='max-w-3xl mx-auto pt-0 pb-8 space-y-6'>
+      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6'>
+        <CategoryList
+          key={refreshKey}
+          onEdit={handleEdit}
+          onAdd={handleAdd}
+          onDataLoaded={setCategories}
+        />
+      </Card>
 
       {canUsePortal &&
         showForm &&
@@ -55,7 +58,7 @@ export default function CategoriesPage() {
             onClick={handleCancel}
           >
             <div
-              className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
+              className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(event) => event.stopPropagation()}
             >
               <button

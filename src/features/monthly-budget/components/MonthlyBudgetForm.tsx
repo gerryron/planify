@@ -165,10 +165,10 @@ export default function MonthlyBudgetForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow"
+      className="space-y-4 bg-card p-4 sm:p-5 rounded shadow"
     >
       <div>
-        <div className="relative w-full rounded border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 overflow-hidden mb-3">
+        <div className="relative w-full rounded border border-gray-300 dark:border-slate-700 bg-card p-1 overflow-hidden mb-3">
           <span
             className={
               'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded transition-all duration-300 ease-out ' +

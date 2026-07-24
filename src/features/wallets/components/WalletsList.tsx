@@ -10,7 +10,6 @@ import { DndContext, useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableWalletItem from './SortableWalletItem';
 import { useWalletDragDrop } from '../hooks/useWalletDragDrop';
-import { Card, CardContent } from '@/components/ui/card';
 import { useConfirm } from '@/shared/ui/ConfirmDialog';
 import { asyncToast } from '@/shared/utils/asyncHelper';
 
@@ -102,7 +101,7 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
 
   return (
     <div className='w-full'>
-      <div className='md:sticky md:top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-1 pb-2'>
+      <div className='md:sticky md:top-0 z-40 bg-card pt-1 pb-2'>
         <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-2'>
           <div>
             <div className='text-lg font-semibold'>Total Balance</div>
@@ -122,25 +121,21 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
         </div>
       </div>
 
-      <Card className='bg-white dark:bg-slate-800 border-emerald-200 dark:border-slate-700 shadow-sm'>
-        <CardContent className='p-6'>
-          {loading ? (
-            <div className='min-h-56 flex items-center justify-center'>
-              <RefreshCw className='animate-spin text-emerald-600 dark:text-emerald-400' size={24} />
+      {loading ? (
+          <div className='min-h-56 flex items-center justify-center'>
+            <RefreshCw className='animate-spin text-emerald-600 dark:text-emerald-400' size={24} />
+          </div>
+        ) : wallets.length === 0 ? (
+          <div>No wallets found.</div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
+            <div className='space-y-5'>
+              {renderSection(includeWallets, INCLUDE_ZONE_ID, setIncludeDropRef, isIncludeOver, 'Include from total', 'No included wallet.')}
+              <div className='h-0.5 flex-1 bg-emerald-200 dark:bg-emerald-800' />
+              {renderSection(excludeWallets, EXCLUDE_ZONE_ID, setExcludeDropRef, isExcludeOver, 'Exclude from total', 'No excluded wallet.')}
             </div>
-          ) : wallets.length === 0 ? (
-            <div>No wallets found.</div>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
-              <div className='space-y-5'>
-                {renderSection(includeWallets, INCLUDE_ZONE_ID, setIncludeDropRef, isIncludeOver, 'Include from total', 'No included wallet.')}
-                <div className='h-0.5 flex-1 bg-emerald-200 dark:bg-emerald-800' />
-                {renderSection(excludeWallets, EXCLUDE_ZONE_ID, setExcludeDropRef, isExcludeOver, 'Exclude from total', 'No excluded wallet.')}
-              </div>
-            </DndContext>
-          )}
-        </CardContent>
-      </Card>
+          </DndContext>
+        )}
     </div>
   );
 }

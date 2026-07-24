@@ -10,6 +10,7 @@ import GoalTrackingModal from '@/features/wallets/components/GoalTrackingModal';
 import { Wallets } from '@/features/wallets/services/walletsService';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
 import { QUERY_KEYS } from '@/lib/queryClient';
+import { Card } from '@/components/ui/card';
 
 export default function WalletsPage() {
   const queryClient = useQueryClient();
@@ -70,14 +71,16 @@ export default function WalletsPage() {
       : 'Transfer Wallet';
 
   return (
-    <div className='max-w-2xl mx-auto pt-0 pb-8 space-y-8'>
-      <WalletsList
-        key={refreshKey}
-        onEdit={handleEdit}
-        onTransfer={handleTransfer}
-        onTrackGoal={handleTrackGoal}
-        onAdd={handleAdd}
-      />
+    <div className='max-w-3xl mx-auto pt-0 pb-8 space-y-8'>
+      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6'>
+        <WalletsList
+          key={refreshKey}
+          onEdit={handleEdit}
+          onTransfer={handleTransfer}
+          onTrackGoal={handleTrackGoal}
+          onAdd={handleAdd}
+        />
+      </Card>
 
       {canUsePortal &&
         showForm &&
@@ -87,7 +90,7 @@ export default function WalletsPage() {
             onClick={handleCancel}
           >
             <div
-              className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
+              className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(event) => event.stopPropagation()}
             >
               <button
@@ -116,7 +119,7 @@ export default function WalletsPage() {
             onClick={handleCancel}
           >
             <div
-              className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
+              className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(event) => event.stopPropagation()}
             >
               <button

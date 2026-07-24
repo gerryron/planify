@@ -112,7 +112,7 @@ function MenuActions({
       {open && (
         <div
           className={
-            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md ' +
+            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-card shadow-md ' +
             (menuAlign === 'left' ? 'left-0' : 'right-0')
           }
         >
@@ -306,7 +306,7 @@ export default function CashLogList({
 
   return (
     <div className='w-full'>
-      <div className='md:sticky md:top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-1 pb-2 border-b border-emerald-100 dark:border-slate-800'>
+      <div className='md:sticky md:top-0 z-40 bg-card pt-1 pb-4 mb-2 border-b border-emerald-100 dark:border-slate-800'>
         <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-2'>
           <div className='w-full md:w-80'>
             <label className='block text-sm text-gray-500 mb-1'>Wallet</label>
@@ -317,9 +317,13 @@ export default function CashLogList({
               }}
             >
               <SelectTrigger
-                className='w-full min-h-11 bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700'
+                className='w-full min-h-11 bg-card border-slate-300 dark:border-slate-700'
               >
-                <SelectValue placeholder='Select wallet' />
+                <SelectValue placeholder='Select wallet'>
+                  {selectedWalletId === 'all'
+                    ? 'All Wallets'
+                    : wallets.find(w => w.id === selectedWalletId)?.name || String(selectedWalletId)}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value='all'>All Wallets</SelectItem>
@@ -400,7 +404,7 @@ export default function CashLogList({
               className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
                 selectedMonth === month
                   ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
-                  : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
+                  : 'bg-card border-gray-300 dark:border-slate-700'
               }`}
             >
               {monthLabel(month)}
@@ -414,7 +418,7 @@ export default function CashLogList({
               className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
                 selectedMonth === currentMonth
                   ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
-                  : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
+                  : 'bg-card border-gray-300 dark:border-slate-700'
               }`}
             >
               This Month
@@ -427,7 +431,7 @@ export default function CashLogList({
             className={`shrink-0 whitespace-nowrap rounded px-3 py-2 text-sm border transition ${
               selectedMonth === 'future'
                 ? 'bg-emerald-500 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
-                : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
+                : 'bg-card border-gray-300 dark:border-slate-700'
             }`}
           >
             Future
@@ -441,7 +445,7 @@ export default function CashLogList({
                 selectedMonth !== currentMonth &&
                 !prevMonths.includes(selectedMonth)
                   ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-900 border-emerald-600 dark:border-slate-100'
-                  : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-700'
+                  : 'bg-card border-gray-300 dark:border-slate-700'
               }`}
               onClick={() => {
                 const input = monthPickerRef.current;

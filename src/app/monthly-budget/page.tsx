@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import MonthlyBudgetList from '@/features/monthly-budget/components/MonthlyBudgetList';
 import MonthlyBudgetForm from '@/features/monthly-budget/components/MonthlyBudgetForm';
 import { Budget } from '@/features/monthly-budget/services/monthlyBudgetService';
+import { Card } from '@/components/ui/card';
 
 export default function MonthlyBudgetPage() {
   const queryClient = useQueryClient();
@@ -33,13 +34,15 @@ export default function MonthlyBudgetPage() {
   };
 
   return (
-    <div className='max-w-2xl mx-auto pt-0 pb-8 space-y-8'>
-      <MonthlyBudgetList
-        key={refreshKey}
-        onEdit={handleEdit}
-        onAdd={handleAdd}
-        stickyHeader
-      />
+    <div className='max-w-3xl mx-auto pt-0 pb-8 space-y-8'>
+      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6'>
+        <MonthlyBudgetList
+          key={refreshKey}
+          onEdit={handleEdit}
+          onAdd={handleAdd}
+          stickyHeader
+        />
+      </Card>
 
       {canUsePortal &&
         showForm &&
@@ -49,7 +52,7 @@ export default function MonthlyBudgetPage() {
             onClick={handleCancel}
           >
             <div
-              className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
+              className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(e) => e.stopPropagation()}
             >
               <button

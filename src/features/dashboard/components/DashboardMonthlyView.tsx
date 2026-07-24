@@ -256,7 +256,7 @@ export default function DashboardMonthlyView({ d }: Props) {
         <ChartCard title='Recent Transactions (Selected Month)'>
           <div className='overflow-x-auto max-h-90 overflow-y-auto'>
             <table className='w-full text-sm'>
-              <thead className='sticky top-0 bg-white dark:bg-slate-800'>
+              <thead className='sticky top-0 bg-card'>
                 <tr className='text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700'>
                   <th className='py-2 pr-2'>Date</th><th className='py-2 pr-2'>Description</th><th className='py-2 pr-2'>Category</th><th className='py-2 pr-2'>Wallet</th><th className='py-2 text-right'>Amount</th>
                 </tr>
@@ -281,7 +281,7 @@ export default function DashboardMonthlyView({ d }: Props) {
         <ChartCard title='Budget Summary (Selected Month)'>
           <div className='overflow-x-auto max-h-90 overflow-y-auto'>
             <table className='w-full text-sm'>
-              <thead className='sticky top-0 bg-white dark:bg-slate-800'>
+              <thead className='sticky top-0 bg-card'>
                 <tr className='text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700'>
                   <th className='py-2 pr-2'>Item</th><th className='py-2 pr-2'>Type</th><th className='py-2 text-right'>Amount</th>
                 </tr>

@@ -90,7 +90,7 @@ export default function SortableWalletItem({
       ref={setNodeRef}
       style={style}
       onClick={() => onOpenCashLog(wallet)}
-      className={`flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700/80 px-3 py-3 transition-all hover:bg-emerald-50 dark:hover:bg-slate-700/40 ${
+      className={`flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700/80 px-3 py-3 transition-all bg-card hover:bg-accent ${
         isDragging ? 'opacity-70 scale-[0.99] shadow-md' : ''
       }`}
       role='button'

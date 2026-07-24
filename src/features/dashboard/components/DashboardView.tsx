@@ -29,7 +29,7 @@ export default function DashboardView() {
   return (
     <div className='space-y-6'>
       {/* ─── Header ─── */}
-      <div className='md:sticky md:top-0 z-40 bg-emerald-50 dark:bg-slate-900 pt-1 pb-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2'>
+      <div className='md:sticky md:top-0 z-40 bg-card pt-1 pb-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2'>
         <div className='flex flex-col gap-2 w-full md:w-auto'>
           <div className='flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap'>
             <h1 className='text-2xl font-bold text-emerald-700 dark:text-slate-100 mr-1'>
@@ -39,10 +39,14 @@ export default function DashboardView() {
             <div className='relative w-full sm:w-auto'>
               <Select value={String(d.selectedWalletId)} onValueChange={(v) => v && d.setSelectedWalletId(v)}>
                 <SelectTrigger
-                  className='w-full sm:w-auto min-h-11 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 sm:min-w-44'
+                  className='w-full sm:w-auto min-h-11 bg-card border-slate-300 dark:border-slate-600 sm:min-w-44'
                   aria-label='Wallet filter'
                 >
-                  <SelectValue placeholder='Select wallet' />
+                  <SelectValue placeholder='Select wallet'>
+                    {d.selectedWalletId === 'all'
+                      ? 'All Wallets'
+                      : d.wallets.find(w => w.id === d.selectedWalletId)?.name || String(d.selectedWalletId)}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value='all'>All Wallets</SelectItem>
@@ -74,7 +78,7 @@ export default function DashboardView() {
               type='month'
               value={d.selectedMonth}
               onChange={(e) => d.setSelectedMonth(e.target.value)}
-              className='w-full sm:w-auto min-h-11 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600'
+              className='w-full sm:w-auto min-h-11 bg-card border-slate-300 dark:border-slate-600'
             />
           </div>
         </div>

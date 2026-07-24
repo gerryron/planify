@@ -93,7 +93,7 @@ export default function CategoryForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className='space-y-4 bg-white dark:bg-slate-800 p-4 sm:p-5 rounded shadow'
+      className='space-y-4 bg-card p-4 sm:p-5 rounded shadow'
     >
       <div>
         <div className='relative w-full rounded border border-input bg-transparent dark:bg-input/30 p-1 overflow-hidden'>

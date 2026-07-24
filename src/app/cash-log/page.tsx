@@ -8,6 +8,7 @@ import CashLogList from '../../features/cash-log/components/CashLogList';
 import CashLogForm from '../../features/cash-log/components/CashLogForm';
 import { CashLog } from '../../features/cash-log/services/cashLogService';
 import { QUERY_KEYS } from '../../lib/queryClient';
+import { Card } from '@/components/ui/card';
 
 function CashLogPageContent() {
   const queryClient = useQueryClient();
@@ -49,13 +50,15 @@ function CashLogPageContent() {
   };
 
   return (
-    <div className='max-w-2xl mx-auto pt-0 pb-8 space-y-8'>
-      <CashLogList
-        initialWalletId={initialWalletId}
-        refreshToken={refreshKey}
-        onEdit={handleEdit}
-        onAdd={handleAdd}
-      />
+    <div className='max-w-3xl mx-auto pt-0 pb-8 space-y-8'>
+      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6'>
+        <CashLogList
+          initialWalletId={initialWalletId}
+          refreshToken={refreshKey}
+          onEdit={handleEdit}
+          onAdd={handleAdd}
+        />
+      </Card>
 
       {canUsePortal &&
         showForm &&
@@ -65,7 +68,7 @@ function CashLogPageContent() {
             onClick={handleCancel}
           >
             <div
-              className='bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
+              className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(event) => event.stopPropagation()}
             >
               <button

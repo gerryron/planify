@@ -36,7 +36,7 @@ export default function SummaryCard({ icon, label, value, color, highlight }: Su
 
   return (
     <div
-      className={`h-full min-w-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-4 shadow-sm flex flex-col justify-between ${
+      className={`h-full min-w-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-card p-3 sm:p-4 shadow-sm flex flex-col justify-between ${
         highlight ? 'ring-2 ring-emerald-400/40 dark:ring-emerald-500/30' : ''
       }`}
     >
