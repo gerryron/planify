@@ -52,7 +52,6 @@ export default function Sidebar() {
   const syncThemeClass = (isDark: boolean) => {
     const method = isDark ? 'add' : 'remove';
     document.documentElement.classList[method]('dark');
-    document.body.classList[method]('theme-dark');
   };
 
   useEffect(() => {

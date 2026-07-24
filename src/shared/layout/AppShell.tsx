@@ -16,7 +16,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     // Auth screens are designed with light surfaces.
     document.documentElement.classList.remove('dark');
-    document.body.classList.remove('theme-dark');
   }, [isAuthPage]);
 
   useEffect(() => {
