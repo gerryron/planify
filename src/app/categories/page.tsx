@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import CategoryList from '@/features/categories/components/CategoryList';
 import CategoryForm from '@/features/categories/components/CategoryForm';
 import { Category } from '@/features/categories/types/category';
+import { useModalKeyboard } from '@/shared/utils/useModalKeyboard';
 import { QUERY_KEYS } from '@/lib/queryClient';
 import { Card } from '@/components/ui/card';
 
@@ -39,9 +40,14 @@ export default function CategoriesPage() {
     setShowForm(false);
   };
 
+  const { containerRef: modalRef } = useModalKeyboard({
+    onClose: handleCancel,
+    enabled: showForm,
+  });
+
   return (
     <div className='max-w-3xl mx-auto pt-0 pb-8 space-y-6'>
-      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6'>
+      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6 overflow-visible'>
         <CategoryList
           key={refreshKey}
           onEdit={handleEdit}
@@ -58,6 +64,7 @@ export default function CategoriesPage() {
             onClick={handleCancel}
           >
             <div
+              ref={modalRef}
               className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(event) => event.stopPropagation()}
             >

@@ -26,7 +26,10 @@ export default function MenuActions({
 }: MenuActionsProps) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 p-2">
+      <DropdownMenuTrigger
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground h-8 w-8 p-2"
+      >
         <EllipsisVertical size={16} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

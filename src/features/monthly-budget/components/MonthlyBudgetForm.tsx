@@ -210,7 +210,7 @@ export default function MonthlyBudgetForm({
         </div>
       </div>
 
-      <div>
+      <div className="space-y-1.5">
         <Label htmlFor="name">Name</Label>
         <Input
           id="name"
@@ -223,7 +223,7 @@ export default function MonthlyBudgetForm({
         />
       </div>
 
-      <div>
+      <div className="space-y-1.5">
         <Label htmlFor="amount">Amount</Label>
         <Input
           id="amount"
@@ -238,7 +238,7 @@ export default function MonthlyBudgetForm({
         />
       </div>
 
-      <div>
+      <div className="space-y-1.5">
         <Label htmlFor="month">Month</Label>
         <Input
           id="month"
@@ -252,7 +252,7 @@ export default function MonthlyBudgetForm({
         />
       </div>
 
-      <div>
+      <div className="space-y-1.5">
         <Label htmlFor="category">Category</Label>
         <Select
           value={form.category}

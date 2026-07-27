@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import CashLogList from '../../features/cash-log/components/CashLogList';
 import CashLogForm from '../../features/cash-log/components/CashLogForm';
 import { CashLog } from '../../features/cash-log/services/cashLogService';
+import { useModalKeyboard } from '@/shared/utils/useModalKeyboard';
 import { QUERY_KEYS } from '../../lib/queryClient';
 import { Card } from '@/components/ui/card';
 
@@ -49,9 +50,14 @@ function CashLogPageContent() {
     setShowForm(false);
   };
 
+  const { containerRef: modalRef } = useModalKeyboard({
+    onClose: handleCancel,
+    enabled: showForm,
+  });
+
   return (
     <div className='max-w-3xl mx-auto pt-0 pb-8 space-y-8'>
-      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6'>
+      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6 overflow-visible'>
         <CashLogList
           initialWalletId={initialWalletId}
           refreshToken={refreshKey}
@@ -64,10 +70,11 @@ function CashLogPageContent() {
         showForm &&
         createPortal(
           <div
-            className='fixed inset-0 z-80 flex items-center justify-center bg-black/70 p-3 sm:p-4'
+            className='fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-3 sm:p-4'
             onClick={handleCancel}
           >
             <div
+              ref={modalRef}
               className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(event) => event.stopPropagation()}
             >

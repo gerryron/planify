@@ -171,6 +171,11 @@ export default function CashLogForm({
     return { included, excluded };
   }, [wallets]);
 
+  const selectedCategoryName = useMemo(
+    () => categories.find((c) => c.id === form.categoryId)?.name ?? '',
+    [categories, form.categoryId],
+  );
+
   const activeCategories =
     activeCategoryType === 'income'
       ? categoriesByType.income
@@ -328,7 +333,9 @@ export default function CashLogForm({
           }
         >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select category" />
+            <SelectValue placeholder="Select category">
+              {selectedCategoryName}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {activeCategories.map((category) => (

@@ -6,6 +6,7 @@ import MonthlyBudgetList from '@/features/monthly-budget/components/MonthlyBudge
 import MonthlyBudgetForm from '@/features/monthly-budget/components/MonthlyBudgetForm';
 import { Budget } from '@/features/monthly-budget/services/monthlyBudgetService';
 import { Card } from '@/components/ui/card';
+import { useModalKeyboard } from '@/shared/utils/useModalKeyboard';
 
 export default function MonthlyBudgetPage() {
   const queryClient = useQueryClient();
@@ -33,9 +34,14 @@ export default function MonthlyBudgetPage() {
     setShowForm(false);
   };
 
+  const { containerRef: modalRef } = useModalKeyboard({
+    onClose: handleCancel,
+    enabled: showForm,
+  });
+
   return (
     <div className='max-w-3xl mx-auto pt-0 pb-8 space-y-8'>
-      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6'>
+      <Card className='app-card rounded-xl shadow border border-slate-200 dark:border-slate-700 p-6 overflow-visible'>
         <MonthlyBudgetList
           key={refreshKey}
           onEdit={handleEdit}
@@ -52,6 +58,7 @@ export default function MonthlyBudgetPage() {
             onClick={handleCancel}
           >
             <div
+              ref={modalRef}
               className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(e) => e.stopPropagation()}
             >

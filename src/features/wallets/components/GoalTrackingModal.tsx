@@ -6,6 +6,7 @@ import { Pie, PieChart, ResponsiveContainer, Cell } from 'recharts';
 import { Wallets } from '@/features/wallets/services/walletsService';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
 import { goalStatusTone } from '@/features/wallets/utils/goalStatusTone';
+import { useModalKeyboard } from '@/shared/utils/useModalKeyboard';
 
 type GoalTrackingModalProps = {
   wallet: Wallets;
@@ -67,12 +68,18 @@ export default function GoalTrackingModal({
 }: GoalTrackingModalProps) {
   const canUsePortal = typeof document !== 'undefined';
 
-  if (
-    wallet.walletKind !== 'goal' ||
-    !wallet.goalAmount ||
-    !wallet.goalDueMonth ||
-    !canUsePortal
-  ) {
+  const isActive =
+    wallet.walletKind === 'goal' &&
+    !!wallet.goalAmount &&
+    !!wallet.goalDueMonth &&
+    canUsePortal;
+
+  const { containerRef: modalRef } = useModalKeyboard({
+    onClose,
+    enabled: isActive,
+  });
+
+  if (!isActive) {
     return null;
   }
 
@@ -85,10 +92,11 @@ export default function GoalTrackingModal({
 
   return createPortal(
     <div
-      className='fixed inset-0 z-80 bg-black/70 flex items-center justify-center p-4'
+      className='fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-4'
       onClick={onClose}
     >
       <div
+        ref={modalRef}
         className='w-full max-w-2xl rounded-xl bg-card border border-emerald-200 dark:border-slate-700 shadow-xl'
         onClick={(event) => event.stopPropagation()}
       >

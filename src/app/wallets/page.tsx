@@ -9,6 +9,7 @@ import WalletTransferForm from '@/features/wallets/components/WalletTransferForm
 import GoalTrackingModal from '@/features/wallets/components/GoalTrackingModal';
 import { Wallets } from '@/features/wallets/services/walletsService';
 import { computeGoalProgress } from '@/features/wallets/utils/goalProgress';
+import { useModalKeyboard } from '@/shared/utils/useModalKeyboard';
 import { QUERY_KEYS } from '@/lib/queryClient';
 import { Card } from '@/components/ui/card';
 
@@ -59,6 +60,16 @@ export default function WalletsPage() {
     setShowTransferForm(false);
   };
 
+  const { containerRef: formModalRef } = useModalKeyboard({
+    onClose: handleCancel,
+    enabled: showForm,
+  });
+
+  const { containerRef: transferModalRef } = useModalKeyboard({
+    onClose: handleCancel,
+    enabled: showTransferForm,
+  });
+
   const transferModalTitle =
     transferring?.walletKind === 'goal' &&
     computeGoalProgress({
@@ -90,6 +101,7 @@ export default function WalletsPage() {
             onClick={handleCancel}
           >
             <div
+              ref={formModalRef}
               className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(event) => event.stopPropagation()}
             >
@@ -119,6 +131,7 @@ export default function WalletsPage() {
             onClick={handleCancel}
           >
             <div
+              ref={transferModalRef}
               className='bg-card rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-[calc(100vw-1.5rem)] sm:min-w-[320px] sm:max-w-md relative'
               onClick={(event) => event.stopPropagation()}
             >

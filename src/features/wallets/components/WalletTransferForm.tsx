@@ -306,7 +306,9 @@ export default function WalletTransferForm({
           }}
         >
           <SelectTrigger className='w-full'>
-            <SelectValue placeholder='Select source wallet' />
+            <SelectValue placeholder='Select source wallet'>
+              {fromWallet?.name ?? ''}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {groupedWallets.included.length > 0 && (
@@ -352,7 +354,9 @@ export default function WalletTransferForm({
           }
         >
           <SelectTrigger className='w-full'>
-            <SelectValue placeholder='Select destination wallet' />
+            <SelectValue placeholder='Select destination wallet'>
+              {toWallet?.name ?? ''}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {destinationWallets.included.length > 0 && (

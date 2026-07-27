@@ -109,7 +109,7 @@ function MenuActions({
       {open && (
         <div
           className={
-            'absolute top-10 z-10 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-card shadow-md ' +
+            'absolute top-10 z-50 min-w-36 max-w-[calc(100vw-1.5rem)] rounded-md border border-emerald-200 dark:border-slate-700 bg-card shadow-md ' +
             (menuAlign === 'left' ? 'left-0' : 'right-0')
           }
         >
@@ -569,7 +569,7 @@ export default function MonthlyBudgetList({
         </div>
       </div>
 
-      <Card>
+      <Card className="overflow-visible">
         <CardContent>
         {loading ? (
           <div className='min-h-56 flex items-center justify-center'>

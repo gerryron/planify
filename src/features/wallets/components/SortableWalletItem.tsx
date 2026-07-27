@@ -89,20 +89,23 @@ export default function SortableWalletItem({
     <div
       ref={setNodeRef}
       style={style}
-      onClick={() => onOpenCashLog(wallet)}
       className={`flex items-center justify-between rounded-lg border border-gray-200 dark:border-slate-700/80 px-3 py-3 transition-all bg-card hover:bg-accent ${
         isDragging ? 'opacity-70 scale-[0.99] shadow-md' : ''
       }`}
-      role='button'
-      tabIndex={0}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onOpenCashLog(wallet);
-        }
-      }}
     >
-      <div className='text-left transition-colors flex-1' title='Open cash log for this wallet'>
+      <div
+        className='text-left transition-colors flex-1 cursor-pointer'
+        title='Open cash log for this wallet'
+        role='button'
+        tabIndex={0}
+        onClick={() => onOpenCashLog(wallet)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onOpenCashLog(wallet);
+          }
+        }}
+      >
         <div className='flex items-center gap-2'>
           <div className='font-bold'>{wallet.name}</div>
           {walletKindBadge && (
