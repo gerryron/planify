@@ -360,6 +360,7 @@ describe('getOutcomeCategoryLabels', () => {
     amount: 50000,
     walletName: 'Cash',
     categoryId: 1,
+    category: null,
     excludeFromReport: false,
     ...overrides,
   });
@@ -461,6 +462,7 @@ describe('getLogParentCategoryName', () => {
     amount: 50000,
     walletName: 'Cash',
     categoryId: 1,
+    category: null,
     excludeFromReport: false,
     ...overrides,
   });
@@ -543,12 +545,12 @@ describe('getMonthLogs', () => {
 describe('getMonthBudgets', () => {
   const makeBudget = (month: string): Budget => ({
     id: 1,
+    name: 'Test Budget',
     month,
-    categoryId: 1,
+    category: 'Food',
     amount: 500000,
-    note: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    type: 'outcome',
+    isDone: false,
   });
 
   it('filters budgets matching the given month', () => {

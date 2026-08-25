@@ -80,3 +80,22 @@ export function useReorderMonthlyBudget() {
     },
   });
 }
+
+export function useCopyMonthlyBudgets() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      ids,
+      targetMonth,
+    }: {
+      ids: number[];
+      targetMonth: string;
+    }) => monthlyBudgetService.copyToMonth(ids, targetMonth),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['monthly-budgets'],
+      });
+    },
+  });
+}

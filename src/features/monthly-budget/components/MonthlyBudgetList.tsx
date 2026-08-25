@@ -8,12 +8,14 @@ import {
   EllipsisVertical,
   GripVertical,
   Pencil,
+  Copy,
   Trash2,
   Lock,
   LockOpen,
   RefreshCw,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import CopyBudgetsDialog from './CopyBudgetsDialog';
+
 import {
   closestCenter,
   DndContext,
@@ -49,12 +51,6 @@ function monthLabel(value: string) {
   const [year, month] = value.split('-');
   const date = new Date(Number(year), Number(month) - 1, 1);
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-}
-
-function nextMonth(value: string) {
-  const [year, month] = value.split('-');
-  const date = new Date(Number(year), Number(month) - 1 + 1, 1);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function MenuActions({
@@ -261,6 +257,7 @@ export default function MonthlyBudgetList({
   stickyHeader = false,
 }: MonthlyBudgetListProps) {
   const [showNominal, setShowNominal] = useState(true);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
   const monthPickerRef = useRef<HTMLInputElement>(null);
   const currentMonth = useMemo(() => {
     const now = new Date();
@@ -280,7 +277,14 @@ export default function MonthlyBudgetList({
   );
 
   const confirm = useConfirm();
+
+  const canCopy = selectedMonth !== 'future';
+
   const now = useMemo(() => new Date(), []);
+
+  const copyDefaultTargetMonth =
+    selectedMonth === currentMonth ? shiftMonth(now, 1) : currentMonth;
+
   const prevMonths = useMemo(
     () => Array.from({ length: 3 }, (_, i) => shiftMonth(now, -4 + i + 1)),
     [now],
@@ -305,56 +309,11 @@ export default function MonthlyBudgetList({
 
   const totalTransaction = useMemo(() => {
     return budgets.reduce((sum, budget) => {
-      return budget.type === 'income' || budget.type === 'carryover'
+      return budget.type === 'income'
         ? sum + budget.amount
         : sum - budget.amount;
     }, 0);
   }, [budgets]);
-
-  const canCarryOver = selectedMonth !== 'future' && totalTransaction > 0;
-
-  const handleCarryOver = async () => {
-    if (selectedMonth === 'future') {
-      toast.info('Please select a specific month first.');
-      return;
-    }
-
-    if (totalTransaction <= 0) {
-      toast.info('Carry over is only available when total transaction is positive.');
-      return;
-    }
-
-    const targetMonth = nextMonth(selectedMonth);
-    if (!await confirm({
-      title: 'Carry over this surplus?',
-      description: `Rp ${totalTransaction.toLocaleString('id-ID')} will be added to ${monthLabel(targetMonth)} as carryover income, and deducted from this month as outcome.`,
-      confirmLabel: 'Carry Over',
-      variant: 'default',
-    })) return;
-
-    const result = await asyncToast(
-      async () => {
-        await monthlyBudgetService.create({
-          name: `Carry Over Out ${selectedMonth}`,
-          amount: totalTransaction,
-          month: selectedMonth,
-          category: 'Carry Over',
-          type: 'outcome',
-        });
-        await monthlyBudgetService.create({
-          name: `Carry Over ${selectedMonth}`,
-          amount: totalTransaction,
-          month: targetMonth,
-          category: 'Carry Over',
-          type: 'carryover',
-        });
-      },
-      { success: `Carry over added to ${monthLabel(targetMonth)} and deducted from this month.`, error: 'Failed to create carry over.' }
-    );
-    if (result) {
-      fetchBudgets(selectedMonth);
-    }
-  };
 
   const handleDelete = async (id: number) => {
     if (!await confirm({
@@ -466,23 +425,28 @@ export default function MonthlyBudgetList({
             </div>
           </div>
 
-          {onAdd && (
-            <div className='w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:ml-4'>
-              <button
-                className='w-full sm:w-auto min-h-11 px-4 py-2.5 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition disabled:opacity-40 disabled:cursor-not-allowed'
-                onClick={handleCarryOver}
-                type='button'
-                disabled={!canCarryOver}
-              >
-                Carry Over
-              </button>
-              <button
-                className='w-full sm:w-auto min-h-11 px-4 py-2.5 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
-                onClick={onAdd}
-                type='button'
-              >
-                + Add Budget
-              </button>
+          {(onAdd || canCopy) && (
+            <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2'>
+              {canCopy && (
+                <button
+                  className='w-full sm:w-auto min-h-11 px-4 py-2.5 rounded shadow transition flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-700 dark:hover:bg-emerald-900/40 dark:hover:border-emerald-600'
+                  onClick={() => setShowCopyDialog(true)}
+                  type='button'
+                  disabled={budgets.length === 0}
+                >
+                  <Copy size={16} />
+                  Copy
+                </button>
+              )}
+              {onAdd && (
+                <button
+                  className='w-full sm:w-auto min-h-11 px-4 py-2.5 bg-emerald-600 text-white rounded shadow hover:bg-emerald-800 transition'
+                  onClick={onAdd}
+                  type='button'
+                >
+                  + Add Budget
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -606,6 +570,16 @@ export default function MonthlyBudgetList({
           </DndContext>
         )}
       </CardContent></Card>
+
+      {showCopyDialog && selectedMonth !== 'future' && (
+        <CopyBudgetsDialog
+          budgets={budgets}
+          sourceMonth={selectedMonth}
+          defaultTargetMonth={copyDefaultTargetMonth}
+          onClose={() => setShowCopyDialog(false)}
+          onSuccess={() => fetchBudgets(selectedMonth)}
+        />
+      )}
     </div>
   );
 }

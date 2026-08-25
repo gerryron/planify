@@ -12,6 +12,7 @@ import {
   useDeleteMonthlyBudget,
   useToggleDoneMonthlyBudget,
   useReorderMonthlyBudget,
+  useCopyMonthlyBudgets,
 } from './useMonthlyBudgets';
 import { monthlyBudgetService } from '../services/monthlyBudgetService';
 
@@ -23,6 +24,7 @@ jest.mock('@/features/monthly-budget/services/monthlyBudgetService', () => ({
     remove: jest.fn(),
     toggleDone: jest.fn(),
     reorder: jest.fn(),
+    copyToMonth: jest.fn(),
   },
 }));
 
@@ -44,15 +46,6 @@ const mockBudgets = [
     category: 'Income',
     type: 'income' as const,
     isDone: true,
-  },
-  {
-    id: 3,
-    name: 'Carry Over',
-    amount: 200000,
-    month: '2026-07',
-    category: 'Savings',
-    type: 'carryover' as const,
-    isDone: false,
   },
 ];
 
@@ -453,5 +446,87 @@ describe('useReorderMonthlyBudget', () => {
 
     expect(result.current.error).toBeDefined();
     expect(monthlyBudgetService.reorder).toHaveBeenCalledWith([3, 2, 1]);
+  });
+});
+
+describe('useCopyMonthlyBudgets', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('copies budgets to target month and invalidates monthly-budgets query on success', async () => {
+    const queryClient = createQueryClient();
+    const copiedBudgets = [
+      {
+        id: 3,
+        name: 'Rent',
+        amount: 1500000,
+        month: '2026-08',
+        category: 'Housing',
+        type: 'outcome' as const,
+        isDone: false,
+      },
+    ];
+
+    (monthlyBudgetService.copyToMonth as jest.Mock).mockResolvedValue(
+      copiedBudgets,
+    );
+
+    // Set up a query to observe invalidation
+    (monthlyBudgetService.getAll as jest.Mock).mockResolvedValue(mockBudgets);
+
+    const wrapper = ({ children }: { children: ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    const { result: queryResult } = renderHook(() => useMonthlyBudgets(), {
+      wrapper,
+    });
+    await waitFor(() => {
+      expect(queryResult.current.isSuccess).toBe(true);
+    });
+    expect(monthlyBudgetService.getAll).toHaveBeenCalledTimes(1);
+
+    const { result: mutationResult } = renderHook(
+      () => useCopyMonthlyBudgets(),
+      { wrapper },
+    );
+
+    mutationResult.current.mutate({ ids: [1, 2], targetMonth: '2026-08' });
+
+    await waitFor(() => {
+      expect(mutationResult.current.isSuccess).toBe(true);
+    });
+
+    expect(mutationResult.current.data).toEqual(copiedBudgets);
+    expect(monthlyBudgetService.copyToMonth).toHaveBeenCalledWith(
+      [1, 2],
+      '2026-08',
+    );
+
+    // After invalidation, the budgets query should refetch
+    await waitFor(() => {
+      expect(monthlyBudgetService.getAll).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('returns error when copy fails', async () => {
+    const error = new Error('Failed to copy budgets');
+    (monthlyBudgetService.copyToMonth as jest.Mock).mockRejectedValue(error);
+
+    const { result } = renderHook(() => useCopyMonthlyBudgets(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate({ ids: [1, 2], targetMonth: '2026-08' });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(result.current.error).toBeDefined();
+    expect(monthlyBudgetService.copyToMonth).toHaveBeenCalledWith(
+      [1, 2],
+      '2026-08',
+    );
   });
 });

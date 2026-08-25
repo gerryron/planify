@@ -48,8 +48,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!name || amount === undefined || !month || !category || !type) {
       throw new ValidationError('BUDGET_VALIDATION', 'All fields are required');
     }
-    if (type !== 'income' && type !== 'outcome' && type !== 'carryover') {
-      throw new ValidationError('BUDGET_VALIDATION', 'Type must be income, outcome, or carryover');
+    if (type !== 'income' && type !== 'outcome') {
+      throw new ValidationError('BUDGET_VALIDATION', 'Type must be income or outcome');
     }
 
     const lastBudgetInMonth = await prisma.monthlyBudget.findFirst({
@@ -174,10 +174,9 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
     if (
       data.type &&
       data.type !== 'income' &&
-      data.type !== 'outcome' &&
-      data.type !== 'carryover'
+      data.type !== 'outcome'
     ) {
-      throw new ValidationError('BUDGET_VALIDATION', 'Type must be income, outcome, or carryover');
+      throw new ValidationError('BUDGET_VALIDATION', 'Type must be income or outcome');
     }
 
     const owned = await prisma.monthlyBudget.findFirst({

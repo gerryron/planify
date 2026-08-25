@@ -294,9 +294,9 @@ export default function DashboardMonthlyView({ d }: Props) {
                       {b.isDone && <span className='ml-2 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'>✓ Done</span>}
                     </td>
                     <td className='py-2 pr-2'>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.type === 'income' || b.type === 'carryover' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{b.type}</span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.type === 'income' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{b.type}</span>
                     </td>
-                    <td className={`py-2 text-right font-mono ${b.isDone ? 'line-through text-slate-400 dark:text-slate-500' : b.type === 'income' || b.type === 'carryover' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    <td className={`py-2 text-right font-mono ${b.isDone ? 'line-through text-slate-400 dark:text-slate-500' : b.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                       {d.val(b.amount)}
                     </td>
                   </tr>

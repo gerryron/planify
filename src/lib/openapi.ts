@@ -205,6 +205,55 @@ export const openApiSpec = {
         },
       },
     },
+    '/api/monthly-budget/copy': {
+      post: {
+        tags: ['Monthly Budget'],
+        summary: 'Salin beberapa budget ke bulan target',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['ids', 'targetMonth'],
+                properties: {
+                  ids: {
+                    type: 'array',
+                    items: { type: 'integer', example: 12 },
+                    description: 'ID dari budget yang akan disalin',
+                  },
+                  targetMonth: {
+                    type: 'string',
+                    example: '2026-08',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          '201': {
+            description: 'Created',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/MonthlyBudget' },
+                },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad request',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/cash-log': {
       get: {
         tags: ['Cash Log'],
@@ -838,7 +887,7 @@ export const openApiSpec = {
           amount: { type: 'integer' },
           month: { type: 'string', example: '2026-03' },
           category: { type: 'string' },
-          type: { type: 'string', enum: ['income', 'outcome', 'carryover'] },
+          type: { type: 'string', enum: ['income', 'outcome'] },
         },
       },
       MonthlyBudget: {
@@ -862,7 +911,7 @@ export const openApiSpec = {
           amount: { type: 'integer' },
           month: { type: 'string' },
           category: { type: 'string' },
-          type: { type: 'string', enum: ['income', 'outcome', 'carryover'] },
+          type: { type: 'string', enum: ['income', 'outcome'] },
         },
       },
       ReorderBudgetInput: {

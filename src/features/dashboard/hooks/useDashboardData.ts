@@ -493,7 +493,7 @@ export function useDashboardData() {
       monthBudgets
         .filter((budget) =>
           type === 'income'
-            ? budget.type === 'income' || budget.type === 'carryover'
+            ? budget.type === 'income'
             : budget.type === 'outcome',
         )
         .forEach((budget) => {
@@ -585,7 +585,7 @@ export function useDashboardData() {
     () =>
       monthBudgets.reduce(
         (s, b) =>
-          s + (b.type === 'income' || b.type === 'carryover' ? b.amount : -b.amount),
+          s + (b.type === 'income' ? b.amount : -b.amount),
         0,
       ),
     [monthBudgets],

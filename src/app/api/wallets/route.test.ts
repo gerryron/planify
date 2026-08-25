@@ -1,4 +1,4 @@
-import type { NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 import { POST, GET, PATCH, DELETE } from './route';
 
 type Wallet = {
@@ -333,7 +333,7 @@ describe('Wallet API', () => {
   });
 
   it('should reorder wallet data persistently', async () => {
-    const getBefore = await GET();
+    const getBefore = await GET(new NextRequest('http://localhost/api/wallets'));
     const before: Wallet[] = await getBefore.json();
     const reversedIds = [...before].reverse().map((wallet) => wallet.id);
 
@@ -345,13 +345,13 @@ describe('Wallet API', () => {
     const res = await PATCH(req);
     expect(res.status).toBe(200);
 
-    const getAfter = await GET();
+    const getAfter = await GET(new NextRequest('http://localhost/api/wallets'));
     const after: Wallet[] = await getAfter.json();
     expect(after.map((wallet) => wallet.id)).toEqual(reversedIds);
   });
 
   it('should return all wallets (GET)', async () => {
-    const res = await GET();
+    const res = await GET(new NextRequest('http://localhost/api/wallets'));
 
     expect(res.status).toBe(200);
     const data: Wallet[] = await res.json();
@@ -698,17 +698,17 @@ describe('Wallet API', () => {
     expect(data.deletedCashLogCount).toBe(expectedLogs);
     expect(adjustmentLogs.some((log) => log.walletName === 'OVO')).toBe(false);
 
-    const getRes = await GET();
+    const getRes = await GET(new NextRequest('http://localhost/api/wallets'));
     const wallets: Wallet[] = await getRes.json();
     expect(wallets.find((w) => w.id === id2)).toBeUndefined();
   });
 
   it('should reject delete when wallet count would be less than 1', async () => {
-    const getRes = await GET();
+    const getRes = await GET(new NextRequest('http://localhost/api/wallets'));
     const wallets: Wallet[] = await getRes.json();
 
     for (const wallet of wallets) {
-      const currentRes = await GET();
+      const currentRes = await GET(new NextRequest('http://localhost/api/wallets'));
       const currentWallets: Wallet[] = await currentRes.json();
       if (currentWallets.length <= 1) break;
 
@@ -719,7 +719,7 @@ describe('Wallet API', () => {
       await DELETE(deleteReq);
     }
 
-    const lastRes = await GET();
+    const lastRes = await GET(new NextRequest('http://localhost/api/wallets'));
     const lastWallets: Wallet[] = await lastRes.json();
     expect(lastWallets.length).toBe(1);
 

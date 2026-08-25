@@ -31,4 +31,11 @@ export const monthlyBudgetService = {
   async toggleDone(id: number, isDone: boolean): Promise<Budget> {
     return apiClient.patch('/api/monthly-budget', { id, isDone });
   },
+
+  async copyToMonth(
+    ids: number[],
+    targetMonth: string,
+  ): Promise<Budget[]> {
+    return apiClient.post('/api/monthly-budget/copy', { ids, targetMonth });
+  },
 };

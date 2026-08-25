@@ -134,7 +134,7 @@ export default function GoalTrackingModal({
             </p>
             <p className='text-sm text-center text-gray-600 dark:text-gray-300 mt-2'>
               Rp {Math.max(wallet.balance, 0).toLocaleString('id-ID')} / Rp{' '}
-              {wallet.goalAmount.toLocaleString('id-ID')}
+              {(wallet.goalAmount ?? 0).toLocaleString('id-ID')}
             </p>
           </div>
 
