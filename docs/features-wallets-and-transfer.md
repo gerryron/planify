@@ -40,7 +40,7 @@ Sumber utama:
 Saat create/update wallet mengubah saldo:
 
 - Sistem membuat cash log penyesuaian `Adjust Balance`.
-- Category penyesuaian memakai `Transfer In` atau `Transfer Out` sesuai arah perubahan saldo.
+- Category penyesuaian memakai `Transfer In` (saldo naik) atau `Transfer Out` (saldo turun); untuk wallet `credit_card` arahnya dibalik.
 - Log penyesuaian diberi `excludeFromReport=true`.
 
 ## Transfer Antar Wallet

@@ -13,12 +13,14 @@ Dokumen ini adalah ringkasan endpoint berdasarkan implementasi route di `src/app
 
 ## Endpoint Monthly Budget
 
-| Method   | Path                  | Kegunaan                   | Catatan                                    |
-| -------- | --------------------- | -------------------------- | ------------------------------------------ |
-| `GET`    | `/api/monthly-budget` | Ambil daftar budget        | Query: `month=YYYY-MM` atau `month=future` |
-| `POST`   | `/api/monthly-budget` | Buat budget                | `type`: `income`/`outcome`/`carryover`     |
-| `PATCH`  | `/api/monthly-budget` | Update budget atau reorder | Reorder jika payload berisi `orderedIds`   |
-| `DELETE` | `/api/monthly-budget` | Hapus budget               | Body wajib `id`                            |
+| Method   | Path                          | Kegunaan                   | Catatan                                            |
+| -------- | ----------------------------- | -------------------------- | -------------------------------------------------- |
+| `GET`    | `/api/monthly-budget`         | Ambil daftar budget        | Query: `month=YYYY-MM` atau `month=future`         |
+| `POST`   | `/api/monthly-budget`         | Buat budget                | `type`: `income`/`outcome`                         |
+| `PATCH`  | `/api/monthly-budget`         | Update budget atau reorder | Reorder jika payload berisi `orderedIds`           |
+| `DELETE` | `/api/monthly-budget`         | Hapus budget               | Body wajib `id`                                    |
+| `POST`   | `/api/monthly-budget/copy`    | Salin beberapa budget      | Body: `ids` (array ID budget) + `targetMonth`      |
+|          |                               | ke bulan target            | (`YYYY-MM`); salinan dibuat dengan `isDone=false`  |
 
 ## Endpoint Cash Log
 
@@ -42,7 +44,7 @@ Dokumen ini adalah ringkasan endpoint berdasarkan implementasi route di `src/app
 
 | Method | Path                    | Kegunaan              | Catatan                                              |
 | ------ | ----------------------- | --------------------- | ---------------------------------------------------- |
-| `POST` | `/api/wallets/transfer` | Transfer antar wallet | Support biaya transfer (`fee`) dan `transferGroupId` |
+| `POST` | `/api/wallets/transfer` | Transfer antar wallet | Support biaya transfer (`enableFee`, `feeAmount`, `feePayer`, `feeNote`); pasangan cash log dihubungkan via `transferGroupId` yang dibuat server |
 
 ## Endpoint Category
 
@@ -77,6 +79,7 @@ Dokumen ini adalah ringkasan endpoint berdasarkan implementasi route di `src/app
 
 - Spesifikasi di `src/lib/openapi.ts` saat ini mendokumentasikan endpoint:
   - monthly-budget
+  - monthly-budget/copy
   - cash-log
   - wallets
   - wallets/transfer

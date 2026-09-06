@@ -96,6 +96,6 @@ Relasi:
 
 ## Catatan Aturan Data
 
-- `type` pada `MonthlyBudget` disimpan string (`income`, `outcome`, `carryover`).
-- `walletName` pada `CashLog` masih disimpan untuk kompatibilitas frontend lama, meskipun relasi utama sudah `walletId`.
+- `type` pada `MonthlyBudget` disimpan string (`income`, `outcome`).
+- `walletName` pada `CashLog` tetap disimpan: payload API cash log memakai `walletName` sebagai identifikasi wallet (server me-resolve ke `walletId`), dan nilainya ikut disinkronkan saat wallet diubah namanya.
 - Penghapusan user akan cascade ke budget, wallet, cash log, dan category user.

@@ -19,7 +19,7 @@ Planify menyatukan perencanaan budget bulanan, pencatatan transaksi aktual, mana
 
 ### Tujuan Pengguna
 
-- Menyusun budget bulanan (income, outcome, carryover).
+- Menyusun budget bulanan (income, outcome).
 - Mencatat transaksi aktual per tanggal, wallet, dan kategori.
 - Menjaga saldo wallet tetap akurat terhadap mutasi transaksi.
 - Memakai aplikasi tetap nyaman saat koneksi tidak stabil.
@@ -35,7 +35,7 @@ Planify menyatukan perencanaan budget bulanan, pencatatan transaksi aktual, mana
 
 - Auth berbasis JWT cookie (register, login, me, logout).
 - Approval user oleh superadmin.
-- Monthly budget CRUD + reorder.
+- Monthly budget CRUD + reorder + copy antar bulan.
 - Cash log CRUD + sinkronisasi saldo wallet.
 - Wallet CRUD, wallet type (basic/goal/credit_card), dan transfer antar wallet.
 - Category CRUD dengan aturan hierarchy.

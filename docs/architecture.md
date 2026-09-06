@@ -46,7 +46,7 @@ Setiap feature memiliki struktur standar:
 
 - `src/core/http/apiClient.ts` — shared frontend API client singleton (get, post, patch, delete)
 - `src/core/http/apiErrors.ts` — error class hierarchy (AppError, ValidationError, NotFoundError, AuthError, ForbiddenError) + `handleApiError()` mapper
-- `src/core/http/apiResponse.ts` — response helpers (ok, badRequest, notFound, unauthorized, serverError)
+- `src/core/http/apiResponse.ts` — response helpers (ok, badRequest, notFound, unauthorized, forbidden, serverError)
 
 ### Data Caching
 
