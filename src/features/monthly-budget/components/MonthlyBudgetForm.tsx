@@ -109,6 +109,7 @@ export default function MonthlyBudgetForm({
   }, []);
 
   useEffect(() => {
+    if (loadingCategories || categoryError) return;
     setForm((prev) => ({
       ...prev,
       category: availableParentCategories.some(
@@ -117,7 +118,7 @@ export default function MonthlyBudgetForm({
         ? prev.category
         : '',
     }));
-  }, [availableParentCategories]);
+  }, [availableParentCategories, loadingCategories, categoryError]);
 
   const handleBudgetTypeChange = (type: 'income' | 'outcome') => {
     setActiveBudgetType(type);
