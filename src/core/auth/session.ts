@@ -59,6 +59,12 @@ export function getAuthTokenFromRequest(req: NextRequest) {
 
 function isSecureCookieRequest(req: NextRequest) {
   if (process.env.NODE_ENV === 'production') return true;
+
+  const nextUrlProtocol = req.nextUrl?.protocol;
+  if (nextUrlProtocol) {
+    return nextUrlProtocol === 'https:';
+  }
+
   const protocol = req.headers.get('x-forwarded-proto');
   return protocol === 'https';
 }
@@ -68,12 +74,14 @@ export function setAuthCookie(
   res: NextResponse,
   token: string,
 ) {
+  const maxAge = 60 * 60 * 24 * 7;
   res.cookies.set(AUTH_COOKIE_NAME, token, {
     httpOnly: true,
     secure: isSecureCookieRequest(req),
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge,
+    expires: new Date(Date.now() + maxAge * 1000),
   });
 }
 

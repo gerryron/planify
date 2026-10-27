@@ -13,7 +13,7 @@ Ringkasan implementasi:
 - Session disimpan di cookie `planify_auth_token`.
 - Token ditandatangani HS256 dengan `JWT_SECRET`.
 - TTL token: 7 hari.
-- Cookie `httpOnly`, `sameSite=lax`, `path=/`, dan `secure` menyesuaikan environment/proxy.
+- Cookie `httpOnly`, `sameSite=lax`, `path=/`, `maxAge/expires` 7 hari, dan `secure` mengikuti protocol request (https) atau production mode.
 
 ## Endpoint Auth
 
@@ -50,6 +50,7 @@ Sumber utama: `middleware.ts`.
 Aturan inti:
 
 - Public page: hanya root (`/`).
+- Public page auth: `/`, `/login`, `/register`.
 - Public API: `/api/auth/*` dan `/api/swagger`.
 - Endpoint API selain public memerlukan token valid dan user aktif.
 - User superadmin dibatasi hanya untuk panel approval (`/admin-panel`) dan API superadmin (`/api/superadmin/*`).
@@ -58,6 +59,7 @@ Aturan inti:
 Aturan redirect halaman:
 
 - Root dengan session aktif diarahkan ke:
+- Halaman auth (`/`, `/login`, `/register`) dengan session aktif diarahkan ke:
   - `/home` untuk role `user`
   - `/admin-panel` untuk role `superadmin`
 - Halaman privat tanpa session aktif diarahkan ke `/`.

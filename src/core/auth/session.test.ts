@@ -121,10 +121,8 @@ describe('session cookie helpers', () => {
     expect(cookie?.maxAge).toBe(60 * 60 * 24 * 7);
   });
 
-  it('should mark the cookie secure when x-forwarded-proto is https', () => {
-    const req = new NextRequest('http://localhost/api', {
-      headers: { 'x-forwarded-proto': 'https' },
-    });
+  it('should mark the cookie secure when request uses https', () => {
+    const req = new NextRequest('https://localhost/api');
     const res = NextResponse.json({});
     setAuthCookie(req, res, 'token-value');
     expect(res.cookies.get(AUTH_COOKIE_NAME)?.secure).toBe(true);

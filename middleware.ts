@@ -83,7 +83,7 @@ async function verifyJwtPayload(token: string): Promise<DecodedPayload | null> {
 }
 
 function isPublicPage(pathname: string) {
-  return pathname === '/';
+  return pathname === '/' || pathname === '/login' || pathname === '/register';
 }
 
 function isPublicApi(pathname: string) {

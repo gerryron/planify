@@ -77,6 +77,7 @@ class ApiClient {
     const init: RequestInit = {
       method,
       headers: this.config.headers,
+      credentials: 'include',
     };
 
     if (body !== undefined) {
