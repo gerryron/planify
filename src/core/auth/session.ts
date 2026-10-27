@@ -57,16 +57,39 @@ export function getAuthTokenFromRequest(req: NextRequest) {
   return req.cookies.get(AUTH_COOKIE_NAME)?.value ?? null;
 }
 
-function isSecureCookieRequest(req: NextRequest) {
-  if (process.env.NODE_ENV === 'production') return true;
+function isLocalhostHost(hostname: string) {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    hostname.startsWith('localhost:') ||
+    hostname.startsWith('127.0.0.1:') ||
+    hostname.startsWith('[::1]:')
+  );
+}
 
+function isSecureCookieRequest(req: NextRequest) {
+  const host = req.headers.get('host') ?? req.nextUrl?.hostname ?? '';
   const nextUrlProtocol = req.nextUrl?.protocol;
-  if (nextUrlProtocol) {
-    return nextUrlProtocol === 'https:';
+  const forwardedProtoHeader = req.headers
+    .get('x-forwarded-proto')
+    ?.split(',')[0]
+    .trim()
+    .toLowerCase();
+
+  if (nextUrlProtocol === 'https:') {
+    return true;
   }
 
-  const protocol = req.headers.get('x-forwarded-proto');
-  return protocol === 'https';
+  if (isLocalhostHost(host)) {
+    return false;
+  }
+
+  if (forwardedProtoHeader) {
+    return forwardedProtoHeader === 'https';
+  }
+
+  return process.env.NODE_ENV === 'production';
 }
 
 export function setAuthCookie(
@@ -85,10 +108,10 @@ export function setAuthCookie(
   });
 }
 
-export function clearAuthCookie(res: NextResponse) {
+export function clearAuthCookie(res: NextResponse, req?: NextRequest) {
   res.cookies.set(AUTH_COOKIE_NAME, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: req ? isSecureCookieRequest(req) : process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     expires: new Date(0),

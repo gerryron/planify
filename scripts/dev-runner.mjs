@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 
-function runScript(name, prefixColor, prefix) {
+function runScript(name, prefixColor, prefix, options = {}) {
+  const { critical = false } = options;
   const child = spawn(`npm run ${name}`, {
     shell: true,
     stdio: ['inherit', 'pipe', 'pipe'],
@@ -9,7 +10,9 @@ function runScript(name, prefixColor, prefix) {
 
   child.on('error', (error) => {
     process.stderr.write(`[${prefix}] failed to start: ${error.message}\n`);
-    shutdown(1);
+    if (critical) {
+      shutdown(1);
+    }
   });
 
   child.stdout.on('data', (chunk) => {
@@ -23,12 +26,23 @@ function runScript(name, prefixColor, prefix) {
   child.on('exit', (code, signal) => {
     if (signal) {
       process.stdout.write(`[${prefix}] exited by signal ${signal}\n`);
+      if (critical && !stopping) {
+        shutdown(0);
+      }
       return;
     }
 
     if (code !== 0) {
       process.stderr.write(`[${prefix}] exited with code ${code}\n`);
-      shutdown(code ?? 1);
+      if (critical) {
+        shutdown(code ?? 1);
+      }
+      return;
+    }
+
+    process.stdout.write(`[${prefix}] exited cleanly\n`);
+    if (critical) {
+      shutdown(0);
     }
   });
 
@@ -36,7 +50,7 @@ function runScript(name, prefixColor, prefix) {
 }
 
 const children = [
-  runScript('dev:next', '\x1b[36m', 'next'),
+  runScript('dev:next', '\x1b[36m', 'next', { critical: true }),
   runScript('dev:swagger', '\x1b[35m', 'swagger'),
 ];
 

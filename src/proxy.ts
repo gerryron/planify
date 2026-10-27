@@ -94,7 +94,33 @@ function isPublicApi(pathname: string) {
   );
 }
 
-export async function middleware(req: NextRequest) {
+function normalizeLocalhostOrigin(req: NextRequest) {
+  const host =
+    req.headers.get('x-forwarded-host')?.split(',')[0].trim() ??
+    req.headers.get('host') ??
+    req.nextUrl.host;
+
+  const normalizedHost = new URL(`http://${host}`).hostname
+    .replace(/^\[|\]$/g, '')
+    .toLowerCase();
+  const loopbackAliases = new Set(['127.0.0.1', '::1', '0.0.0.0', '::']);
+
+  if (loopbackAliases.has(normalizedHost)) {
+    const redirectUrl = new URL(req.url);
+    redirectUrl.hostname = 'localhost';
+    if (req.nextUrl.port) redirectUrl.port = req.nextUrl.port;
+    return redirectUrl;
+  }
+
+  return null;
+}
+
+export async function proxy(req: NextRequest) {
+  const canonicalUrl = normalizeLocalhostOrigin(req);
+  if (canonicalUrl) {
+    return NextResponse.redirect(canonicalUrl);
+  }
+
   const { pathname } = req.nextUrl;
   const token = req.cookies.get(AUTH_COOKIE_NAME)?.value;
   const payload = token ? await verifyJwtPayload(token) : null;

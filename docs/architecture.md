@@ -17,7 +17,7 @@ Planify menggunakan Next.js App Router dengan pembagian tanggung jawab yang jela
 
 - UI route memakai App Router page di `src/app/**/page.tsx`.
 - Endpoint backend memakai route handler di `src/app/api/**/route.ts`.
-- Middleware global di `middleware.ts` menangani kontrol akses halaman dan API.
+- Proxy global di `src/proxy.ts` (sebelumnya middleware) menangani kontrol akses halaman dan API.
 
 ### Data Access
 
@@ -64,8 +64,8 @@ Setiap feature memiliki struktur standar:
 
 ## Alur Request (Ringkas)
 
-1. Request masuk ke middleware.
-2. Middleware memutuskan boleh lanjut, ditolak, atau redirect.
+1. Request masuk ke proxy (`src/proxy.ts`).
+2. Proxy memutuskan boleh lanjut, ditolak, atau redirect.
 3. Route handler memanggil `requireAuth` (untuk endpoint privat).
 4. Route menjalankan query/mutasi Prisma.
 5. Error handling via `handleApiError()` — semua error terstandarisasi sebagai `AppError` subclass.

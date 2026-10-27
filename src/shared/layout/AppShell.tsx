@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { authService } from '@/features/auth/services/authService';
 import Sidebar from '@/shared/layout/Sidebar';
+import { canonicalizeLocalhostInBrowser } from '@/shared/utils/localhostCanonical';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -12,6 +13,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname === '/' || pathname === '/login' || pathname === '/register';
 
   useEffect(() => {
+    if (canonicalizeLocalhostInBrowser()) return;
     if (isAuthPage) return;
 
     let mounted = true;

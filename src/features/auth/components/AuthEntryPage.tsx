@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/features/auth/services/authService';
 import { Input } from '@/components/ui/input';
+import { canonicalizeLocalhostInBrowser } from '@/shared/utils/localhostCanonical';
 
 type AuthMode = 'login' | 'register';
 
@@ -106,6 +107,10 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
     setError(null);
     setSuccessMessage(null);
   };
+
+  useEffect(() => {
+    canonicalizeLocalhostInBrowser();
+  }, []);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();

@@ -6,7 +6,7 @@ Sumber utama:
 
 - `src/core/auth/session.ts`
 - `src/core/auth/requireAuth.ts`
-- `middleware.ts`
+- `src/proxy.ts`
 
 Ringkasan implementasi:
 
@@ -43,9 +43,9 @@ Catatan test:
 
 - Pada `NODE_ENV=test`, `requireAuth` mengembalikan user test otomatis agar pengujian route tidak butuh token nyata.
 
-## Middleware Rules
+## Proxy (Middleware) Rules
 
-Sumber utama: `middleware.ts`.
+Sumber utama: `src/proxy.ts`.
 
 Aturan inti:
 
@@ -55,6 +55,8 @@ Aturan inti:
 - Endpoint API selain public memerlukan token valid dan user aktif.
 - User superadmin dibatasi hanya untuk panel approval (`/admin-panel`) dan API superadmin (`/api/superadmin/*`).
 - User biasa tidak bisa akses route superadmin.
+- Middleware menormalisasi hostname loopback (`127.0.0.1` / `[::1]`) ke `localhost` agar cookie session tetap konsisten saat tab baru dibuka dengan alias hostname yang berbeda.
+- Pada sisi client, halaman auth dan shell juga menormalkan alias loopback (`127.0.0.1`, `[::1]`, `0.0.0.0`) ke `localhost` sebelum check session agar cookie host-only tetap terbaca konsisten.
 
 Aturan redirect halaman:
 

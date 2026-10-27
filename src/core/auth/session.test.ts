@@ -128,6 +128,28 @@ describe('session cookie helpers', () => {
     expect(res.cookies.get(AUTH_COOKIE_NAME)?.secure).toBe(true);
   });
 
+  it('should not mark the cookie secure on plain http localhost even when a proxy says https', () => {
+    const req = new NextRequest('http://localhost/api', {
+      headers: {
+        'x-forwarded-proto': 'https',
+      },
+    });
+    const res = NextResponse.json({});
+    setAuthCookie(req, res, 'token-value');
+    expect(res.cookies.get(AUTH_COOKIE_NAME)?.secure).toBe(false);
+  });
+
+  it('should mark the cookie secure for non-localhost domains behind https proxy', () => {
+    const req = new NextRequest('http://app.planify.local/api', {
+      headers: {
+        'x-forwarded-proto': 'https',
+      },
+    });
+    const res = NextResponse.json({});
+    setAuthCookie(req, res, 'token-value');
+    expect(res.cookies.get(AUTH_COOKIE_NAME)?.secure).toBe(true);
+  });
+
   it('should not mark the cookie secure on plain http', () => {
     const req = new NextRequest('http://localhost/api');
     const res = NextResponse.json({});
