@@ -187,13 +187,17 @@ export default function CashLogList({
     [now],
   );
 
-  const fetchLogs = async (monthFilter: MonthFilter, searchQuery: string) => {
+  const fetchLogs = async (
+    monthFilter: MonthFilter,
+    searchQuery: string = '',
+  ) => {
     setLoading(true);
     setError(null);
 
     try {
-      const monthForQuery = resolveMonthForQuery(monthFilter, searchQuery);
-      const data = await cashLogService.getAll(monthForQuery, searchQuery);
+      const normalizedQuery = searchQuery.trim();
+      const monthForQuery = resolveMonthForQuery(monthFilter, normalizedQuery);
+      const data = await cashLogService.getAll(monthForQuery, normalizedQuery);
       setLogs(data);
     } catch {
       setError('Failed to fetch cash logs');
@@ -336,7 +340,7 @@ export default function CashLogList({
     });
     if (result) {
       await fetchWallets();
-      fetchLogs(selectedMonth);
+      await fetchLogs(selectedMonth, debouncedDescription);
     }
   };
 
