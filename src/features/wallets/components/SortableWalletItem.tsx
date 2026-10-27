@@ -11,6 +11,7 @@ interface SortableWalletItemProps {
   showNominal: boolean;
   totalAllocationBase: number;
   onOpenCashLog: (wallet: Wallets) => void;
+  onTransaction: (wallet: Wallets) => void;
   onEdit: (wallet: Wallets) => void;
   onTransfer: (wallet: Wallets) => void;
   onDelete: (wallet: Wallets) => void;
@@ -23,6 +24,7 @@ export default function SortableWalletItem({
   showNominal,
   totalAllocationBase,
   onOpenCashLog,
+  onTransaction,
   onEdit,
   onTransfer,
   onDelete,
@@ -208,6 +210,7 @@ export default function SortableWalletItem({
         </span>
         <MenuActions
           onEdit={() => onEdit(wallet)}
+          onTransaction={() => onTransaction(wallet)}
           onTransfer={() => onTransfer(wallet)}
           onDelete={() => onDelete(wallet)}
           canDelete={canDelete}

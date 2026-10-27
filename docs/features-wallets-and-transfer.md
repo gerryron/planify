@@ -43,6 +43,10 @@ Saat create/update wallet mengubah saldo:
 - Category penyesuaian memakai `Transfer In` (saldo naik) atau `Transfer Out` (saldo turun); untuk wallet `credit_card` arahnya dibalik.
 - Log penyesuaian diberi `excludeFromReport=true`.
 
+## Quick Transaction dari Wallet
+
+Pada daftar wallet, action menu setiap item kini juga menyediakan opsi `Transaction` untuk langsung membuka form transaksi baru yang terhubung ke wallet yang dipilih. Saat dipilih, halaman cash log dibuka dengan query param `walletId` dan `new=1`, lalu form otomatis terbuka dengan wallet default yang sesuai.
+
 ## Transfer Antar Wallet
 
 Endpoint: `POST /api/wallets/transfer`

@@ -42,6 +42,10 @@ Mencatat mutasi keuangan aktual dan menjaga konsistensi saldo wallet.
 - Nilai search disinkronkan ke URL melalui query `description` agar state tetap saat refresh/share.
 - Ketika `description` terisi, halaman melakukan pencarian menyeluruh lintas bulan (filter bulan diabaikan untuk request tersebut).
 
+## Quick Create dari Wallet
+
+Pada daftar wallet, action menu tiap item menambahkan opsi `Transaction` untuk membuka form transaksi baru secara cepat. Fitur ini memanggil halaman cash log dengan query `walletId` dan `new=1`, lalu form add transaction otomatis terbuka dengan wallet yang dipilih sebagai default. Ini membantu mempercepat pencatatan transaksi tanpa perlu memilih wallet lagi di form.
+
 ## Aturan Sinkronisasi Saldo
 
 - Delta saldo ditentukan dari `category.type`:

@@ -1,21 +1,25 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import CashLogList from '../../features/cash-log/components/CashLogList';
 import CashLogForm from '../../features/cash-log/components/CashLogForm';
 import { CashLog } from '../../features/cash-log/services/cashLogService';
+import { walletsService } from '@/features/wallets/services/walletsService';
 import { useModalKeyboard } from '@/shared/utils/useModalKeyboard';
 import { QUERY_KEYS } from '../../lib/queryClient';
 import { Card } from '@/components/ui/card';
 
 function CashLogPageContent() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const rawWalletId = searchParams.get('walletId');
   const initialWalletId = rawWalletId ? Number(rawWalletId) : null;
+  const shouldAutoOpenForm = searchParams.get('new') === '1';
   const [editing, setEditing] = useState<CashLog | null>(null);
   const [defaultWalletName, setDefaultWalletName] = useState<string | null>(
     null,
@@ -23,6 +27,35 @@ function CashLogPageContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const canUsePortal = typeof document !== 'undefined';
+
+  useEffect(() => {
+    if (!shouldAutoOpenForm) return;
+
+    let cancelled = false;
+
+    const openForm = async () => {
+      if (initialWalletId !== null && Number.isFinite(initialWalletId)) {
+        try {
+          const wallets = await walletsService.getAll();
+          if (cancelled) return;
+          const matchedWallet = wallets.find((wallet) => wallet.id === initialWalletId);
+          setDefaultWalletName(matchedWallet?.name ?? null);
+        } catch {
+          setDefaultWalletName(null);
+        }
+      }
+
+      if (!cancelled) {
+        setShowForm(true);
+      }
+    };
+
+    openForm();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialWalletId, shouldAutoOpenForm]);
 
   const handleEdit = (log: CashLog) => {
     setEditing(log);
@@ -36,9 +69,19 @@ function CashLogPageContent() {
     setShowForm(true);
   };
 
+  const clearAutoOpenFlag = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('new');
+
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  };
+
   const handleSuccess = () => {
     setEditing(null);
+    setDefaultWalletName(null);
     setShowForm(false);
+    clearAutoOpenFlag();
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CASH_LOGS() });
     queryClient.invalidateQueries({ queryKey: QUERY_KEYS.WALLETS });
     setRefreshKey((key) => key + 1);
@@ -48,6 +91,7 @@ function CashLogPageContent() {
     setEditing(null);
     setDefaultWalletName(null);
     setShowForm(false);
+    clearAutoOpenFlag();
   };
 
   const { containerRef: modalRef } = useModalKeyboard({

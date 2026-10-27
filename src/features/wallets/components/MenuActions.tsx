@@ -1,5 +1,11 @@
 import { ReactNode } from 'react';
-import { EllipsisVertical, Pencil, Trash2, ArrowLeftRight } from 'lucide-react';
+import {
+  EllipsisVertical,
+  Pencil,
+  Trash2,
+  ArrowLeftRight,
+  PlusCircle,
+} from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +16,7 @@ import {
 interface MenuActionsProps {
   onEdit: () => void;
   onDelete: () => void;
+  onTransaction?: () => void;
   onTransfer?: () => void;
   canDelete?: boolean;
   transferLabel?: string;
@@ -18,6 +25,7 @@ interface MenuActionsProps {
 
 export default function MenuActions({
   onEdit,
+  onTransaction,
   onTransfer,
   onDelete,
   canDelete = true,
@@ -37,6 +45,12 @@ export default function MenuActions({
           <Pencil size={16} className="mr-2" />
           Edit
         </DropdownMenuItem>
+        {onTransaction && (
+          <DropdownMenuItem onClick={onTransaction}>
+            <PlusCircle size={16} className="mr-2" />
+            Transaction
+          </DropdownMenuItem>
+        )}
         {onTransfer && (
           <DropdownMenuItem onClick={onTransfer}>
             <ArrowLeftRight size={16} className="mr-2" />

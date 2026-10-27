@@ -76,6 +76,15 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
     router.push(`/cash-log?walletId=${encodeURIComponent(String(wallet.id))}`);
   };
 
+  const handleTransaction = (wallet: Wallets) => {
+    const params = new URLSearchParams({
+      walletId: String(wallet.id),
+      new: '1',
+    });
+
+    router.push(`/cash-log?${params.toString()}`);
+  };
+
   if (error) return <div className='text-red-500'>{error}</div>;
 
   const renderSection = (walletList: Wallets[], zoneId: string, setDropRef: (node: HTMLElement | null) => void, isOver: boolean, label: string, emptyLabel: string) => {
@@ -90,7 +99,7 @@ export default function WalletsList({ onEdit, onTransfer, onTrackGoal, onAdd }: 
             <SortableContext items={walletList.map((w) => w.id)} strategy={verticalListSortingStrategy}>
               {walletList.map((wallet) => (
                 <SortableWalletItem key={wallet.id} wallet={wallet} showNominal={showNominal} totalAllocationBase={totalAllocationBase}
-                  onOpenCashLog={handleOpenCashLog} onEdit={onEdit} onTransfer={onTransfer} onDelete={handleDelete} onTrackGoal={onTrackGoal} canDelete={wallets.length > 1} />
+                  onOpenCashLog={handleOpenCashLog} onTransaction={handleTransaction} onEdit={onEdit} onTransfer={onTransfer} onDelete={handleDelete} onTrackGoal={onTrackGoal} canDelete={wallets.length > 1} />
               ))}
             </SortableContext>
           )}
