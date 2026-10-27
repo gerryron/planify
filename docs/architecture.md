@@ -54,6 +54,14 @@ Setiap feature memiliki struktur standar:
 - `QueryClientProvider` di root layout via `src/shared/providers/QueryProvider.tsx`
 - Custom hooks (`useWallets`, `useCategories`, `useCashLogs`, `useMonthlyBudgets`) menyediakan query + mutation
 
+### Theme Management
+
+- Theme class (`dark`) diatur pada root document melalui `src/shared/theme/ThemeProvider.tsx`.
+- Preferensi user disimpan di `localStorage` key `darkMode` setelah user melakukan toggle di sidebar.
+- Jika belum ada preferensi tersimpan, default theme mengikuti preferensi sistem/browser (`prefers-color-scheme`).
+- Halaman autentikasi (`/`, `/login`, `/register`) mengikuti mode aktif yang sama (tidak dipaksa light mode).
+- Area utama setelah login (termasuk sidebar/menu) juga mengikuti system theme secara otomatis selama user belum memilih toggle manual.
+
 ## Alur Request (Ringkas)
 
 1. Request masuk ke middleware.

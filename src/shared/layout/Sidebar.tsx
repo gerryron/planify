@@ -4,6 +4,11 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { getQueuedWriteCount } from '@/shared/pwa/writeQueueClient';
 import { authService, type SessionUser } from '@/features/auth/services/authService';
+import {
+  DARK_MODE_STORAGE_KEY,
+  getStoredDarkModePreference,
+  resolveInitialDarkMode,
+} from '@/shared/theme/themePreference';
 import SidebarMobile from './SidebarMobile';
 import SidebarDesktop from './SidebarDesktop';
 import type { SidebarData } from './SidebarNavContent';
@@ -11,6 +16,7 @@ import type { SidebarData } from './SidebarNavContent';
 export default function Sidebar() {
   const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
+  const [hasManualThemePreference, setHasManualThemePreference] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -56,14 +62,34 @@ export default function Sidebar() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    requestAnimationFrame(() => {
-      setMounted(true);
-      const isDark = localStorage.getItem('darkMode') === 'true';
-      const desktopOpen = localStorage.getItem('desktopSidebarOpen');
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const storedThemePreference = getStoredDarkModePreference();
+    const isDark = storedThemePreference ?? resolveInitialDarkMode();
+    const desktopOpen = localStorage.getItem('desktopSidebarOpen');
+    const frameId = window.requestAnimationFrame(() => {
       syncThemeClass(isDark);
       setDarkMode(isDark);
+      setHasManualThemePreference(storedThemePreference !== null);
+      setMounted(true);
       if (desktopOpen !== null) setIsDesktopOpen(desktopOpen === 'true');
     });
+
+    if (storedThemePreference !== null) {
+      return () => {
+        window.cancelAnimationFrame(frameId);
+      };
+    }
+
+    const handleSystemThemeChange = (event: MediaQueryListEvent) => {
+      setDarkMode(event.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -76,12 +102,29 @@ export default function Sidebar() {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => { if (mounted) syncThemeClass(darkMode); localStorage.setItem('darkMode', darkMode.toString()); }, [darkMode, mounted]);
+  useEffect(() => {
+    if (!mounted) return;
+
+    syncThemeClass(darkMode);
+    if (hasManualThemePreference) {
+      localStorage.setItem(DARK_MODE_STORAGE_KEY, darkMode.toString());
+      return;
+    }
+
+    localStorage.removeItem(DARK_MODE_STORAGE_KEY);
+  }, [darkMode, hasManualThemePreference, mounted]);
   useEffect(() => { if (mounted) localStorage.setItem('desktopSidebarOpen', isDesktopOpen.toString()); }, [isDesktopOpen, mounted]);
 
   useEffect(() => {
     return () => { if (themeAnimationTimerRef.current) clearTimeout(themeAnimationTimerRef.current); };
   }, []);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('theme-switching', isThemeAnimating);
+    return () => {
+      document.documentElement.classList.remove('theme-switching');
+    };
+  }, [isThemeAnimating]);
 
   useEffect(() => {
     if (!isMobileOpen) return;
@@ -112,6 +155,7 @@ export default function Sidebar() {
     const animationMs = typeof window !== 'undefined' && window.innerWidth < 768
       ? THEME_SWITCH_ANIMATION_MS_MOBILE : THEME_SWITCH_ANIMATION_MS_DESKTOP;
     setIsThemeAnimating(true);
+    setHasManualThemePreference(true);
     setDarkMode((v) => !v);
     if (themeAnimationTimerRef.current) clearTimeout(themeAnimationTimerRef.current);
     themeAnimationTimerRef.current = setTimeout(() => { setIsThemeAnimating(false); themeAnimationTimerRef.current = null; }, animationMs);

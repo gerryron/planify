@@ -154,11 +154,11 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
   };
 
   return (
-    <section className='relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-linear-to-b from-emerald-50 via-white to-teal-50'>
-      <div className='pointer-events-none absolute -left-24 top-6 h-44 w-44 rounded-full bg-emerald-200/50 blur-2xl' />
-      <div className='pointer-events-none absolute -right-20 bottom-6 h-52 w-52 rounded-full bg-teal-200/45 blur-2xl' />
+    <section className='relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-linear-to-b from-emerald-50 via-white to-teal-50 dark:from-slate-950 dark:via-slate-950 dark:to-black'>
+      <div className='pointer-events-none absolute -left-24 top-6 h-44 w-44 rounded-full bg-emerald-200/50 blur-2xl dark:bg-emerald-950/30' />
+      <div className='pointer-events-none absolute -right-20 bottom-6 h-52 w-52 rounded-full bg-teal-200/45 blur-2xl dark:bg-teal-950/25' />
 
-      <div className='grid min-h-screen w-full bg-white/95 lg:min-h-180 lg:max-w-6xl lg:grid-cols-[1.15fr_1fr] lg:overflow-hidden lg:rounded-2xl'>
+      <div className='grid min-h-screen w-full bg-white/95 dark:bg-slate-950/90 lg:min-h-180 lg:max-w-6xl lg:grid-cols-[1.15fr_1fr] lg:overflow-hidden lg:rounded-2xl lg:shadow-2xl lg:shadow-slate-900/30'>
         <aside className='relative hidden flex-col justify-between gap-8 bg-linear-to-br from-emerald-700 via-emerald-600 to-teal-600 p-10 text-white lg:flex'>
           <div>
             <div className='inline-flex items-center rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm'>
@@ -189,14 +189,14 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
           </div>
         </aside>
 
-        <div className='mx-auto flex w-full max-w-md flex-col justify-center px-6 py-10 sm:px-8 lg:max-w-none lg:px-10'>
+        <div className='mx-auto flex w-full max-w-md flex-col justify-center bg-white px-6 py-10 dark:bg-slate-100 sm:px-8 lg:max-w-none lg:border-l lg:border-slate-200/80 lg:px-12 lg:dark:border-slate-700/70'>
           <div className='mb-6 flex items-center justify-center lg:justify-start'>
             <Image
               src='/brand/planify-wordmark.svg'
               alt='Planify'
               width={150}
               height={34}
-              className='h-7 w-auto'
+              className='h-7 w-auto rounded bg-white/90 px-1 py-0.5'
             />
           </div>
 
@@ -245,7 +245,7 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
                   required
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className='w-full rounded-lg bg-slate-100 px-3 py-2 outline-none focus:bg-emerald-50'
+                  className='w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none focus:border-emerald-300 focus:bg-emerald-50'
                   placeholder='Your full name'
                 />
               </div>
@@ -260,7 +260,7 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className='w-full rounded-lg bg-slate-100 px-3 py-2 outline-none focus:bg-emerald-50'
+                className='w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-900 outline-none focus:border-emerald-300 focus:bg-emerald-50'
                 placeholder='you@email.com'
               />
             </div>
@@ -276,7 +276,7 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
                   minLength={mode === 'register' ? 8 : undefined}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className='w-full rounded-lg bg-slate-100 px-3 py-2 pr-16 outline-none focus:bg-emerald-50'
+                  className='w-full rounded-lg border border-slate-200 bg-white px-3 py-2 pr-16 text-slate-900 outline-none focus:border-emerald-300 focus:bg-emerald-50'
                   placeholder={
                     mode === 'register' ? 'Minimum 8 characters' : '********'
                   }
@@ -326,7 +326,7 @@ export default function AuthEntryPage({ mode }: AuthEntryPageProps) {
                     minLength={8}
                     value={confirmPassword}
                     onChange={(event) => setConfirmPassword(event.target.value)}
-                    className='w-full rounded-lg bg-slate-100 px-3 py-2 pr-16 outline-none focus:bg-emerald-50'
+                    className='w-full rounded-lg border border-slate-200 bg-white px-3 py-2 pr-16 text-slate-900 outline-none focus:border-emerald-300 focus:bg-emerald-50'
                     placeholder='Re-enter your password'
                   />
                   <button

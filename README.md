@@ -70,6 +70,7 @@ Prinsip pengembangan ada di [.specify/memory/constitution.md](.specify/memory/co
 - Wallets: basic, goal, dan credit card.
 - Wallet Transfer: transfer antar wallet dengan opsi fee.
 - Categories: struktur parent-child sederhana untuk income/outcome.
+- Theme adaptif: default mengikuti preferensi dark/light sistem atau browser, dan bisa di-toggle dari sidebar.
 - PWA + Offline Queue: request write tetap tersimpan saat offline.
 - Superadmin Approval: kontrol aktivasi user baru.
 

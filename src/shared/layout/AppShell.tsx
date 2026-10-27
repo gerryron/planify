@@ -12,13 +12,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname === '/' || pathname === '/login' || pathname === '/register';
 
   useEffect(() => {
-    if (!isAuthPage) return;
-
-    // Auth screens are designed with light surfaces.
-    document.documentElement.classList.remove('dark');
-  }, [isAuthPage]);
-
-  useEffect(() => {
     if (isAuthPage) return;
 
     let mounted = true;

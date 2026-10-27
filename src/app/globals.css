@@ -5,6 +5,12 @@ body,
     background-color 0.5s,
     color 0.5s;
 }
+
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
 @import 'tailwindcss';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
