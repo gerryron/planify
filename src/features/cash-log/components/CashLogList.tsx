@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Lock,
@@ -28,6 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  buildDescriptionSyncedUrl,
+  resolveMonthForQuery,
+} from '@/features/cash-log/utils/searchFilters';
 
 interface CashLogListProps {
   onEdit: (log: CashLog) => void;
@@ -158,6 +163,15 @@ export default function CashLogList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNominal, setShowNominal] = useState(true);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [descriptionQuery, setDescriptionQuery] = useState(
+    () => searchParams.get('description') ?? '',
+  );
+  const [debouncedDescription, setDebouncedDescription] = useState(
+    () => (searchParams.get('description') ?? '').trim(),
+  );
   const hasAppliedInitialWalletRef = useRef(false);
   const monthPickerRef = useRef<HTMLInputElement>(null);
   const confirm = useConfirm();
@@ -173,12 +187,13 @@ export default function CashLogList({
     [now],
   );
 
-  const fetchLogs = async (monthFilter: MonthFilter) => {
+  const fetchLogs = async (monthFilter: MonthFilter, searchQuery: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      const data = await cashLogService.getAll(monthFilter);
+      const monthForQuery = resolveMonthForQuery(monthFilter, searchQuery);
+      const data = await cashLogService.getAll(monthForQuery, searchQuery);
       setLogs(data);
     } catch {
       setError('Failed to fetch cash logs');
@@ -195,8 +210,16 @@ export default function CashLogList({
   };
 
   useEffect(() => {
-    fetchLogs(selectedMonth);
-  }, [selectedMonth]);
+    const timer = window.setTimeout(() => {
+      setDebouncedDescription(descriptionQuery.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [descriptionQuery]);
+
+  useEffect(() => {
+    fetchLogs(selectedMonth, debouncedDescription);
+  }, [selectedMonth, debouncedDescription]);
 
   useEffect(() => {
     fetchWallets();
@@ -224,8 +247,20 @@ export default function CashLogList({
   useEffect(() => {
     if (!refreshToken) return;
     fetchWallets();
-    fetchLogs(selectedMonth);
-  }, [refreshToken, selectedMonth]);
+    fetchLogs(selectedMonth, debouncedDescription);
+  }, [refreshToken, selectedMonth, debouncedDescription]);
+
+  useEffect(() => {
+    const currentDescription = searchParams.get('description')?.trim() ?? '';
+    if (currentDescription === debouncedDescription) return;
+
+    const href = buildDescriptionSyncedUrl(
+      pathname,
+      new URLSearchParams(searchParams.toString()),
+      debouncedDescription,
+    );
+    router.replace(href, { scroll: false });
+  }, [debouncedDescription, pathname, router, searchParams]);
 
   const sortedLogs = useMemo(() => {
     const selectedWallet = wallets.find(
@@ -285,17 +320,20 @@ export default function CashLogList({
   }, [wallets]);
 
   const handleDelete = async (id: number) => {
-    if (!await confirm({
-      title: 'Delete this entry?',
-      description: 'This action cannot be undone.',
-      confirmLabel: 'Delete',
-      variant: 'destructive',
-    })) return;
+    if (
+      !(await confirm({
+        title: 'Delete this entry?',
+        description: 'This action cannot be undone.',
+        confirmLabel: 'Delete',
+        variant: 'destructive',
+      }))
+    )
+      return;
 
-    const result = await asyncToast(
-      () => cashLogService.remove(id),
-      { success: 'Deleted!', error: 'Failed to delete entry' }
-    );
+    const result = await asyncToast(() => cashLogService.remove(id), {
+      success: 'Deleted!',
+      error: 'Failed to delete entry',
+    });
     if (result) {
       await fetchWallets();
       fetchLogs(selectedMonth);
@@ -316,13 +354,12 @@ export default function CashLogList({
                 setSelectedWalletId(value === 'all' ? 'all' : Number(value));
               }}
             >
-              <SelectTrigger
-                className='w-full min-h-11 bg-card border-slate-300 dark:border-slate-700'
-              >
+              <SelectTrigger className='w-full min-h-11 bg-card border-slate-300 dark:border-slate-700'>
                 <SelectValue placeholder='Select wallet'>
                   {selectedWalletId === 'all'
                     ? 'All Wallets'
-                    : wallets.find(w => w.id === selectedWalletId)?.name || String(selectedWalletId)}
+                    : wallets.find((w) => w.id === selectedWalletId)?.name ||
+                      String(selectedWalletId)}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -376,11 +413,7 @@ export default function CashLogList({
                   alignItems: 'center',
                 }}
               >
-                {showNominal ? (
-                  <Lock size={16} />
-                ) : (
-                  <LockOpen size={16} />
-                )}
+                {showNominal ? <Lock size={16} /> : <LockOpen size={16} />}
               </button>
             </div>
           </div>
@@ -393,6 +426,17 @@ export default function CashLogList({
               + Add Transaction
             </button>
           </div>
+        </div>
+
+        <div className='mb-3'>
+          <input
+            id='cash-log-search'
+            type='search'
+            value={descriptionQuery}
+            onChange={(event) => setDescriptionQuery(event.target.value)}
+            placeholder='Type description keyword...'
+            className='w-full min-h-11 rounded-md border border-slate-300 bg-card px-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:focus:ring-emerald-900'
+          />
         </div>
 
         <div className='mb-2 w-full flex items-center gap-2 overflow-x-auto pb-1'>
@@ -477,7 +521,7 @@ export default function CashLogList({
         </div>
       </div>
 
-      <Card className="overflow-visible">
+      <Card className='overflow-visible'>
         <CardContent>
           {loading ? (
             <div className='min-h-56 flex items-center justify-center'>
@@ -487,7 +531,11 @@ export default function CashLogList({
               />
             </div>
           ) : sortedLogs.length === 0 ? (
-            <div>No cash log entries found.</div>
+            <div>
+              {descriptionQuery.trim()
+                ? 'No cash log entries match your description search.'
+                : 'No cash log entries found.'}
+            </div>
           ) : (
             <div className='space-y-4'>
               {Object.entries(groupedLogs).map(([date, dateLogs]) => (

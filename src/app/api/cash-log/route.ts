@@ -303,13 +303,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const date = req.nextUrl.searchParams.get('date');
     const month = req.nextUrl.searchParams.get('month');
+    const descriptionQuery = req.nextUrl.searchParams.get('description')?.trim();
+    const descriptionFilter = descriptionQuery
+      ? {
+          description: { contains: descriptionQuery, mode: 'insensitive' as const },
+        }
+      : {};
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const nextMonthStart = `${now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear()}-${String(((now.getMonth() + 1) % 12) + 1).padStart(2, '0')}-01`;
 
     if (date) {
       const logs = await prisma.cashLog.findMany({
-        where: { date, userId: auth.user.sub },
+        where: { date, userId: auth.user.sub, ...descriptionFilter },
         orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
@@ -327,7 +333,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (month === 'future') {
       const logs = await prisma.cashLog.findMany({
-        where: { userId: auth.user.sub, date: { gte: nextMonthStart } },
+        where: {
+          userId: auth.user.sub,
+          date: { gte: nextMonthStart },
+          ...descriptionFilter,
+        },
         orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
@@ -345,7 +355,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (month && month > currentMonth) {
       const logs = await prisma.cashLog.findMany({
-        where: { userId: auth.user.sub },
+        where: { userId: auth.user.sub, ...descriptionFilter },
         orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
@@ -363,7 +373,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (month) {
       const logs = await prisma.cashLog.findMany({
-        where: { userId: auth.user.sub, date: { startsWith: month } },
+        where: {
+          userId: auth.user.sub,
+          date: { startsWith: month },
+          ...descriptionFilter,
+        },
         orderBy: [{ id: 'desc' }, { date: 'desc' }],
         include: {
           category: {
@@ -380,7 +394,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     const logs = await prisma.cashLog.findMany({
-      where: { userId: auth.user.sub },
+      where: { userId: auth.user.sub, ...descriptionFilter },
       orderBy: [{ id: 'desc' }, { date: 'desc' }],
       include: {
         category: {

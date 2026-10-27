@@ -143,6 +143,7 @@ jest.mock('@/generated/prisma/client', () => {
                 date?:
                   | string
                   | { startsWith?: string; gt?: string; gte?: string };
+                description?: { contains?: string; mode?: 'insensitive' };
               };
               orderBy?: Array<{
                 id?: 'asc' | 'desc';
@@ -170,6 +171,14 @@ jest.mock('@/generated/prisma/client', () => {
                   const gte = dateFilter.gte;
                   result = result.filter((log) => log.date >= gte);
                 }
+              }
+
+              const descriptionFilter = where?.description;
+              if (descriptionFilter?.contains) {
+                const needle = descriptionFilter.contains.toLowerCase();
+                result = result.filter((log) =>
+                  log.description.toLowerCase().includes(needle),
+                );
               }
 
               if (orderBy?.length) {
@@ -311,6 +320,23 @@ describe('Cash Log API', () => {
     const data: CashLog[] = await res.json();
     expect(data.length).toBeGreaterThanOrEqual(1);
     expect(data.every((log) => log.date === '2026-02-25')).toBe(true);
+  });
+
+  it('should filter cash logs by description query (case-insensitive)', async () => {
+    const req = new NextRequest(
+      'http://localhost/api/cash-log?description=freelance',
+    );
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+
+    const data: CashLog[] = await res.json();
+    expect(data.length).toBeGreaterThanOrEqual(1);
+    expect(
+      data.every((log) =>
+        log.description.toLowerCase().includes('freelance'),
+      ),
+    ).toBe(true);
   });
 
   it('should return only next month onward for future filter', async () => {

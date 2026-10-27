@@ -3,10 +3,12 @@ import { cashLogService, type CashLog } from '../services/cashLogService';
 import type { CashLogInput } from '../types/cashLog';
 import { QUERY_KEYS } from '@/lib/queryClient';
 
-export function useCashLogs(month?: string) {
+export function useCashLogs(month?: string, description?: string) {
+  const normalizedDescription = description?.trim() ?? '';
+
   return useQuery<CashLog[]>({
-    queryKey: QUERY_KEYS.CASH_LOGS(),
-    queryFn: () => cashLogService.getAll(month),
+    queryKey: [...QUERY_KEYS.CASH_LOGS(), { month: month ?? null, description: normalizedDescription }],
+    queryFn: () => cashLogService.getAll(month, normalizedDescription),
   });
 }
 

@@ -259,7 +259,7 @@ export const openApiSpec = {
         tags: ['Cash Log'],
         summary: 'Ambil cash log terbaru',
         description:
-          'Data diurutkan terbaru berdasarkan id desc. Mendukung filter date=YYYY-MM-DD, month=YYYY-MM, dan month=future.',
+          'Data diurutkan terbaru berdasarkan id desc. Mendukung filter date=YYYY-MM-DD, month=YYYY-MM, month=future, dan description (partial match, case-insensitive).',
         parameters: [
           {
             in: 'query',
@@ -273,6 +273,13 @@ export const openApiSpec = {
             required: false,
             schema: { type: 'string', example: '2026-03' },
             description: "Bisa juga bernilai 'future'",
+          },
+          {
+            in: 'query',
+            name: 'description',
+            required: false,
+            schema: { type: 'string', example: 'lunch' },
+            description: 'Cari deskripsi transaksi (case-insensitive, partial match).',
           },
         ],
         responses: {

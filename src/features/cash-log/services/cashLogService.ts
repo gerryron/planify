@@ -7,8 +7,14 @@ import {
 export type CashLog = CashLogResponse;
 
 export const cashLogService = {
-  async getAll(month?: string): Promise<CashLog[]> {
-    const query = month ? `?month=${encodeURIComponent(month)}` : '';
+  async getAll(month?: string, description?: string): Promise<CashLog[]> {
+    const params = new URLSearchParams();
+    if (month) params.set('month', month);
+    const normalizedDescription = description?.trim();
+    if (normalizedDescription) {
+      params.set('description', normalizedDescription);
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
     return apiClient.get(`/api/cash-log${query}`);
   },
 

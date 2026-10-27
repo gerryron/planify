@@ -88,7 +88,7 @@ describe('useCashLogs', () => {
 
     expect(result.current.data).toEqual(mockCashLogs);
     expect(result.current.isLoading).toBe(false);
-    expect(cashLogService.getAll).toHaveBeenCalledWith(undefined);
+    expect(cashLogService.getAll).toHaveBeenCalledWith(undefined, '');
     expect(cashLogService.getAll).toHaveBeenCalledTimes(1);
   });
 
@@ -103,7 +103,22 @@ describe('useCashLogs', () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(cashLogService.getAll).toHaveBeenCalledWith('2026-07');
+    expect(cashLogService.getAll).toHaveBeenCalledWith('2026-07', '');
+    expect(cashLogService.getAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts a description parameter and passes it to the service', async () => {
+    (cashLogService.getAll as jest.Mock).mockResolvedValue(mockCashLogs);
+
+    const { result } = renderHook(() => useCashLogs('2026-07', 'lunch'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(cashLogService.getAll).toHaveBeenCalledWith('2026-07', 'lunch');
     expect(cashLogService.getAll).toHaveBeenCalledTimes(1);
   });
 

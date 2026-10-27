@@ -32,7 +32,15 @@ Mencatat mutasi keuangan aktual dan menjaga konsistensi saldo wallet.
 - `?date=YYYY-MM-DD`: filter tepat tanggal.
 - `?month=YYYY-MM`: filter prefix tanggal sesuai bulan.
 - `?month=future`: transaksi dari awal bulan berikutnya.
+- `?description=<keyword>`: filter deskripsi transaksi (case-insensitive, partial match).
 - Jika `month` lebih besar dari bulan berjalan: route mengembalikan seluruh log user.
+- `description` bisa digabung dengan `date`/`month` untuk mempersempit hasil.
+
+## Behavior Search di Halaman Cash Log
+
+- Input search description menggunakan debounce `350ms` untuk mengurangi request beruntun saat mengetik.
+- Nilai search disinkronkan ke URL melalui query `description` agar state tetap saat refresh/share.
+- Ketika `description` terisi, halaman melakukan pencarian menyeluruh lintas bulan (filter bulan diabaikan untuk request tersebut).
 
 ## Aturan Sinkronisasi Saldo
 

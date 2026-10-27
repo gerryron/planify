@@ -26,7 +26,7 @@ Dokumen ini adalah ringkasan endpoint berdasarkan implementasi route di `src/app
 
 | Method   | Path            | Kegunaan         | Catatan                                               |
 | -------- | --------------- | ---------------- | ----------------------------------------------------- |
-| `GET`    | `/api/cash-log` | Ambil transaksi  | Query: `date`, `month`, `month=future`                |
+| `GET`    | `/api/cash-log` | Ambil transaksi  | Query: `date`, `month`, `month=future`, `description` |
 | `POST`   | `/api/cash-log` | Buat transaksi   | Update saldo wallet otomatis                          |
 | `PATCH`  | `/api/cash-log` | Update transaksi | Rehitung saldo wallet, termasuk kasus linked transfer |
 | `DELETE` | `/api/cash-log` | Hapus transaksi  | Rollback dampak saldo; linked transfer ikut dihapus   |
